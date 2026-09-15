@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { site, instagramUrl, reservaHref } from "@/config/site";
+import { instagramUrl } from "@/config/site";
+import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 
-export default function Footer() {
+export default async function Footer() {
+  const site = await getSiteConfig();
   const ano = new Date().getFullYear();
   return (
     <footer className="footer">
@@ -16,7 +18,7 @@ export default function Footer() {
           </div>
           <div className="footer__col">
             <Link href="/programacao">Programação</Link>
-            <a href={reservaHref()} target="_blank" rel="noopener noreferrer">Reservar mesa</a>
+            <a href={reservaHrefFrom(site)} target="_blank" rel="noopener noreferrer">Reservar mesa</a>
             <a href={instagramUrl(site.instagram)} target="_blank" rel="noopener noreferrer">@{site.instagram}</a>
             <a href={site.casa.mapsUrl} target="_blank" rel="noopener noreferrer">Como chegar</a>
           </div>

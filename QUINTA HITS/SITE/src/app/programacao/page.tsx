@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { site, reservaHref } from "@/config/site";
+import { site } from "@/config/site";
+import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 import { edicoesAnteriores, proximasEdicoes } from "@/lib/programacao";
 import ProgramacaoFiltro from "@/components/ProgramacaoFiltro";
 import Marquee from "@/components/Marquee";
@@ -12,10 +13,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/programacao" },
 };
 
-export default function Programacao() {
+export default async function Programacao() {
   const agora = new Date();
-  const proximas = proximasEdicoes(agora, 6);
-  const anteriores = edicoesAnteriores(agora);
+  const cfg = await getSiteConfig();
+  const proximas = await proximasEdicoes(agora, 6);
+  const anteriores = await edicoesAnteriores(agora);
 
   return (
     <>
@@ -26,7 +28,7 @@ export default function Programacao() {
               <div className="eyebrow">Programação</div>
               <h1 className="display h-1" style={{ margin: "6px 0 0" }}>Toda quinta. Sempre.</h1>
             </div>
-            <a className="btn btn--terracota" href={reservaHref()} target="_blank" rel="noopener noreferrer">
+            <a className="btn btn--terracota" href={reservaHrefFrom(cfg)} target="_blank" rel="noopener noreferrer">
               Reservar mesa
             </a>
           </div>

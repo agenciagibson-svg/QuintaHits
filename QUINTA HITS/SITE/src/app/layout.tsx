@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { site } from "@/config/site";
+import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HojeBanner from "@/components/HojeBanner";
@@ -33,7 +34,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cfg = await getSiteConfig();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "EventSeries",
@@ -58,7 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-        <HojeBanner />
+        <HojeBanner reservaUrl={reservaHrefFrom(cfg)} />
         <Header />
         <main>{children}</main>
         <Footer />

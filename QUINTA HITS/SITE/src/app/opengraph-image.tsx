@@ -12,7 +12,7 @@ export const contentType = "image/png";
 export default async function Image() {
   const svg = await readFile(join(process.cwd(), "public", "brand", "logo-placa.svg"));
   const logo = `data:image/svg+xml;base64,${svg.toString("base64")}`;
-  const prox = proximaEdicao();
+  const prox = await proximaEdicao();
 
   return new ImageResponse(
     (

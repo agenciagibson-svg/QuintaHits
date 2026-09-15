@@ -1,9 +1,10 @@
 import { formatData, mesCurto, type Edicao } from "@/lib/programacao";
-import { site, instagramUrl, reservaHref } from "@/config/site";
+import { instagramUrl, type site as siteType } from "@/config/site";
+import { reservaHrefFrom } from "@/lib/siteConfig";
 import Aba from "./Aba";
 import Compartilhar from "./Compartilhar";
 
-export default function ProximaEdicao({ edicao }: { edicao: Edicao }) {
+export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: typeof siteType }) {
   const [, , dia] = edicao.data.split("-");
   const mes = mesCurto(edicao.data);
   const horario = edicao.horario || site.horarioPadrao;
@@ -45,7 +46,7 @@ export default function ProximaEdicao({ edicao }: { edicao: Edicao }) {
           )}
         </div>
         <div className="proxima__acoes">
-          <a className="btn btn--terracota" href={reservaHref()} target="_blank" rel="noopener noreferrer">
+          <a className="btn btn--terracota" href={reservaHrefFrom(site)} target="_blank" rel="noopener noreferrer">
             Reservar mesa
           </a>
           <Compartilhar titulo={site.nome} texto={textoShare} url={site.url} />

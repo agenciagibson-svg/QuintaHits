@@ -1,4 +1,4 @@
-import dados from "@/data/programacao.json";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { site } from "@/config/site";
 
 export type Genero = "rock" | "pop-rock" | "hits" | "2000s" | "dj" | "mpb" | "special" | "";
@@ -62,21 +62,47 @@ export function proximaQuintaISO(agora = new Date()): string {
 }
 
 /** Instante (UTC) em que a próxima quinta começa em Uberlândia, às 00:00 ou no horário padrão. */
-export function inicioProximaQuinta(agora = new Date()): Date {
+export function inicioProximaQuinta(agora = new Date(), horarioPadrao = site.horarioPadrao): Date {
   const iso = proximaQuintaISO(agora);
-  const hora = /^(\d{1,2})h/.exec(site.horarioPadrao)?.[1] ?? "0";
+  const hora = /^(\d{1,2})h/.exec(horarioPadrao)?.[1] ?? "0";
   // Uberlândia = UTC-3 sem horário de verão
   return new Date(`${iso}T${hora.padStart(2, "0")}:00:00-03:00`);
 }
 
-export function todasEdicoes(): Edicao[] {
-  return (dados as Edicao[]).slice().sort((a, b) => a.data.localeCompare(b.data));
+function placeholder(iso: string, casaNome = site.casa.nome): Edicao {
+  return {
+    id: iso,
+    data: iso,
+    artista: "",
+    instagram: "",
+    tema: "",
+    genero: "",
+    horario: "",
+    local: casaNome,
+    status: "a_confirmar",
+    destaque: "",
+  };
+}
+
+/** Busca todas as edições cadastradas no banco, ordenadas por data. */
+export async function todasEdicoes(): Promise<Edicao[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("edicoes")
+    .select("id, data, artista, instagram, tema, genero, horario, local, status, destaque")
+    .order("data", { ascending: true });
+
+  if (error) {
+    console.error("Erro ao buscar edições:", error.message);
+    return [];
+  }
+  return (data ?? []) as Edicao[];
 }
 
 /** Próximas edições. Se a próxima quinta não tiver registro, cria um placeholder "a confirmar". */
-export function proximasEdicoes(agora = new Date(), limite = 4): Edicao[] {
+export async function proximasEdicoes(agora = new Date(), limite = 4): Promise<Edicao[]> {
   const hoje = hojeISO(agora);
-  const futuras = todasEdicoes().filter((e) => e.data >= hoje && e.status !== "cancelada");
+  const todas = await todasEdicoes();
+  const futuras = todas.filter((e) => e.data >= hoje && e.status !== "cancelada");
   const proxQuinta = proximaQuintaISO(agora);
   const lista = futuras.some((e) => e.data === proxQuinta)
     ? futuras
@@ -90,28 +116,15 @@ export function proximasEdicoes(agora = new Date(), limite = 4): Edicao[] {
   return lista.sort((a, b) => a.data.localeCompare(b.data)).slice(0, limite);
 }
 
-export function edicoesAnteriores(agora = new Date()): Edicao[] {
+export async function edicoesAnteriores(agora = new Date()): Promise<Edicao[]> {
   const hoje = hojeISO(agora);
-  return todasEdicoes().filter((e) => e.data < hoje && e.status === "realizada").reverse();
+  const todas = await todasEdicoes();
+  return todas.filter((e) => e.data < hoje && e.status === "realizada").reverse();
 }
 
-export function proximaEdicao(agora = new Date()): Edicao {
-  return proximasEdicoes(agora, 1)[0];
-}
-
-function placeholder(iso: string): Edicao {
-  return {
-    id: iso,
-    data: iso,
-    artista: "",
-    instagram: "",
-    tema: "",
-    genero: "",
-    horario: "",
-    local: site.casa.nome,
-    status: "a_confirmar",
-    destaque: "",
-  };
+export async function proximaEdicao(agora = new Date()): Promise<Edicao> {
+  const [e] = await proximasEdicoes(agora, 1);
+  return e;
 }
 
 const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { hojeISO, inicioProximaQuinta, proximaEdicao } from "@/lib/programacao";
-import { site, reservaHref } from "@/config/site";
+import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 
 export const dynamic = "force-dynamic";
 
 /** GET /api/proxima — a próxima quinta, com contagem em segundos e link de reserva. */
-export function GET() {
+export async function GET() {
   const agora = new Date();
-  const edicao = proximaEdicao(agora);
-  const inicio = inicioProximaQuinta(agora);
+  const site = await getSiteConfig();
+  const edicao = await proximaEdicao(agora);
+  const inicio = inicioProximaQuinta(agora, site.horarioPadrao);
   return NextResponse.json(
     {
       hoje: hojeISO(agora),
@@ -17,7 +18,7 @@ export function GET() {
       inicio: inicio.toISOString(),
       segundosRestantes: Math.max(0, Math.floor((inicio.getTime() - agora.getTime()) / 1000)),
       casa: site.casa.nome,
-      reserva: reservaHref(),
+      reserva: reservaHrefFrom(site),
       assinatura: site.assinatura,
     },
     { headers: { "Cache-Control": "no-store" } },

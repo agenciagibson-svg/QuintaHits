@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { reservaHref } from "@/config/site";
 
 /** Faixa que só aparece quando é quinta-feira em Uberlândia. */
-export default function HojeBanner() {
+export default function HojeBanner({ reservaUrl }: { reservaUrl: string }) {
   const [quinta, setQuinta] = useState(false);
 
   useEffect(() => {
@@ -16,7 +15,7 @@ export default function HojeBanner() {
   return (
     <div className="hoje" role="status">
       Hoje é quinta. Tem Quinta Hits. —{" "}
-      <a href={reservaHref()} target="_blank" rel="noopener noreferrer">
+      <a href={reservaUrl} target="_blank" rel="noopener noreferrer">
         garanta sua mesa
       </a>
     </div>

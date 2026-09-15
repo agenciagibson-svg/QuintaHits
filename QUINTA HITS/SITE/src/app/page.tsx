@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { site, instagramUrl, reservaHref } from "@/config/site";
+import { instagramUrl } from "@/config/site";
+import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 import { edicoesAnteriores, formatData, inicioProximaQuinta, proximaEdicao, proximasEdicoes } from "@/lib/programacao";
 import Countdown from "@/components/Countdown";
 import Marquee from "@/components/Marquee";
@@ -18,12 +19,14 @@ const PILARES = [
   { n: "04", t: "Quinta que vira sexta", p: "A noite de Uberlândia começa aqui. Se é quinta, tem Hits — e o resto da semana que se ajeite." },
 ];
 
-export default function Home() {
+export default async function Home() {
   const agora = new Date();
-  const proxima = proximaEdicao(agora);
-  const proximas = proximasEdicoes(agora, 4);
-  const anteriores = edicoesAnteriores(agora);
-  const alvo = inicioProximaQuinta(agora).toISOString();
+  const site = await getSiteConfig();
+  const reserva = reservaHrefFrom(site);
+  const proxima = await proximaEdicao(agora);
+  const proximas = await proximasEdicoes(agora, 4);
+  const anteriores = await edicoesAnteriores(agora);
+  const alvo = inicioProximaQuinta(agora, site.horarioPadrao).toISOString();
 
   return (
     <>
@@ -40,7 +43,7 @@ export default function Home() {
               Música, amigos, drinks e encontros. Toda quinta, no {site.casa.nome}, em {site.cidade}.
             </p>
             <div className="hero__acoes">
-              <a className="btn btn--terracota" href={reservaHref()} target="_blank" rel="noopener noreferrer">
+              <a className="btn btn--terracota" href={reserva} target="_blank" rel="noopener noreferrer">
                 Reservar mesa
               </a>
               <Link className="btn btn--vazado" href="/programacao">Ver programação</Link>
@@ -55,7 +58,7 @@ export default function Home() {
       {/* PRÓXIMA EDIÇÃO */}
       <section className="secao secao--verde" id="proxima">
         <div className="wrap">
-          <ProximaEdicao edicao={proxima} />
+          <ProximaEdicao edicao={proxima} site={site} />
         </div>
       </section>
 
@@ -146,7 +149,7 @@ export default function Home() {
             </dl>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <a className="btn btn--creme btn--p" href={site.casa.mapsUrl} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
-              <a className="btn btn--vazado btn--p" href={reservaHref()} target="_blank" rel="noopener noreferrer">Reservar mesa</a>
+              <a className="btn btn--vazado btn--p" href={reserva} target="_blank" rel="noopener noreferrer">Reservar mesa</a>
             </div>
           </div>
         </div>
