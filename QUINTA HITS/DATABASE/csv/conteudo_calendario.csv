@@ -1,0 +1,6 @@
+id,evento_id,data_prevista,data_publicado,canal,formato,posicao_grid,pilar,tema,copy_id,criativo_id,hashtags,responsavel,status,url_publicado,observacoes
+CNT-001,,,,feed,4:5,linha1-esquerda,institucional,Campo verde — espaço negativo,,CRI-003,,,briefado,,"Publicar na sequência esquerda → centro → direita para formar a linha."
+CNT-002,,,,feed,4:5,linha1-centro,institucional,"Selo SE É QUINTA / Q / TEM HITS",COP-002,CRI-004,#QuintaHits #Uberlândia #TatuBola #MúsicaAoVivo #QuintaFeira,,briefado,,"Único post da linha com elemento gráfico."
+CNT-003,,,,feed,4:5,linha1-direita,institucional,Campo verde — espaço negativo,,CRI-005,,,briefado,,
+CNT-004,,,,feed,4:5,linha2,institucional,"Linha 2 — narrativa: o que é, recorrência, local, cidade, experiência, reservas",,,,,ideia,,"Diretriz estratégica apenas. Não produzir sem definição do Vitor."
+CNT-005,EVT-2026-09-17,,,feed,9:16,,programacao,Anúncio do artista da semana,,,,,ideia,,"Depende da definição do artista da edição 17/09."

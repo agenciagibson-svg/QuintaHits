@@ -1,0 +1,5 @@
+id,nome,tipo,localizacao,raio_km,idade_min,idade_max,generos,interesses,comportamentos,exclusoes,tamanho_estimado,origem,status,observacoes
+PUB-001,Uberlândia JHEAN,personalizado,Uberlândia/MG,,,,,,,,,turbinar_post,arquivado,"Público usado no impulsionamento de 27/08. Entrega real: 100% Minas Gerais, 55,2% fem / 44,8% masc, sem faixa 18-24."
+PUB-002,QH | Uberlândia 23-45 | Rock e Nightlife,salvo,Uberlândia/MG,,23,45,todos,"rock, pop rock, música ao vivo, bares, vida noturna, shows",,"",,gerenciador,rascunho,"Proposta para corrigir a ausência de 18-24 e reduzir desperdício fora de Uberlândia. Validar no Gerenciador."
+PUB-003,QH | Retargeting engajados 30d,retargeting,Uberlândia/MG,,18,55,todos,,"engajou com o perfil ou visitou o site nos últimos 30 dias",,,gerenciador,rascunho,"Depende de pixel na página de reserva e/ou público de engajamento do Instagram."
+PUB-004,QH | Lookalike reservas 1%,lookalike,Uberlândia/MG e região,,18,55,todos,,,"",,gerenciador,rascunho,"Só viável após volume mínimo de eventos de reserva no pixel."

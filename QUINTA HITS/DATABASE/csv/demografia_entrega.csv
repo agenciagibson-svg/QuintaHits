@@ -1,0 +1,10 @@
+id,campanha_id,dimensao,segmento,alcance,impressoes,cliques,resultados,gasto,percentual_alcance,observacoes
+DEM-001,CMP-001,localizacao,Minas Gerais,,,,,,100.0,"Entrega 100% em MG. Não há recorte por cidade no relatório do turbinar post."
+DEM-002,CMP-001,genero,feminino,,,,,,55.2,
+DEM-003,CMP-001,genero,masculino,,,,,,44.8,
+DEM-004,CMP-001,idade,18-24,,,,,,0.0,"Faixa 18-24 não foi alcançada — lacuna crítica para um evento de nightlife."
+DEM-005,CMP-001,idade,25-34,,,,,,45.6,"Núcleo principal da entrega."
+DEM-006,CMP-001,idade,35-44,,,,,,22.2,
+DEM-007,CMP-001,idade,45-54,,,,,,14.7,
+DEM-008,CMP-001,idade,55-64,,,,,,11.2,"Entrega provavelmente pouco qualificada para o evento."
+DEM-009,CMP-001,idade,65+,,,,,,6.3,"Entrega provavelmente pouco qualificada para o evento."

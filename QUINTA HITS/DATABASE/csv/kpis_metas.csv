@@ -1,0 +1,9 @@
+id,indicador,unidade,escopo,periodo,baseline,valor_meta,valor_realizado,fonte_dado,status,observacoes
+KPI-001,Custo por visita ao site,BRL,campanha,2026-08,0.81,,,metricas_campanha.custo_por_visita,a_definir,Baseline da campanha 27/08. Meta a definir após 3 edições com dados.
+KPI-002,Visitas ao site por edição,visitas,edicao,2026-08,39,,,metricas_campanha.visitas_site,a_definir,Baseline 27/08.
+KPI-003,Percentual do orçamento entregue,%,campanha,2026-08,34.9,95,,vw_desempenho_campanha.pct_orcamento_entregue,vigente,"Falha crítica de 27/08: só 34,9% do orçamento foi gasto. Meta mínima de entrega: 95%."
+KPI-004,Público presente por edição,pessoas,edicao,2026-08,90,,,eventos.publico_presente,a_definir,Baseline 27/08: 90 pessoas.
+KPI-005,Mesas reservadas por edição,mesas,edicao,,,,,eventos.mesas_reservadas,a_definir,Sem baseline — não há registro de mesas por edição ainda. Começar a medir a partir da primeira edição no Florindos Bar (17/09).
+KPI-006,Custo de mídia por pessoa presente,BRL,edicao,2026-08,0.35,,,vw_funil_edicao.custo_por_presente,a_definir,"Baseline 27/08 = 31,41 / 90. Indicador-chave de eficiência da label."
+KPI-007,Alcance em Uberlândia,%,campanha,,,90,,demografia_entrega,a_definir,Sem recorte por cidade em 27/08 — só será medível no Gerenciador.
+KPI-008,Participação da faixa 18-24 no alcance,%,campanha,2026-08,0.0,15,,demografia_entrega,vigente,Zerada em 27/08. Meta de correção com público novo.

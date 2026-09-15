@@ -1,0 +1,2 @@
+id,campanha_id,nome,publico_id,otimizacao,posicionamentos,orcamento_diario,lance_tipo,data_inicio,data_fim,status,observacoes
+CJA-001,CMP-001,Conjunto único (turbinar post),PUB-001,cliques_link,automatico,45.00,,2026-08-25,2026-08-27,finalizado,"O turbinar post não permite controle de conjuntos; registro criado para manter a estrutura do funil comparável."

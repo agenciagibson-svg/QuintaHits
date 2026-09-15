@@ -1,0 +1,9 @@
+id,nome_arquivo,categoria,formato,dimensoes_px,vetorial,caminho,versao,status,data,observacoes
+AST-001,ID - VISUAL - V1 - PNG.png,identidade,PNG,,nao,./ID - VISUAL - V1 - PNG.png,V1,oficial,2026-09-11,Prancha oficial de identidade visual. 2ª na hierarquia de fontes de verdade. Não reinterpretar.
+AST-002,QH - LOGO.png,logo,PNG,,nao,Projeto Claude (arquivo do projeto),,oficial,,Logo da Quinta Hits anexada ao projeto.
+AST-003,02_QUINTA_HITS_GRID_CENTRO.svg,selo,SVG,1080x1350,sim,ASSETS/criativos/,,pendente,,Reconstrução vetorial do selo em curvas Bézier reais — ainda não produzida nesta pasta.
+AST-004,01_QUINTA_HITS_GRID_ESQUERDA.png,arte_post,PNG,1080x1350,nao,ASSETS/criativos/,,pendente,,
+AST-005,02_QUINTA_HITS_GRID_CENTRO.png,arte_post,PNG,1080x1350,nao,ASSETS/criativos/,,pendente,,
+AST-006,03_QUINTA_HITS_GRID_DIREITA.png,arte_post,PNG,1080x1350,nao,ASSETS/criativos/,,pendente,,
+AST-007,Selo original (referência),referencia,PNG,,nao,ASSETS/referencias/,,oficial,,Imagem de referência do selo — 3ª na hierarquia de fontes de verdade. Salvar aqui quando disponível.
+AST-008,logo-placa.svg / wordmark-horizontal.svg / selo.svg / icon.svg,logo,SVG,,sim,SITE/public/brand/,web-v1,oficial,2026-09-15,Traçados vetoriais gerados a partir da prancha oficial ID - VISUAL - V1 para uso no site. Não substituem o pacote v1.1 em curvas Bézier; são derivados dele.

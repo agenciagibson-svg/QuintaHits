@@ -1,0 +1,13 @@
+id,data,dia_semana,edicao_numero,local_id,tema,artista_principal_id,horario_inicio,horario_fim,tipo_entrada,couvert_valor,status,publico_meta,publico_presente,mesas_meta,mesas_reservadas,clima,concorrencia_na_data,observacoes
+EVT-2026-08-27,2026-08-27,quinta,,LOC-001,Quinta Hits 2000's,ART-001,,,,,realizado,,90,,,,,"Primeira edição com dados de tráfego pago registrados. 90 pessoas confirmadas (pessoas, não mesas)."
+EVT-2026-09-10,2026-09-10,quinta,,LOC-001,Quinta Hits Pop Rock,ART-002,,,,,realizado,,,,,,,"Arte pronta em 9:16, sem horário e sem endereço na peça. Resultados de público/reservas e entrega da campanha A CONFIRMAR."
+EVT-2026-09-17,2026-09-17,quinta,,LOC-002,,,,,,,planejado,,,,,,,"Próxima edição — PRIMEIRA QUINTA NO FLORINDOS BAR. Artista, tema e plano de mídia a definir. Comunicar a mudança de casa em toda peça."
+EVT-2026-09-24,2026-09-24,quinta,,LOC-002,Quinta Hits 2000's,ART-001,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.
+EVT-2026-10-08,2026-10-08,quinta,,LOC-002,Quinta Hits DJ Vinyl,ART-003,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.
+EVT-2026-10-15,2026-10-15,quinta,,LOC-002,Tributo ao Roupa Nova,ART-004,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.
+EVT-2026-10-22,2026-10-22,quinta,,LOC-002,Quinta Hits Rock Pop,ART-002,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.
+EVT-2026-10-29,2026-10-29,quinta,,LOC-002,Quinta Hits 2000's,ART-001,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.
+EVT-2026-11-05,2026-11-05,quinta,,LOC-002,Quinta Hits DJ Vinyl,ART-003,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.
+EVT-2026-11-12,2026-11-12,quinta,,LOC-002,Quinta Hits Rock Pop,ART-002,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.
+EVT-2026-11-19,2026-11-19,quinta,,LOC-002,Quinta Hits DJ Vinyl,ART-003,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.
+EVT-2026-11-26,2026-11-26,quinta,,LOC-002,Quinta Hits 2000's,ART-001,,,,,confirmado,,,,,,,Agenda informada em 15/09/2026. Sem edição registrada em 01/10.

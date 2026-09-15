@@ -1,0 +1,6 @@
+id,token,nome,hex,rgb,uso_principal,observacoes
+COR-001,deep-bottle-green,Deep Bottle Green,#17352B,"23, 53, 43",Fundo institucional principal,"Aplicar em 100% do canvas nos posts do grid. Sem gradiente, textura, ruído ou vinheta."
+COR-002,cream,Cream,#F1E7D2,"241, 231, 210",Área clara do selo e fundos secundários,"O interior do selo permanece Cream — não alterar."
+COR-003,terracotta,Terracotta,#B84A32,"184, 74, 50",Cor de apoio,
+COR-004,mustard,Mustard,#D5A62A,"213, 166, 42",Cor de apoio,
+COR-005,near-black,Near Black,#171717,"23, 23, 23","Tipografia, símbolo e linhas escuras","Lettering, símbolo Q e linhas do selo."

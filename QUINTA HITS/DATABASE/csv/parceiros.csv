@@ -1,0 +1,4 @@
+id,nome,tipo,contato,responsavel,contrapartida,valor_acordado,vigencia_inicio,vigencia_fim,status,observacoes
+PRC-001,Tatu Bola,venue,,,"Casa do evento — estrutura, bar e mesas",,,2026-09-10,encerrado,Casa das duas primeiras edições medidas. Não faz mais parte do projeto desde set/2026.
+PRC-002,GIBSON PROMOÇÕES,artistico,,Alex Pereira,"Curadoria, gestão de artistas e produção",,,,ativo,Nomenclatura correta obrigatória: GIBSON PROMOÇÕES (nunca 'Gibson Produções'). Hashtag: #GibsonPromoções
+PRC-003,Florindos Bar,venue,,,"Casa do evento — estrutura, bar e mesas",,2026-09-17,,ativo,Casa atual da QUINTA HITS. Dados de contato e contrapartida a preencher.

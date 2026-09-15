@@ -1,0 +1,12 @@
+id,evento_id,artista_id,papel,ordem,horario,cache,observacoes
+EVA-001,EVT-2026-08-27,ART-001,principal,1,,,
+EVA-002,EVT-2026-09-10,ART-002,principal,1,,,
+EVA-003,EVT-2026-09-24,ART-001,principal,1,,,
+EVA-004,EVT-2026-10-08,ART-003,principal,1,,,
+EVA-005,EVT-2026-10-15,ART-004,principal,1,,,
+EVA-006,EVT-2026-10-22,ART-002,principal,1,,,
+EVA-007,EVT-2026-10-29,ART-001,principal,1,,,
+EVA-008,EVT-2026-11-05,ART-003,principal,1,,,
+EVA-009,EVT-2026-11-12,ART-002,principal,1,,,
+EVA-010,EVT-2026-11-19,ART-003,principal,1,,,
+EVA-011,EVT-2026-11-26,ART-001,principal,1,,,

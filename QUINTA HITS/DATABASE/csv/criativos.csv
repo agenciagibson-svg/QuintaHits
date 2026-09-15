@@ -1,0 +1,6 @@
+id,evento_id,nome_arquivo,tipo,formato_proporcao,dimensoes_px,duracao_s,tem_horario,tem_endereco,tem_logo_qh,headline,chamada_principal,cta,caminho_asset,status,observacoes
+CRI-001,EVT-2026-08-27,,video,,,,nao,sim,,,,,,publicado,"Criativo em vídeo do impulsionamento de 27/08. Endereço na peça: Av. Francisco Galassi, 990, Loja 8, Morada da Colina. 3.285 reproduções iniciais e 777 reproduções de 3s (retenção 23,7%)."
+CRI-002,EVT-2026-09-10,,imagem,9:16,1080x1920,,nao,nao,,,,,,publicado,"Arte da edição 10/09 (NETO FOG) — sem horário e sem endereço na peça. Lacuna de informação identificada."
+CRI-003,,01_QUINTA_HITS_GRID_ESQUERDA.png,imagem,4:5,1080x1350,,nao,nao,nao,,,,ASSETS/criativos/,briefado,"Post 01 da primeira linha institucional — fundo #17352B puro, sem nenhum elemento."
+CRI-004,,02_QUINTA_HITS_GRID_CENTRO.png,imagem,4:5,1080x1350,,nao,nao,sim,SE É QUINTA / Q / TEM HITS,,,ASSETS/criativos/,briefado,"Post 02 — selo centralizado em X=540 Y=675, área creme #F1E7D2, elementos #171717. Gerar também SVG vetorial editável."
+CRI-005,,03_QUINTA_HITS_GRID_DIREITA.png,imagem,4:5,1080x1350,,nao,nao,nao,,,,ASSETS/criativos/,briefado,"Post 03 — idêntico ao Post 01."
