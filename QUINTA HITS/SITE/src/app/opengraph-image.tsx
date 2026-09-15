@@ -5,6 +5,8 @@ import { site } from "@/config/site";
 import { formatData, proximaEdicao } from "@/lib/programacao";
 
 export const runtime = "nodejs";
+// A programação muda pelo painel, sem deploy: a imagem de compartilhamento é refeita a cada hora.
+export const revalidate = 3600;
 export const alt = "QUINTA HITS — A quinta oficial de Uberlândia";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

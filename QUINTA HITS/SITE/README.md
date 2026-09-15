@@ -1,41 +1,47 @@
 # QUINTA HITS — site oficial
 
-Next.js 15 (App Router) · sem dependências além de React · identidade visual aplicada pelos valores exatos.
+Next.js 15 (App Router) · Supabase (programação e dados da casa) · identidade visual aplicada pelos valores exatos.
 
 ## Rodar
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+npm run dev      # http://localhost:3000  ·  painel em /admin
 npm run build
 ```
 
+Variáveis (`.env.local` local e **Vercel → Settings → Environment Variables**; modelo em `.env.example`):
+
+| Variável | O que é |
+|---|---|
+| `SUPABASE_URL` | URL do projeto Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | chave **service_role** (não a anon) — só no servidor |
+| `ADMIN_PASSWORD` | senha do painel `/admin` |
+| `ADMIN_SESSION_SECRET` | segredo aleatório (32+ caracteres) que assina o login |
+
+Banco: rode `supabase/schema.sql` no SQL Editor do Supabase (bancos antigos: `supabase/migracao-2026-09-15-checks.sql`).
+
 ## O que muda onde
 
-| Quero mudar | Arquivo |
+| Quero mudar | Onde |
 |---|---|
-| Casa, endereço, Instagram, link de reserva, horário padrão | `src/config/site.ts` (ou variáveis `NEXT_PUBLIC_*`) |
-| Programação (artista da semana, tema, estilo, horário) | `src/data/programacao.json` |
+| Programação (artista da semana, tema, estilo, horário) | painel **`/admin`** |
+| Endereço, bairro e Instagram da casa, link de reserva, horário padrão | painel **`/admin`** (valores fixos de reserva em `src/config/site.ts`) |
+| Nome da casa, textos institucionais, hashtags | `src/config/site.ts` |
 | Cores, tipografia, formas (placa, aba, botões) | `src/app/globals.css` |
 | Textos das seções da home | `src/app/page.tsx` |
 | Logos e selo (SVG vetorial, traçado da prancha oficial) | `public/brand/` |
 
-## Programação — formato de cada edição
+## Programação — campos de cada edição
 
-```json
-{
-  "id": "2026-09-24",
-  "data": "2026-09-24",
-  "artista": "Nome do artista",
-  "instagram": "handle_sem_arroba",
-  "tema": "Quinta Hits Rock",
-  "genero": "rock",
-  "horario": "20h",
-  "local": "Florindos Bar",
-  "status": "confirmada",
-  "destaque": ""
-}
-```
+| Campo | Exemplo |
+|---|---|
+| `data` | `2026-09-24` — sempre uma quinta; é a chave da edição e não muda depois de criada |
+| `artista` / `instagram` | `NETO FOG` / `netofog` (sem @) |
+| `tema` | `Quinta Hits Pop Rock` |
+| `horario` | `20h` ou `20h30` |
+| `local` | `Florindos Bar` |
+| `destaque` | texto curto opcional |
 
 `genero`: `rock` · `pop-rock` (ROCK POP) · `hits` · `2000s` · `dj` (DJ VINYL) · `mpb` · `special` · `""`
 Vertentes fixas: NETO FOG = `pop-rock` · Jhean Marcell = `2000s` · DJ Jabá = `dj`

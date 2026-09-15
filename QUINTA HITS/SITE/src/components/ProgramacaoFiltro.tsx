@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { GENEROS, type Edicao, type Genero } from "@/lib/programacao";
+import { GENEROS, type Edicao, type Genero } from "@/lib/edicao";
 import EdicaoCard from "./EdicaoCard";
 
 type Props = { proximas: Edicao[]; anteriores: Edicao[] };

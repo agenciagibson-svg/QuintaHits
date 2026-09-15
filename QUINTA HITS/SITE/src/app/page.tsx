@@ -143,7 +143,10 @@ export default async function Home() {
             <h3 className="display h-3">Como chegar</h3>
             <dl className="local__linhas">
               <div><dt>Casa</dt><dd>{site.casa.nome}</dd></div>
-              <div><dt>Endereço</dt><dd>{site.casa.endereco || "Em breve — consulte o Instagram"}</dd></div>
+              <div><dt>Endereço</dt><dd>{site.casa.endereco ? [site.casa.endereco, site.casa.bairro].filter(Boolean).join(" — ") : "Em breve — consulte o Instagram"}</dd></div>
+              {site.casa.instagram && (
+                <div><dt>Instagram</dt><dd><a href={instagramUrl(site.casa.instagram)} target="_blank" rel="noopener noreferrer">@{site.casa.instagram}</a></dd></div>
+              )}
               <div><dt>Cidade</dt><dd>{site.cidade}/{site.uf}</dd></div>
               <div><dt>Quando</dt><dd>Toda quinta-feira{site.horarioPadrao ? `, a partir das ${site.horarioPadrao}` : ""}</dd></div>
             </dl>

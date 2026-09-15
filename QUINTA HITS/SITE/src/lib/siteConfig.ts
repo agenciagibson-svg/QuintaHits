@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { site, instagramUrl } from "@/config/site";
 
@@ -8,8 +9,9 @@ export type SiteConfig = typeof site;
  * (endereço/bairro/instagram da casa, link de reserva, horário padrão)
  * sobrescritos pelo que estiver salvo no Supabase. Em caso de erro ou
  * linha vazia, cai de volta nos valores estáticos de src/config/site.ts.
+ * Consultado uma vez por render (layout, header, footer e página compartilham).
  */
-export async function getSiteConfig(): Promise<SiteConfig> {
+export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
   const { data, error } = await supabaseAdmin()
     .from("site_config")
     .select("casa_endereco, casa_bairro, casa_instagram, reserva_url, horario_padrao")
@@ -32,7 +34,7 @@ export async function getSiteConfig(): Promise<SiteConfig> {
     reservaUrl: data.reserva_url || site.reservaUrl,
     horarioPadrao: data.horario_padrao || site.horarioPadrao,
   };
-}
+});
 
 /** Mesma lógica de reservaHref() de config/site.ts, mas a partir de um SiteConfig já resolvido. */
 export function reservaHrefFrom(cfg: SiteConfig): string {

@@ -14,7 +14,9 @@ create table if not exists edicoes (
   local text not null default '',
   status text not null default 'a_confirmar', -- realizada | confirmada | a_confirmar | cancelada
   destaque text not null default '',
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint edicoes_genero_valido check (genero in ('', 'rock', 'pop-rock', 'hits', '2000s', 'dj', 'mpb', 'special')),
+  constraint edicoes_status_valido check (status in ('realizada', 'confirmada', 'a_confirmar', 'cancelada'))
 );
 
 -- ========== TABELA: site_config ==========

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Edicao } from "@/lib/programacao";
+import { GENERO_VALORES, STATUS_VALORES, type Edicao } from "@/lib/edicao";
 
 type Config = {
   casa_endereco?: string;
@@ -12,8 +12,8 @@ type Config = {
   horario_padrao?: string;
 };
 
-const STATUS_OPCOES: Edicao["status"][] = ["a_confirmar", "confirmada", "realizada", "cancelada"];
-const GENERO_OPCOES = ["", "rock", "pop-rock", "hits", "2000s", "dj", "mpb", "special"];
+const STATUS_OPCOES = STATUS_VALORES;
+const GENERO_OPCOES = GENERO_VALORES;
 
 const EDICAO_VAZIA = {
   data: "",
@@ -38,11 +38,19 @@ export default function AdminDashboard() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState<Record<string, string>>({});
 
+  /** Sessão expirada: volta para o login em vez de mostrar erro genérico. */
+  function sessaoExpirou(res: Response): boolean {
+    if (res.status !== 401) return false;
+    router.replace("/admin/login");
+    return true;
+  }
+
   async function carregarTudo() {
     setCarregando(true);
     setErro("");
     try {
       const [resEd, resCfg] = await Promise.all([fetch("/api/admin/edicoes"), fetch("/api/admin/config")]);
+      if (sessaoExpirou(resEd) || sessaoExpirou(resCfg)) return;
       if (!resEd.ok || !resCfg.ok) throw new Error("Falha ao carregar dados.");
       const jEd = await resEd.json();
       const jCfg = await resCfg.json();
@@ -78,6 +86,7 @@ export default function AdminDashboard() {
       body: JSON.stringify(novaEdicao),
     });
     if (!res.ok) {
+      if (sessaoExpirou(res)) return;
       const j = await res.json().catch(() => ({}));
       setErro(j.erro || "Não foi possível criar a edição.");
       return;
@@ -99,6 +108,7 @@ export default function AdminDashboard() {
       body: JSON.stringify(rascunho),
     });
     if (!res.ok) {
+      if (sessaoExpirou(res)) return;
       const j = await res.json().catch(() => ({}));
       setErro(j.erro || "Não foi possível salvar.");
       return;
@@ -112,6 +122,7 @@ export default function AdminDashboard() {
     if (!confirm(`Excluir a edição de ${id}? Essa ação não pode ser desfeita.`)) return;
     const res = await fetch(`/api/admin/edicoes/${id}`, { method: "DELETE" });
     if (!res.ok) {
+      if (sessaoExpirou(res)) return;
       const j = await res.json().catch(() => ({}));
       setErro(j.erro || "Não foi possível excluir.");
       return;
@@ -128,6 +139,7 @@ export default function AdminDashboard() {
       body: JSON.stringify(config),
     });
     if (!res.ok) {
+      if (sessaoExpirou(res)) return;
       const j = await res.json().catch(() => ({}));
       setErro(j.erro || "Não foi possível salvar a configuração.");
       return;

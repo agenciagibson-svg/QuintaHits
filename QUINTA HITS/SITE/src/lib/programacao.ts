@@ -1,73 +1,10 @@
+import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { site } from "@/config/site";
+import { hojeISO, proximaQuintaISO, somaDias, type Edicao } from "@/lib/edicao";
 
-export type Genero = "rock" | "pop-rock" | "hits" | "2000s" | "dj" | "mpb" | "special" | "";
-export type Status = "realizada" | "confirmada" | "a_confirmar" | "cancelada";
-
-export type Edicao = {
-  id: string;
-  data: string; // ISO YYYY-MM-DD
-  artista: string;
-  instagram: string;
-  tema: string;
-  genero: Genero;
-  horario: string;
-  local: string;
-  status: Status;
-  destaque: string;
-};
-
-export const GENEROS: Record<Exclude<Genero, "">, { rotulo: string; cor: "terracota" | "mostarda" | "preto" | "vazado" | "verde" }> = {
-  rock: { rotulo: "ROCK", cor: "terracota" },
-  "pop-rock": { rotulo: "ROCK POP", cor: "terracota" },
-  hits: { rotulo: "HITS", cor: "verde" },
-  "2000s": { rotulo: "2000'S", cor: "mostarda" },
-  dj: { rotulo: "DJ VINYL", cor: "preto" },
-  mpb: { rotulo: "MPB", cor: "verde" },
-  special: { rotulo: "SPECIAL", cor: "vazado" },
-};
-
-const TZ = "America/Sao_Paulo";
-
-/** Data de hoje em Uberlândia (YYYY-MM-DD), independente do fuso do servidor. */
-export function hojeISO(agora = new Date()): string {
-  const p = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(agora);
-  const get = (t: string) => p.find((x) => x.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
-
-/** Dia da semana (0 = domingo) da data ISO, tratada como data local de Uberlândia. */
-export function diaSemana(iso: string): number {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-}
-
-export function ehQuinta(iso: string): boolean {
-  return diaSemana(iso) === 4;
-}
-
-function somaDias(iso: string, n: number): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-}
-
-/** Próxima quinta-feira a partir de hoje (inclui hoje, se for quinta). */
-export function proximaQuintaISO(agora = new Date()): string {
-  let iso = hojeISO(agora);
-  for (let i = 0; i < 7; i++) {
-    if (ehQuinta(iso)) return iso;
-    iso = somaDias(iso, 1);
-  }
-  return iso;
-}
-
-/** Instante (UTC) em que a próxima quinta começa em Uberlândia, às 00:00 ou no horário padrão. */
-export function inicioProximaQuinta(agora = new Date(), horarioPadrao = site.horarioPadrao): Date {
-  const iso = proximaQuintaISO(agora);
-  const hora = /^(\d{1,2})h/.exec(horarioPadrao)?.[1] ?? "0";
-  // Uberlândia = UTC-3 sem horário de verão
-  return new Date(`${iso}T${hora.padStart(2, "0")}:00:00-03:00`);
-}
+// Tipos e helpers puros moram em lib/edicao.ts (seguro para client) e seguem disponíveis por aqui.
+export * from "@/lib/edicao";
 
 function placeholder(iso: string, casaNome = site.casa.nome): Edicao {
   return {
@@ -84,19 +21,20 @@ function placeholder(iso: string, casaNome = site.casa.nome): Edicao {
   };
 }
 
-/** Busca todas as edições cadastradas no banco, ordenadas por data. */
-export async function todasEdicoes(): Promise<Edicao[]> {
+/**
+ * Busca todas as edições cadastradas no banco, ordenadas por data (uma vez por render).
+ * Em caso de erro, lança: numa regeneração o Next mantém a versão anterior da página
+ * em vez de publicar uma programação vazia.
+ */
+export const todasEdicoes = cache(async (): Promise<Edicao[]> => {
   const { data, error } = await supabaseAdmin()
     .from("edicoes")
     .select("id, data, artista, instagram, tema, genero, horario, local, status, destaque")
     .order("data", { ascending: true });
 
-  if (error) {
-    console.error("Erro ao buscar edições:", error.message);
-    return [];
-  }
+  if (error) throw new Error(`Erro ao buscar edições: ${error.message}`);
   return (data ?? []) as Edicao[];
-}
+});
 
 /** Próximas edições. Se a próxima quinta não tiver registro, cria um placeholder "a confirmar". */
 export async function proximasEdicoes(agora = new Date(), limite = 4): Promise<Edicao[]> {
@@ -125,20 +63,4 @@ export async function edicoesAnteriores(agora = new Date()): Promise<Edicao[]> {
 export async function proximaEdicao(agora = new Date()): Promise<Edicao> {
   const [e] = await proximasEdicoes(agora, 1);
   return e;
-}
-
-const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-
-export function mesCurto(iso: string): string {
-  return MESES[Number(iso.split("-")[1]) - 1];
-}
-
-/** "17 SET" / "quinta-feira, 17 de setembro" / "17/09" */
-export function formatData(iso: string, estilo: "curta" | "longa" | "numerica" = "curta"): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d, 12));
-  if (estilo === "numerica") return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
-  if (estilo === "longa")
-    return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" }).format(dt);
-  return `${String(d).padStart(2, "0")} ${mesCurto(iso)}`;
 }

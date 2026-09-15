@@ -1,4 +1,4 @@
-import { formatData, mesCurto, type Edicao } from "@/lib/programacao";
+import { formatData, mesCurto, type Edicao } from "@/lib/edicao";
 import { instagramUrl, type site as siteType } from "@/config/site";
 import { reservaHrefFrom } from "@/lib/siteConfig";
 import Aba from "./Aba";

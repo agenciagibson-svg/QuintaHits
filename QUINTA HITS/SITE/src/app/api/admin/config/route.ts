@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirSessao } from "@/lib/adminSessao";
+import { validarConfig } from "@/lib/adminValidacao";
 
 export const dynamic = "force-dynamic";
 
-const CAMPOS = ["casa_endereco", "casa_bairro", "casa_instagram", "reserva_url", "horario_padrao"] as const;
-
 /** GET /api/admin/config — linha única de configuração editável do site. */
 export async function GET() {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   const { data, error } = await supabaseAdmin()
     .from("site_config")
     .select("casa_endereco, casa_bairro, casa_instagram, reserva_url, horario_padrao")
@@ -17,24 +21,25 @@ export async function GET() {
   return NextResponse.json({ config: data ?? {} });
 }
 
-/** PUT /api/admin/config — atualiza os campos enviados. */
+/** PUT /api/admin/config — atualiza os campos enviados (cria a linha única se ainda não existir). */
 export async function PUT(req: Request) {
-  const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ erro: "Corpo inválido." }, { status: 400 });
+  const negado = await exigirSessao();
+  if (negado) return negado;
 
-  const atualizacao: Record<string, string> = {};
-  for (const campo of CAMPOS) {
-    if (typeof body[campo] === "string") atualizacao[campo] = body[campo];
-  }
-  atualizacao.updated_at = new Date().toISOString();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") return NextResponse.json({ erro: "Corpo inválido." }, { status: 400 });
+
+  const validacao = validarConfig(body);
+  if ("erro" in validacao) return NextResponse.json({ erro: validacao.erro }, { status: 400 });
 
   const { data, error } = await supabaseAdmin()
     .from("site_config")
-    .update(atualizacao)
-    .eq("id", 1)
+    .upsert({ id: 1, ...validacao.campos, updated_at: new Date().toISOString() })
     .select()
     .single();
 
   if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+
+  revalidatePath("/", "layout");
   return NextResponse.json({ config: data });
 }

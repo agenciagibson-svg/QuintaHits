@@ -1,4 +1,4 @@
-import { formatData, type Edicao } from "@/lib/programacao";
+import { formatData, type Edicao } from "@/lib/edicao";
 import { instagramUrl } from "@/config/site";
 import Aba from "./Aba";
 
