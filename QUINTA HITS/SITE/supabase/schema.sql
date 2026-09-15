@@ -42,18 +42,23 @@ insert into site_config (id) values (1) on conflict (id) do nothing;
 alter table edicoes enable row level security;
 alter table site_config enable row level security;
 
--- ========== SEED — dados atuais (do antigo programacao.json) ==========
+-- ========== SEED — agenda de 15/09/2026 (DEC-013, DEC-014, DEC-016) ==========
+-- Quinta sem edição precisa de registro 'cancelada'; sem registro, o site cria um card "line-up em breve".
 insert into edicoes (id, data, artista, instagram, tema, genero, horario, local, status, destaque) values
-('2026-08-27', '2026-08-27', 'Jhean Marcell', '', '', '2000s', '', 'Tatu Bola', 'realizada', ''),
+('2026-08-27', '2026-08-27', 'Jhean Marcell', 'jheanmarcell', '', '2000s', '', 'Tatu Bola', 'realizada', ''),
 ('2026-09-10', '2026-09-10', 'NETO FOG', 'netofog', 'Quinta Hits Pop Rock', 'pop-rock', '', 'Tatu Bola', 'realizada', ''),
-('2026-09-17', '2026-09-17', '', '', '', '', '', 'Florindos Bar', 'a_confirmar', 'Primeira quinta no Florindos Bar'),
-('2026-09-24', '2026-09-24', 'Jhean Marcell', '', '', '2000s', '', 'Florindos Bar', 'confirmada', ''),
-('2026-10-08', '2026-10-08', 'DJ Jabá', '', '', 'dj', '', 'Florindos Bar', 'confirmada', ''),
-('2026-10-15', '2026-10-15', 'Voo Livre', '', 'Tributo ao Roupa Nova', 'hits', '', 'Florindos Bar', 'confirmada', ''),
-('2026-10-22', '2026-10-22', 'NETO FOG', 'netofog', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
-('2026-10-29', '2026-10-29', 'Jhean Marcell', '', '', '2000s', '', 'Florindos Bar', 'confirmada', ''),
-('2026-11-05', '2026-11-05', 'DJ Jabá', '', '', 'dj', '', 'Florindos Bar', 'confirmada', ''),
+('2026-09-17', '2026-09-17', '', '', '', '', '', 'Florindos Bar', 'cancelada', 'Sem edição nesta data — não existe quinta em 17/09/2026'),
+('2026-09-24', '2026-09-24', 'Jhean Marcell', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', ''),
+('2026-10-01', '2026-10-01', '', '', '', '', '', 'Florindos Bar', 'cancelada', 'Sem edição nesta data — não existe quinta em 01/10/2026'),
+('2026-10-08', '2026-10-08', 'DJ Jabá', 'dj.jabba', '', 'dj', '', 'Florindos Bar', 'confirmada', ''),
+('2026-10-15', '2026-10-15', 'Voo Livre', 'oficialgrupovoolivre', 'Tributo ao Roupa Nova', 'hits', '', 'Florindos Bar', 'confirmada', ''),
+('2026-10-22', '2026-10-22', 'Jay-C', 'oficialjayc', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
+('2026-10-29', '2026-10-29', 'Jhean Marcell', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', ''),
+('2026-11-05', '2026-11-05', 'DJ Jabá', 'dj.jabba', '', 'dj', '', 'Florindos Bar', 'confirmada', ''),
 ('2026-11-12', '2026-11-12', 'NETO FOG', 'netofog', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
-('2026-11-19', '2026-11-19', 'DJ Jabá', '', '', 'dj', '', 'Florindos Bar', 'confirmada', ''),
-('2026-11-26', '2026-11-26', 'Jhean Marcell', '', '', '2000s', '', 'Florindos Bar', 'confirmada', '')
+('2026-11-19', '2026-11-19', 'Jay-C', 'oficialjayc', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
+('2026-11-26', '2026-11-26', 'Jhean Marcell', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', '')
 on conflict (id) do nothing;
+
+update site_config set casa_endereco = 'Av. Francisco Galassi, 1551', casa_bairro = 'Morada da Colina'
+where id = 1 and casa_endereco = '';

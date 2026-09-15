@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { site } from "@/config/site";
-import { hojeISO, proximaQuintaISO, somaDias, type Edicao } from "@/lib/edicao";
+import { hojeISO, proximaQuintaISO, somaDias, temEdicaoNoDia, type Edicao } from "@/lib/edicao";
 
 // Tipos e helpers puros moram em lib/edicao.ts (seguro para client) e seguem disponíveis por aqui.
 export * from "@/lib/edicao";
@@ -36,30 +36,51 @@ export const todasEdicoes = cache(async (): Promise<Edicao[]> => {
   return (data ?? []) as Edicao[];
 });
 
-/** Próximas edições. Se a próxima quinta não tiver registro, cria um placeholder "a confirmar". */
+/** Datas com registro "cancelada" — quintas em que não existe Quinta Hits. */
+export async function datasCanceladas(): Promise<string[]> {
+  return (await todasEdicoes()).filter((e) => e.status === "cancelada").map((e) => e.data);
+}
+
+/** Hoje tem Quinta Hits? Quinta-feira em Uberlândia e a data não está cancelada. */
+export async function temEdicaoHoje(agora = new Date()): Promise<boolean> {
+  return temEdicaoNoDia(agora, await datasCanceladas());
+}
+
+/**
+ * Próximas edições. Se uma quinta não tiver nenhum registro, cria um placeholder "a confirmar".
+ * Uma quinta com registro "cancelada" (ex.: não vai ter Quinta Hits naquela semana) é pulada:
+ * não aparece na lista e também não vira placeholder — ela conta como "já tratada".
+ */
 export async function proximasEdicoes(agora = new Date(), limite = 4): Promise<Edicao[]> {
   const hoje = hojeISO(agora);
-  const todas = await todasEdicoes();
-  const futuras = todas.filter((e) => e.data >= hoje && e.status !== "cancelada");
+  const futuras = (await todasEdicoes()).filter((e) => e.data >= hoje);
+  const semCanceladas = futuras.filter((e) => e.status !== "cancelada");
+  const temRegistro = (iso: string) => futuras.some((e) => e.data === iso);
   const proxQuinta = proximaQuintaISO(agora);
-  const lista = futuras.some((e) => e.data === proxQuinta)
-    ? futuras
-    : [placeholder(proxQuinta), ...futuras];
-  // completa a lista com as quintas seguintes, sem registro, até o limite
+  const lista = temRegistro(proxQuinta) ? semCanceladas : [placeholder(proxQuinta), ...semCanceladas];
+  // completa a lista com as quintas seguintes, sem nenhum registro, até o limite
   let cursor = proxQuinta;
   while (lista.length < limite) {
     cursor = somaDias(cursor, 7);
-    if (!lista.some((e) => e.data === cursor)) lista.push(placeholder(cursor));
+    if (!temRegistro(cursor)) lista.push(placeholder(cursor));
   }
   return lista.sort((a, b) => a.data.localeCompare(b.data)).slice(0, limite);
 }
 
+/**
+ * Edições que já aconteceram, da mais recente para a mais antiga.
+ * Entra toda data passada que teve artista e não foi cancelada — mesmo que ninguém tenha
+ * trocado o status para "realizada" depois da noite. Sem isso, a edição sumia do site:
+ * saía de "próximas" (data no passado) e não entrava em "já passaram".
+ */
 export async function edicoesAnteriores(agora = new Date()): Promise<Edicao[]> {
   const hoje = hojeISO(agora);
-  const todas = await todasEdicoes();
-  return todas.filter((e) => e.data < hoje && e.status === "realizada").reverse();
+  return (await todasEdicoes())
+    .filter((e) => e.data < hoje && e.status !== "cancelada" && e.artista !== "")
+    .reverse();
 }
 
+/** A próxima EDIÇÃO real — quintas canceladas são puladas. */
 export async function proximaEdicao(agora = new Date()): Promise<Edicao> {
   const [e] = await proximasEdicoes(agora, 1);
   return e;

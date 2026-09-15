@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { site } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
+import { datasCanceladas } from "@/lib/programacao";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HojeBanner from "@/components/HojeBanner";
@@ -36,6 +37,8 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cfg = await getSiteConfig();
+  // Falha do banco não derruba o layout (login do admin, 404): a faixa só deixa de filtrar canceladas.
+  const canceladas = await datasCanceladas().catch(() => [] as string[]);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "EventSeries",
@@ -60,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-        <HojeBanner reservaUrl={reservaHrefFrom(cfg)} />
+        <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasCanceladas={canceladas} />
         <Header />
         <main>{children}</main>
         <Footer />

@@ -81,14 +81,25 @@ export function proximaQuintaISO(agora = new Date()): string {
   return iso;
 }
 
-/** Instante (UTC) em que a próxima quinta começa em Uberlândia: no horário padrão ("20h"/"20h30") ou às 00:00. */
-export function inicioProximaQuinta(agora = new Date(), horarioPadrao: string = site.horarioPadrao): Date {
-  const iso = proximaQuintaISO(agora);
-  const m = HORARIO_RE.exec(horarioPadrao.trim());
+/**
+ * Instante (UTC) em que uma edição começa em Uberlândia: no horário da edição, senão no
+ * horário padrão ("20h"/"20h30"), senão às 00:00.
+ */
+export function inicioDaEdicao(iso: string, horario = "", horarioPadrao: string = site.horarioPadrao): Date {
+  const m = HORARIO_RE.exec((horario || horarioPadrao).trim());
   const hora = (m?.[1] ?? "0").padStart(2, "0");
   const minuto = m?.[2] ?? "00";
   // Uberlândia = UTC-3 sem horário de verão
   return new Date(`${iso}T${hora}:${minuto}:00-03:00`);
+}
+
+/**
+ * Hoje tem Quinta Hits? É quinta-feira em Uberlândia e a data não está cancelada.
+ * Quinta sem registro nenhum conta como "tem" — a quinta é garantida, o line-up é que não.
+ */
+export function temEdicaoNoDia(agora: Date, datasCanceladas: readonly string[]): boolean {
+  const hoje = hojeISO(agora);
+  return ehQuinta(hoje) && !datasCanceladas.includes(hoje);
 }
 
 const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];

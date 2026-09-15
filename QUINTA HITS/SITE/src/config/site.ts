@@ -18,18 +18,20 @@ export const site = {
   // Casa atual da QUINTA HITS
   casa: {
     nome: "Florindos Bar",
-    endereco: "", // preencher: rua, número
-    bairro: "",
+    endereco: "Av. Francisco Galassi, 1551",
+    bairro: "Morada da Colina",
     instagram: "", // preencher sem @
     mapsUrl:
-      "https://www.google.com/maps/search/?api=1&query=Florindos+Bar+Uberl%C3%A2ndia+MG",
+      "https://www.google.com/maps/search/?api=1&query=Av.+Francisco+Galassi%2C+1551+-+Morada+da+Colina%2C+Uberl%C3%A2ndia+MG",
   },
 
   // Redes
   instagram: "quintahits",
 
-  // Playlist oficial no Spotify (seleção rock pop anos 2000). Precisa ser PÚBLICA para tocar no site.
-  spotifyPlaylistId: "0Z88nUw6Gmm3zhX0pbAQWU",
+  // Playlist oficial no Spotify (seleção rock/pop-rock dos anos 2000: Killers, Franz Ferdinand,
+  // Kings of Leon, Foo Fighters, Green Day, The Strokes, Muse...). Editorial do próprio Spotify,
+  // pública por padrão — não precisa de nenhuma configuração extra para tocar no site.
+  spotifyPlaylistId: "37i9dQZF1DX3oM43CtKnRV",
 
   // Reserva de mesa: link atual da operação. Enquanto vazio, o botão leva ao Instagram.
   reservaUrl: process.env.NEXT_PUBLIC_RESERVA_URL ?? "",

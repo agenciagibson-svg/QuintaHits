@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { site } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
-import { edicoesAnteriores, proximasEdicoes } from "@/lib/programacao";
+import { edicoesAnteriores, proximasEdicoes, temEdicaoHoje } from "@/lib/programacao";
 import ProgramacaoFiltro from "@/components/ProgramacaoFiltro";
 import Marquee from "@/components/Marquee";
 
@@ -18,6 +18,7 @@ export default async function Programacao() {
   const cfg = await getSiteConfig();
   const proximas = await proximasEdicoes(agora, 6);
   const anteriores = await edicoesAnteriores(agora);
+  const temHoje = await temEdicaoHoje(agora);
 
   return (
     <>
@@ -35,7 +36,8 @@ export default async function Programacao() {
           <ProgramacaoFiltro proximas={proximas} anteriores={anteriores} />
         </div>
       </section>
-      <Marquee texto="Hoje é quinta. Tem Quinta Hits." />
+      {/* Só afirma "hoje é quinta" quando hoje é mesmo quinta com edição. */}
+      <Marquee texto={temHoje ? "Hoje é quinta. Tem Quinta Hits." : cfg.assinatura} />
     </>
   );
 }

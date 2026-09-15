@@ -62,6 +62,31 @@ uma variável, métrica primária e critério de decisão (vai para testes.csv)
 o que não foi possível medir e o que passar a registrar
 ```
 
+## Duas saídas, sempre nesta ordem
+
+A estrutura acima é a **versão interna** (`HISTORICO/AAAA-MM-DD_EVT_<ARTISTA>.md`).
+Toda edição também gera a **versão sócios** — uma página, derivada da interna,
+nunca escrita do zero:
+
+```markdown
+# QUINTA HITS — <DD/MM/AAAA> · <ARTISTA> · <CASA>
+**Investimento em mídia:** R$ X (de R$ Y previstos) · **Público na casa:** N pessoas
+
+## 1. Resumo            <o que aconteceu + o número que importa + o que ficou na mesa>
+## 2. O que o dinheiro comprou   <tabela: alcance → cliques → visitas → presentes → custo por presente>
+## 3. Leitura           <máx. 3 bullets "funcionou" + máx. 3 "não funcionou", cada um com número>
+## 4. Uma ressalva honesta   <o que o dado ainda não prova>
+## 5. Três ações        <tabela: Ação | Por quê (o número) | Quando>
+```
+
+Regras da versão sócios:
+- Sem jargão de mídia. CTR, CPM, CPC, pixel, retargeting e nomes de CSV **não aparecem**.
+- Todo número vem acompanhado do que ele significa em dinheiro ou em gente na porta.
+- O custo de mídia por pessoa presente é o número de capa — é o que prova a operação.
+- Verba não entregue vira perda declarada em reais, não percentual solto.
+- Sempre a seção 4: o que ainda não sabemos. Relatório sem ressalva é propaganda.
+- Exatamente 3 ações, executáveis antes da próxima quinta.
+
 ## Comandos de apoio
 
 ```bash
@@ -70,6 +95,18 @@ python3 DATABASE/query.py queries/02_evolucao_semanal.sql
 python3 DATABASE/query.py queries/05_roi_por_edicao.sql
 python3 DATABASE/query.py queries/03_publico_por_idade_genero.sql
 ```
+
+## Quando os dados ainda não foram lançados
+
+Antes de escrever qualquer coisa, checar no banco se a edição tem gasto e público
+lançados (`campanhas.orcamento_gasto` e `eventos.publico_presente`).
+
+Se faltar: **não gerar relatório.** Devolver, em vez dele, a lista de coleta —
+o que falta, de qual tela do Gerenciador ou de quem na casa, e o que fica bloqueado
+sem isso. Relatório de lacunas não é entrega; é trabalho parecendo trabalho.
+
+Campanha com `status = a_confirmar` é sempre a primeira pergunta:
+a campanha chegou a rodar?
 
 ## Regras de honestidade
 

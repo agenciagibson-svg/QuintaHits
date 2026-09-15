@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { instagramUrl } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
-import { edicoesAnteriores, formatData, inicioProximaQuinta, proximaEdicao, proximasEdicoes } from "@/lib/programacao";
+import { edicoesAnteriores, formatData, inicioDaEdicao, proximaEdicao, proximasEdicoes, temEdicaoHoje } from "@/lib/programacao";
 import Countdown from "@/components/Countdown";
 import Marquee from "@/components/Marquee";
 import ProximaEdicao from "@/components/ProximaEdicao";
@@ -26,10 +26,49 @@ export default async function Home() {
   const proxima = await proximaEdicao(agora);
   const proximas = await proximasEdicoes(agora, 4);
   const anteriores = await edicoesAnteriores(agora);
-  const alvo = inicioProximaQuinta(agora, site.horarioPadrao).toISOString();
+  const temHoje = await temEdicaoHoje(agora);
+  // Contagem até a próxima EDIÇÃO real (pula quintas canceladas), não até a próxima quinta do calendário.
+  const alvo = inicioDaEdicao(proxima.data, proxima.horario, site.horarioPadrao).toISOString();
+
+  // Dados estruturados da agenda real. O JSON-LD do layout diz "toda quinta";
+  // aqui entram as datas que de fato existem, com artista confirmado.
+  const agendaLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `Programação ${site.nome}`,
+    itemListElement: (await proximasEdicoes(agora, 8))
+      .filter((e) => e.artista !== "")
+      .map((e, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "MusicEvent",
+          name: `${site.nome} — ${e.artista}`,
+          startDate: e.data,
+          eventStatus: "https://schema.org/EventScheduled",
+          eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+          performer: { "@type": "MusicGroup", name: e.artista },
+          organizer: { "@type": "Organization", name: site.empresa },
+          url: `${site.url}/programacao`,
+          location: {
+            "@type": "Place",
+            name: site.casa.nome,
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: [site.casa.endereco, site.casa.bairro].filter(Boolean).join(" — "),
+              addressLocality: site.cidade,
+              addressRegion: site.uf,
+              addressCountry: "BR",
+            },
+          },
+        },
+      })),
+  };
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(agendaLd) }} />
+
       {/* HERO */}
       <section className="secao--creme hero">
         <div className="wrap hero__in">
@@ -110,7 +149,7 @@ export default async function Home() {
             <p><strong>{site.pontoDePartida}</strong></p>
             <p>E agora, em {site.cidade}, quinta tem nome: {site.nome}.</p>
             <p>A programação muda. Os encontros mudam. As histórias também. A quinta permanece.</p>
-            <p><strong>Hoje é quinta. Tem Quinta Hits.</strong></p>
+            <p><strong>{temHoje ? "Hoje é quinta. Tem Quinta Hits." : site.assinatura}</strong></p>
 
             {anteriores.length > 0 && (
               <div className="anteriores">

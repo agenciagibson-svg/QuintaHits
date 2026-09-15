@@ -5,7 +5,8 @@ import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 
 export default async function Footer() {
   const site = await getSiteConfig();
-  const ano = new Date().getFullYear();
+  // Ano no fuso de Uberlândia — no réveillon o servidor (UTC) já virou o ano e a cidade não.
+  const ano = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric" }).format(new Date());
   return (
     <footer className="footer">
       <div className="wrap">

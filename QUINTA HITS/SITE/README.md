@@ -48,11 +48,14 @@ Vertentes fixas: NETO FOG = `pop-rock` · Jhean Marcell = `2000s` · DJ Jabá = 
 `status`: `confirmada` · `a_confirmar` · `realizada` · `cancelada`
 
 Quintas sem registro aparecem automaticamente como "line-up em breve".
+**Quinta que NÃO vai ter edição precisa de um registro com `status: "cancelada"`** — sem
+registro, o site assume que a quinta existe e cria o card sozinho.
 
 ## Dinâmico
 
 - `/` e `/programacao` são regeneradas a cada 60 s (a próxima quinta e a contagem mudam sozinhas).
-- Faixa "Hoje é quinta. Tem Quinta Hits." aparece só às quintas (fuso de Uberlândia).
+- A contagem regressiva aponta para a próxima EDIÇÃO real, pulando quintas canceladas.
+- Faixa "Hoje é quinta. Tem Quinta Hits." aparece só nas quintas que têm edição (fuso de Uberlândia).
 - `GET /api/proxima` — próxima edição, contagem em segundos, link de reserva.
 - `GET /api/programacao?limite=6` — próximas e anteriores em JSON.
 - `/opengraph-image` — imagem de compartilhamento gerada com a próxima edição.
