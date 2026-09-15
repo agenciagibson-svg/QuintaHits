@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { site, instagramUrl, reservaHref } from "@/config/site";
-import { edicoesAnteriores, formatData, inicioProximaQuinta, proximaEdicao, proximasEdicoes } from "@/lib/programacao";
+import { edicoesAnteriores, formatData, inicioProximaQuinta, proximaEdicao, proximasEdicoes, temEdicaoHoje } from "@/lib/programacao";
 import Countdown from "@/components/Countdown";
 import Marquee from "@/components/Marquee";
 import ProximaEdicao from "@/components/ProximaEdicao";
@@ -25,8 +25,45 @@ export default function Home() {
   const anteriores = edicoesAnteriores(agora);
   const alvo = inicioProximaQuinta(agora).toISOString();
 
+  // Dados estruturados da agenda real. O JSON-LD do layout diz "toda quinta";
+  // aqui entram as datas que de fato existem, com artista confirmado.
+  const agendaLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `Programação ${site.nome}`,
+    itemListElement: proximasEdicoes(agora, 8)
+      .filter((e) => e.artista !== "")
+      .map((e, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "MusicEvent",
+          name: `${site.nome} — ${e.artista}`,
+          startDate: e.data,
+          eventStatus: "https://schema.org/EventScheduled",
+          eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+          performer: { "@type": "MusicGroup", name: e.artista },
+          organizer: { "@type": "Organization", name: site.empresa },
+          url: `${site.url}/programacao`,
+          location: {
+            "@type": "Place",
+            name: site.casa.nome,
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: [site.casa.endereco, site.casa.bairro].filter(Boolean).join(" — "),
+              addressLocality: site.cidade,
+              addressRegion: site.uf,
+              addressCountry: "BR",
+            },
+          },
+        },
+      })),
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(agendaLd) }} />
+
       {/* HERO */}
       <section className="secao--creme hero">
         <div className="wrap hero__in">
@@ -107,7 +144,7 @@ export default function Home() {
             <p><strong>{site.pontoDePartida}</strong></p>
             <p>E agora, em {site.cidade}, quinta tem nome: {site.nome}.</p>
             <p>A programação muda. Os encontros mudam. As histórias também. A quinta permanece.</p>
-            <p><strong>Hoje é quinta. Tem Quinta Hits.</strong></p>
+            <p><strong>{temEdicaoHoje(agora) ? "Hoje é quinta. Tem Quinta Hits." : site.assinatura}</strong></p>
 
             {anteriores.length > 0 && (
               <div className="anteriores">
@@ -140,7 +177,14 @@ export default function Home() {
             <h3 className="display h-3">Como chegar</h3>
             <dl className="local__linhas">
               <div><dt>Casa</dt><dd>{site.casa.nome}</dd></div>
-              <div><dt>Endereço</dt><dd>{site.casa.endereco || "Em breve — consulte o Instagram"}</dd></div>
+              <div>
+                <dt>Endereço</dt>
+                <dd>
+                  {site.casa.endereco
+                    ? `${site.casa.endereco}${site.casa.bairro ? ` — ${site.casa.bairro}` : ""}`
+                    : "Em breve — consulte o Instagram"}
+                </dd>
+              </div>
               <div><dt>Cidade</dt><dd>{site.cidade}/{site.uf}</dd></div>
               <div><dt>Quando</dt><dd>Toda quinta-feira{site.horarioPadrao ? `, a partir das ${site.horarioPadrao}` : ""}</dd></div>
             </dl>

@@ -196,7 +196,8 @@ button { font: inherit; cursor: pointer; }
 .card__tema { font-size: 14px; opacity: 0.8; }
 .card__status { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.65; }
 .card__ig { font-size: 14px; opacity: 0.85; text-decoration: underline; text-underline-offset: 3px; }
-.card--passada { opacity: 0.78; }
+.card--passada { opacity: 0.5; filter: grayscale(0.35); }
+.card--passada:hover { opacity: 0.72; }
 
 /* filtros de programação */
 .filtros { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 32px; }

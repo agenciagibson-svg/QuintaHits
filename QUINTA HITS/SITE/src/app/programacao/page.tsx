@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { site, reservaHref } from "@/config/site";
-import { edicoesAnteriores, proximasEdicoes } from "@/lib/programacao";
+import { edicoesAnteriores, proximasEdicoes, temEdicaoHoje } from "@/lib/programacao";
 import ProgramacaoFiltro from "@/components/ProgramacaoFiltro";
 import Marquee from "@/components/Marquee";
 
@@ -33,7 +33,8 @@ export default function Programacao() {
           <ProgramacaoFiltro proximas={proximas} anteriores={anteriores} />
         </div>
       </section>
-      <Marquee texto="Hoje é quinta. Tem Quinta Hits." />
+      {/* Só afirma "hoje é quinta" quando hoje é mesmo quinta com edição. */}
+      <Marquee texto={temEdicaoHoje(agora) ? "Hoje é quinta. Tem Quinta Hits." : site.assinatura} />
     </>
   );
 }
