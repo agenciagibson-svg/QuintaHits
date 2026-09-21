@@ -16,11 +16,12 @@ export function numeroDaCasa(): string | null {
   return n.length >= 12 ? n : null;
 }
 
-/** Todas as variáveis que o fluxo de confirmação precisa (receber, conferir e responder). */
+/**
+ * Tudo o que o fluxo de confirmação precisa (receber, conferir e RESPONDER). Inclui o envio ligado e o número certo:
+ * sem isso o site aceitaria reservas e o cliente nunca receberia a confirmação (a reserva ficaria presa até expirar).
+ */
 export function whatsappConfigurado(): boolean {
-  return Boolean(
-    numeroDaCasa() && process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_APP_SECRET,
-  );
+  return Boolean(numeroDaCasa() && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_APP_SECRET && envioLigadoPorEnv() && idParaEnvio());
 }
 
 /** A assinatura X-Hub-Signature-256 bate com o corpo recebido? */
@@ -63,22 +64,3 @@ export async function enviarTexto(para: string, texto: string): Promise<void> {
 
 /** `enviadaEm`: quando o cliente mandou (ms), pelo relógio da Meta — não quando chegou aqui. */
 export type MensagemRecebida = { de: string; texto: string; enviadaEm: number };
-
-/** Extrai as mensagens de texto do payload do webhook (ignora status de entrega, mídia etc.). */
-export function mensagensDoWebhook(payload: unknown): MensagemRecebida[] {
-  const lista: MensagemRecebida[] = [];
-  const entradas = (payload as { entry?: unknown[] })?.entry;
-  if (!Array.isArray(entradas)) return lista;
-  for (const entrada of entradas) {
-    for (const mudanca of (entrada as { changes?: unknown[] })?.changes ?? []) {
-      const mensagens = (mudanca as { value?: { messages?: unknown[] } })?.value?.messages ?? [];
-      for (const m of mensagens as { from?: unknown; type?: unknown; timestamp?: unknown; text?: { body?: unknown } }[]) {
-        if (m?.type === "text" && typeof m.from === "string" && typeof m.text?.body === "string") {
-          const segundos = Number(m.timestamp);
-          lista.push({ de: m.from, texto: m.text.body, enviadaEm: Number.isFinite(segundos) ? segundos * 1000 : Date.now() });
-        }
-      }
-    }
-  }
-  return lista;
-}

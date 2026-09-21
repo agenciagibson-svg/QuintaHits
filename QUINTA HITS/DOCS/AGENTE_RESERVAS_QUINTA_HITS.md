@@ -964,6 +964,15 @@ QUINTA HITS                   200 · sem processar          200 · ignorado
 
 **Verificação:** ESLint sem avisos, `tsc` sem erros e Vitest completo verde (inclui os 9 testes novos). O `next build` continua sem rodar (carregaria credenciais reais).
 
+## 30. Revisão pré-deploy (deploy-checker e code-reviewer, 21/09/2026)
+
+Antes de pedir autorização de deploy rodei o `next build` (aprovado; `/privacidade` gerada como página estática), o **deploy-checker** e o **code-reviewer**. Nenhum dos dois achou algo que quebre o site atual (fluxo legado do webhook idêntico, HMAC obrigatório, ID desconhecido e o número 0200 ignorados, rotas admin com sessão, sem segredo versionado, banco migrado compatível com a versão antiga, rollback por `vercel rollback`). O que apontaram e o que foi feito:
+
+| Achado | Situação |
+|---|---|
+| **Bloqueante:** `whatsappConfigurado()` liberava as reservas do site sem exigir `WHATSAPP_SEND_ENABLED=true` e o ID do número certo. Ao cadastrar as variáveis do WhatsApp esquecendo o envio, o cliente reservaria e nunca receberia a confirmação (mesa presa até expirar) | **Corrigido** em `src/lib/whatsapp.ts`: agora exige número da casa, token, app secret, envio ligado e Phone Number ID igual ao da QUINTA HITS. Sem isso, o site continua respondendo 503 (como hoje). Testes em `tests/whatsappGate.test.ts` |
+| `mensagensDoWebhook` era código morto (o webhook usa `extrairEventos`) | **Removido** |
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
