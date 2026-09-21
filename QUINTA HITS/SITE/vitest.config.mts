@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 const raiz = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
+  // O tsconfig do Next usa jsx "preserve"; nos testes o JSX precisa ser compilado.
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": raiz("./src"),

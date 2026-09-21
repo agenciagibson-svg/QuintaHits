@@ -938,6 +938,32 @@ QUINTA HITS                   200 · sem processar          200 · ignorado
 
 **O que continua dependendo de decisão ou de terceiros:** o checklist do painel da Meta (22.3) e o destino do número 0200 antes de qualquer URL de webhook; o token da Cloud API (direto na Vercel, fora do chat); a URL pública do webhook para testes com a Meta (o site atual já é público e estável, mas o callback é único por app, então **nada é cadastrado antes do destino do 0200**).
 
+## 29. Página de Política de Privacidade (rascunho, 21/09/2026)
+
+**Por quê:** a Meta exige uma URL de política de privacidade no aplicativo do WhatsApp Business (item do checklist 22.3), e o formulário de reserva coleta nome e WhatsApp (LGPD). O responsável pediu um **rascunho completo** e fará a correção depois; o domínio próprio fica para o fim, então a URL provisória é `https://quinta-hits-eight.vercel.app/privacidade` (só passa a existir no ar após o próximo deploy, que depende de autorização).
+
+**O que foi feito (local, sem deploy):**
+
+| Item | Arquivo |
+|---|---|
+| Página `/privacidade` (12 seções: responsável, dados e finalidades, bases legais, atendimento automático × humano, compartilhamento, transferência internacional, prazos de guarda, direitos, segurança, cookies, mudanças, contato) | `SITE/src/app/privacidade/page.tsx` |
+| Dados da empresa configuráveis, **omitidos da página enquanto vazios** | `site.privacidade` em `SITE/src/config/site.ts` (`razaoSocial`, `cnpj`, `emailContato`, `atualizadaEm`) |
+| Estilo de texto corrido e tabelas | `.prosa` em `SITE/src/app/globals.css` |
+| Link no rodapé, no sitemap e no aviso do formulário de reserva | `Footer.tsx`, `sitemap.ts`, `ReservaMesa.tsx` |
+| Testes (9) e suporte a JSX no Vitest (`oxc.jsx.runtime = automatic`) | `tests/privacidade.test.ts`, `vitest.config.mts` |
+
+**O texto descreve o que o sistema realmente faz:** reserva pelo site (nome, WhatsApp, pessoas, mesa, data), conversa pelo WhatsApp (telefone, nome do perfil, mensagens), assistente por regras **sem IA generativa** com repasse a uma pessoa, e os terceiros em uso (Meta/WhatsApp Cloud API, Supabase, Vercel, Cloudflare Turnstile, Google Fonts, Spotify). Os prazos da tabela "Por quanto tempo guardamos" são os da política de retenção da seção 21 (90 dias, 12 meses, 30 dias, anonimização em 12 e 24 meses).
+
+**Pendências do responsável (a página é rascunho, não parecer jurídico):**
+
+1. Preencher em `site.ts`: razão social e CNPJ da GIBSON PROMOÇÕES e um **e-mail de privacidade** (hoje o contato é só o Instagram @quintahits).
+2. **Validar os prazos de retenção** (a política ainda consta como não validada em `wa_config`) e o texto inteiro com quem responde juridicamente pela empresa.
+3. Confirmar a afirmação "sem cookies de publicidade ou de análise": vale enquanto não houver pixel da Meta, Google Analytics ou similar; se entrar, **atualizar a página antes**.
+4. Se o Spotify/Google Fonts forem removidos ou trocados, ajustar a seção 5.
+5. Atualizar `atualizadaEm` a cada mudança.
+
+**Verificação:** ESLint sem avisos, `tsc` sem erros e Vitest completo verde (inclui os 9 testes novos). O `next build` continua sem rodar (carregaria credenciais reais).
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

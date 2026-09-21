@@ -22,6 +22,7 @@ export default async function Footer() {
             <a href={reservaHrefFrom(site)} {...alvoLink(reservaHrefFrom(site))}>Reservar mesa</a>
             <a href={instagramUrl(site.instagram)} target="_blank" rel="noopener noreferrer">@{site.instagram}</a>
             <a href={site.casa.mapsUrl} target="_blank" rel="noopener noreferrer">Como chegar</a>
+            <Link href="/privacidade">Política de Privacidade</Link>
           </div>
           <div className="footer__col">
             <span className="footer__empresa">Uma label {site.empresa}</span>

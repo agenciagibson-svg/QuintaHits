@@ -214,7 +214,7 @@ export default function ReservaMesa({ edicoes, instagram }: { edicoes: Edicao[];
                 {enviando ? "Enviando…" : "Pedir reserva"}
               </button>
               <p className="reserva__aviso">
-                No próximo passo você confirma a reserva mandando um código pelo WhatsApp. Usamos seus dados só para falar sobre esta reserva.
+                No próximo passo você confirma a reserva mandando um código pelo WhatsApp. Usamos seus dados só para falar sobre esta reserva. Saiba mais na <a href="/privacidade">Política de Privacidade</a>.
               </p>
             </form>
           )}

@@ -40,6 +40,14 @@ export const site = {
   horarioPadrao: "",
 
   empresa: "GIBSON PROMOÇÕES",
+
+  // Política de privacidade (/privacidade). Campos vazios NÃO aparecem na página: preencha quando estiverem definidos.
+  privacidade: {
+    atualizadaEm: "21 de setembro de 2026",
+    razaoSocial: "" as string, // razão social completa da GIBSON PROMOÇÕES
+    cnpj: "" as string,
+    emailContato: "" as string, // canal de privacidade / encarregado (DPO)
+  },
   hashtagEmpresa: "#GibsonPromoções",
   hashtags: ["#QuintaHits", "#Uberlândia", "#MúsicaAoVivo", "#QuintaFeira"],
 } as const;

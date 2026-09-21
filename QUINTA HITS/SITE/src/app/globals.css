@@ -346,3 +346,19 @@ button { font: inherit; cursor: pointer; }
 .mt-0 { margin-top: 0; } .mb-0 { margin-bottom: 0; }
 .stack > * + * { margin-top: 14px; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--preto); color: var(--creme); padding: 12px 18px; border-radius: 10px 10px 0 10px; font-size: 14px; z-index: 60; }
+
+/* ===== Texto corrido (política de privacidade e páginas de texto) ===== */
+.prosa { max-width: 76ch; margin-top: 28px; }
+.prosa p, .prosa li { font-size: 17px; line-height: 1.65; }
+.prosa p { margin: 0 0 14px; }
+.prosa h2 {
+  font-family: var(--display); font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em;
+  font-size: clamp(22px, 2.4vw, 30px); color: var(--verde); margin: 40px 0 10px; line-height: 1.05;
+}
+.prosa ul { margin: 6px 0 16px; padding-left: 1.3em; }
+.prosa li { margin-bottom: 6px; }
+.prosa a { color: var(--terracota); text-decoration: underline; text-underline-offset: 3px; }
+.prosa__tabela { width: 100%; border-collapse: collapse; margin: 8px 0 18px; font-size: 15px; line-height: 1.5; }
+.prosa__tabela th, .prosa__tabela td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid rgba(23, 23, 23, 0.18); }
+.prosa__tabela th { font-family: var(--display); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: var(--verde); }
+@media (max-width: 640px) { .prosa__tabela th, .prosa__tabela td { padding: 8px 6px; font-size: 14px; } }
