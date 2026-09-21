@@ -219,6 +219,10 @@ describe("POST /api/reservas com o site aberto (ambiente de teste, tudo simulado
     const [linha] = await banco.sql<{ status: string; origem_reserva: string; codigo: string }>("select status, origem_reserva, codigo from reservas");
     expect(linha).toEqual({ status: "aguardando", origem_reserva: "site", codigo: j.codigo });
     expect((await banco.sql("select 1 from reservas_historico")).length).toBe(1); // histórico de status desde a criação
+    // O aceite da política fica registrado na auditoria, sem nome nem telefone.
+    const [auditoria] = await banco.sql<{ ator: string; acao: string; detalhe: Record<string, unknown> }>("select ator, acao, detalhe from auditoria where acao = 'reserva_site_criada'");
+    expect(auditoria).toMatchObject({ ator: "site", detalhe: { origem: "site", politica_aceita: true } });
+    expect(JSON.stringify(auditoria)).not.toMatch(/Ana Teste|99999-8888|999998888/);
     expect(fetch).toHaveBeenCalledTimes(1); // só o Turnstile simulado; nenhuma chamada à Meta
     expect(String((fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][0])).toContain("turnstile");
   });

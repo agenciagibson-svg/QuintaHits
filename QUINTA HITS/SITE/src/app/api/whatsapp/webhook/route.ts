@@ -63,7 +63,7 @@ export async function POST(req: Request) {
 
 /** Devolve true se o agente enfileirou respostas. */
 async function rotear(evento: EventoWhatsapp, idEsperado: string | null): Promise<boolean> {
-  const destino = classificarDestino(evento.phoneNumberId, idEsperado);
+  const destino = classificarDestino(evento.phoneNumberId, idEsperado, evento.numeroExibido);
   if (destino !== "quinta_hits") {
     await registrarIgnorado(evento, destino);
     return false;

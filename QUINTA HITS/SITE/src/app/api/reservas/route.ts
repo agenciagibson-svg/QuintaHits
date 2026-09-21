@@ -8,6 +8,7 @@ import { verificarTurnstile } from "@/lib/turnstile";
 import { numeroDaCasa } from "@/lib/whatsapp";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import { limiteExcedido } from "@/lib/limiteTaxa";
+import { registrarAuditoria } from "@/lib/auditoria";
 import {
   MAX_RESERVAS_POR_WHATSAPP,
   PRAZO_CONFIRMACAO_MIN,
@@ -115,6 +116,9 @@ export async function POST(req: Request) {
       if (error?.code === "23505") return erro("Essa mesa acabou de ser reservada. Escolha outra.", 409);
       if (error) throw error;
 
+      // Prova do aceite da Política de Privacidade (sem nome nem telefone: só o fato e a origem).
+      await registrarAuditoria({ ator: "site", acao: "reserva_site_criada", entidade: "reserva", entidadeId: data.id, detalhe: { origem: "site", politica_aceita: true } });
+
       return NextResponse.json(
         {
           ok: true,
@@ -129,7 +133,7 @@ export async function POST(req: Request) {
     }
     throw new Error("Não foi possível gerar um código de reserva livre.");
   } catch (e) {
-    console.error(e);
+    console.error("Erro ao criar reserva:", (e as { code?: string } | null)?.code ?? "sem código");
     return erro("Não foi possível enviar sua reserva. Tente de novo.", 500);
   }
 }

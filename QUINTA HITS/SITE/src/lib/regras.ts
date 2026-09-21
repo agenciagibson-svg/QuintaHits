@@ -197,5 +197,5 @@ export async function edicaoProntaParaSite(id: string, agora = new Date()): Prom
 /** A migração parte 2 (coluna `reservas_site`) já foi aplicada neste banco? */
 export async function parte2Aplicada(): Promise<boolean> {
   const { error } = await supabaseAdmin().from("edicoes_regras").select("reservas_site").limit(1);
-  return !colunaSiteAusente(error);
+  return !error; // qualquer erro (coluna ou tabela ausente, ou falha de leitura) = não dá para afirmar que a parte 2 está aplicada
 }

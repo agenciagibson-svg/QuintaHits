@@ -14,6 +14,8 @@ export type ConteudoMensagem =
 export type EventoMensagem = {
   tipo: "mensagem";
   phoneNumberId: string | null;
+  /** Número exibido do destinatário (só dígitos), como a Meta entrega em `metadata.display_phone_number`. Usado só para barrar o 0200. */
+  numeroExibido?: string | null;
   wamid: string;
   /** wa_id do cliente, como a Meta entrega (só dígitos, com país). */
   de: string;
@@ -26,6 +28,7 @@ export type EventoMensagem = {
 export type EventoStatus = {
   tipo: "status";
   phoneNumberId: string | null;
+  numeroExibido?: string | null;
   wamid: string;
   status: string;
   erroCodigo: string | null;
@@ -68,6 +71,8 @@ export function extrairEventos(payload: unknown, agora = Date.now()): EventoWhat
       if (!ehObjeto(mudanca) || !ehObjeto(mudanca.value)) continue;
       const valor = mudanca.value;
       const phoneNumberId = ehObjeto(valor.metadata) ? texto(valor.metadata.phone_number_id) : null;
+      const exibido = ehObjeto(valor.metadata) ? texto(valor.metadata.display_phone_number) : null;
+      const numeroExibido = exibido ? exibido.replace(/\D/g, "") : null;
 
       const nomes = new Map<string, string>();
       for (const c of lista(valor.contacts)) {
@@ -80,6 +85,7 @@ export function extrairEventos(payload: unknown, agora = Date.now()): EventoWhat
         eventos.push({
           tipo: "mensagem",
           phoneNumberId,
+          numeroExibido,
           wamid: texto(m.id) ?? "",
           de,
           nomePerfil: nomes.get(de) ?? null,
@@ -94,6 +100,7 @@ export function extrairEventos(payload: unknown, agora = Date.now()): EventoWhat
         eventos.push({
           tipo: "status",
           phoneNumberId,
+          numeroExibido,
           wamid: String(st.id),
           status: String(st.status),
           erroCodigo: erro && erro.code !== undefined ? String(erro.code) : null,

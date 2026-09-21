@@ -134,6 +134,9 @@ describe("notas internas", () => {
     const lista = await (await listarPor()).json();
     expect(lista.migrado).toBe(true);
     expect(lista.itens).toHaveLength(1);
+    // Sem como saber o que já foi lido, o indicador some (não conta o histórico inteiro como "novo" para sempre).
+    expect(lista.itens[0].nao_lidas).toBe(0);
+    expect(lista.nao_lidas).toBe(0);
     expect((await (await detalhe(new Request("http://x"), ctx(transferenciaId))).json()).notas).toBeNull();
   });
 });

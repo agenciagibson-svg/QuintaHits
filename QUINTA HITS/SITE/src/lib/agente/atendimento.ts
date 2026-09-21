@@ -82,8 +82,12 @@ export async function listarAtendimentos(filtro: FiltroAtendimento = "abertas", 
     else q = q.eq("status", filtro).order("criada_em", { ascending: false });
     return q.limit(limite);
   };
+  let comLida = true;
   let { data, error } = await consulta(`${COLUNAS_TRANSFERENCIA}, lida_ate`);
-  if (colunaAusente(error)) ({ data, error } = await consulta(COLUNAS_TRANSFERENCIA));
+  if (colunaAusente(error)) {
+    comLida = false; // sem a parte 2 não há como saber o que já foi lido: o indicador de não lidas some (em vez de contar tudo para sempre)
+    ({ data, error } = await consulta(COLUNAS_TRANSFERENCIA));
+  }
   if (tabelaAusente(error)) return null;
   if (error) throw new Error(`Erro ao listar atendimentos: ${error.message}`);
 
@@ -101,7 +105,7 @@ export async function listarAtendimentos(filtro: FiltroAtendimento = "abertas", 
       transferencia_id: t.id, conversa_id: t.conversa_id, motivo: t.motivo, detalhe: t.detalhe, status: t.status, atendente: t.atendente, criada_em: t.criada_em, assumida_em: t.assumida_em,
       contato: { nome: ct?.nome ?? "", telefone: telefoneMascarado(ct?.telefone ?? null) },
       ultima_mensagem: ((ultima as { conteudo: string } | null)?.conteudo ?? "").slice(0, 200),
-      nao_lidas: ABERTAS.includes(t.status) ? (count ?? 0) : 0,
+      nao_lidas: comLida && ABERTAS.includes(t.status) ? (count ?? 0) : 0,
       edicao: await nomeDaEdicao(c?.contexto?.edicaoId),
       reserva: c ? await reservaRelacionada(c.contato_id, c.contexto?.reservaId) : null,
     });

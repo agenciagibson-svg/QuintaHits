@@ -1061,6 +1061,12 @@ Backup feito **antes de qualquer alteração** com \`node scripts/backup-logico.
 5. teste de acesso por papel, em consultas separadas: \`set role anon; select count(*) from wa_notas_internas;\` (esperado **permission denied**), depois \`reset role; set role authenticated; select count(*) from wa_notas_internas;\` (**permission denied**) e \`reset role;\`;
 6. reversão, se necessário: \`reverter-2026-09-21-parte2-site-e-atendimento.sql\`.
 
+### 31.13 Revisão final antes do deploy (deploy-checker + code-reviewer)
+
+Nenhum bloqueio. Ajustes feitos por causa da revisão: **(1)** o número final **0200** agora também é barrado pelo **número exibido** no evento (`display_phone_number` terminando em `3432220200`), em qualquer ambiente e mesmo que o Phone Number ID configurado (em homologação, por engano) seja o dele; **(2)** a sessão do painel é **reconferida contra `ADMIN_EMAILS` a cada requisição**: remover alguém da lista derruba o acesso na hora (antes valia até 7 dias); **(3)** o limite de tentativas do login conta só as **falhas** (a equipe no mesmo Wi-Fi não se bloqueia); **(4)** sem a parte 2 o indicador de "não lidas" some em vez de contar o histórico inteiro; **(5)** o aceite da Política de Privacidade fica na auditoria (`reserva_site_criada`, sem nome nem telefone); **(6)** o log de erro de reserva grava só o código; **(7)** `parte2Aplicada()` trata qualquer erro como "não aplicada".
+
+Pontos registrados e mantidos de propósito: em **homologação** a limpeza real não exige a política validada (só em produção; nasce desligada e travada pelo ambiente); **responder como atendente exige o envio real** (agente **e** envio ligados; com eles desligados o painel opera em modo simulado); rate limit é **por instância** do servidor; **sem CSP** (melhoria futura). Razão social, endereço e e-mail vieram das suas instruções; só o CNPJ estava malformado (seção 31.11).
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

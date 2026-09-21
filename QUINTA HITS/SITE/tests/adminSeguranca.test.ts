@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { COOKIE_NAME, criarSessao, lerSessao, sessaoValida } from "@/lib/adminAuth";
 import { middleware } from "@/middleware";
-import { _reiniciarLimites, limiteExcedido } from "@/lib/limiteTaxa";
+import { _reiniciarLimites, excedeu, limiteExcedido, registrarTentativa } from "@/lib/limiteTaxa";
 
 // Sem sessão: nenhum cookie chega às rotas (o `exigirSessao` real lê daqui).
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
@@ -14,6 +14,7 @@ const SEGREDO = "segredo-de-teste-com-mais-de-trinta-e-dois-caracteres";
 
 beforeEach(() => {
   vi.stubEnv("ADMIN_SESSION_SECRET", SEGREDO);
+  vi.stubEnv("ADMIN_EMAILS", "a@x.com, Equipe@Exemplo.com");
 });
 afterEach(() => vi.useRealTimers());
 
@@ -37,6 +38,16 @@ describe("cookie de sessão do painel", () => {
       expect(await lerSessao(ruim), String(ruim)).toBeNull();
       expect(await sessaoValida(ruim)).toBe(false);
     }
+  });
+
+  it("quem sai de ADMIN_EMAILS perde o acesso NA HORA, mesmo com o cookie ainda dentro do prazo", async () => {
+    const cookie = await criarSessao("a@x.com");
+    expect(await sessaoValida(cookie)).toBe(true);
+    vi.stubEnv("ADMIN_EMAILS", "outra@x.com");
+    expect(await sessaoValida(cookie)).toBe(false);
+    expect(await lerSessao(cookie)).toEqual({ email: "a@x.com" }); // o cookie em si ainda é autêntico; quem decide é a lista
+    vi.stubEnv("ADMIN_EMAILS", "");
+    expect(await sessaoValida(cookie)).toBe(false); // lista vazia = ninguém entra
   });
 
   it("expira depois de 7 dias", async () => {
@@ -73,6 +84,13 @@ describe("middleware do admin", () => {
     expect((await middleware(req("/admin/login"))).headers.get("x-middleware-next")).toBe("1");
     expect((await middleware(req("/api/admin/login"))).headers.get("x-middleware-next")).toBe("1");
     expect((await middleware(req("/admin", await criarSessao("a@x.com")))).headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("cookie autêntico de quem foi removido de ADMIN_EMAILS não abre o painel", async () => {
+    const cookie = await criarSessao("a@x.com");
+    vi.stubEnv("ADMIN_EMAILS", "outra@x.com");
+    expect((await middleware(req("/api/admin/mesas", cookie))).status).toBe(401);
+    expect((await middleware(req("/admin", cookie))).status).toBe(307);
   });
 
   it("cookie forjado não abre o painel", async () => {
@@ -123,9 +141,19 @@ describe("limite de tentativas", () => {
     expect(limiteExcedido("k", 5, 60_000, t0 + 61_000)).toBe(false);
   });
 
-  it("o login responde 429 quando o mesmo endereço passa de 5 tentativas", async () => {
+  it("excedeu só consulta e registrarTentativa só registra: o login conta apenas as FALHAS", () => {
+    const t0 = 5_000_000;
+    for (let i = 0; i < 10; i++) expect(excedeu("l", 5, 60_000, t0)).toBe(false); // consultar não registra
+    for (let i = 0; i < 4; i++) registrarTentativa("l", t0);
+    expect(excedeu("l", 5, 60_000, t0)).toBe(false);
+    registrarTentativa("l", t0);
+    expect(excedeu("l", 5, 60_000, t0)).toBe(true);
+    expect(excedeu("l", 5, 60_000, t0 + 61_000)).toBe(false); // a janela acabou
+  });
+
+  it("o login responde 429 quando o mesmo endereço acumula 5 tentativas falhas", async () => {
     const { POST } = await import("@/app/api/admin/login/route");
-    for (let i = 0; i < 5; i++) limiteExcedido("login:9.9.9.9", 5, 15 * 60_000);
+    for (let i = 0; i < 5; i++) registrarTentativa("login:9.9.9.9");
     const r = await POST(new Request("http://localhost/api/admin/login", { method: "POST", headers: { "x-forwarded-for": "9.9.9.9", "content-type": "application/json" }, body: JSON.stringify({ email: "a@x.com", senha: "x" }) }));
     expect(r.status).toBe(429);
     expect((await r.json()).erro).toMatch(/Muitas tentativas/);

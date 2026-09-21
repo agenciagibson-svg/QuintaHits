@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { COOKIE_NAME, SESSAO_DURACAO_S, criarSessao } from "@/lib/adminAuth";
 import { verificarLogin } from "@/lib/adminLogin";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { limiteExcedido } from "@/lib/limiteTaxa";
+import { excedeu, registrarTentativa } from "@/lib/limiteTaxa";
 
 export async function POST(req: Request) {
-  // Limite de tentativas por endereço (5 a cada 15 min), além do atraso fixo de cada erro. Vale por instância do servidor.
+  // Limite de tentativas FALHAS por endereço (5 a cada 15 min), além do atraso fixo de cada erro. Logins que dão certo não
+  // contam (a equipe toda no mesmo Wi-Fi não se bloqueia). Vale por instância do servidor; na Vercel o cabeçalho vem do proxy deles.
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "sem-ip";
-  if (limiteExcedido(`login:${ip}`, 5, 15 * 60_000)) {
+  const chaveLimite = `login:${ip}`;
+  if (excedeu(chaveLimite, 5, 15 * 60_000)) {
     return NextResponse.json({ erro: "Muitas tentativas. Aguarde alguns minutos e tente de novo." }, { status: 429 });
   }
   const body = await req.json().catch(() => null);
@@ -15,6 +17,7 @@ export async function POST(req: Request) {
   const senha = body?.senha;
 
   if (typeof email !== "string" || typeof senha !== "string" || !(await verificarLogin(email, senha))) {
+    registrarTentativa(chaveLimite);
     // Atraso fixo em cada erro: torna tentativa de senha em massa lenta.
     await new Promise((r) => setTimeout(r, 1000));
     return NextResponse.json({ erro: "E-mail ou senha incorretos." }, { status: 401 });

@@ -66,7 +66,17 @@ export async function lerSessao(valorCookie: string | undefined): Promise<{ emai
   return email ? { email } : null;
 }
 
-/** Sessão válida? (usado pelo middleware) */
+/**
+ * O e-mail ainda está autorizado (ADMIN_EMAILS)? Conferido a CADA requisição, não só no login: quem sai da lista perde o
+ * acesso na hora, mesmo com um cookie de sessão ainda dentro do prazo. Lista vazia = ninguém entra.
+ */
+export function emailAutorizado(email: string): boolean {
+  const lista = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  return lista.includes(email.trim().toLowerCase());
+}
+
+/** Sessão válida (assinatura, prazo) E com e-mail ainda autorizado? (usado pelo middleware e por toda rota /api/admin) */
 export async function sessaoValida(valorCookie: string | undefined): Promise<boolean> {
-  return (await lerSessao(valorCookie)) !== null;
+  const sessao = await lerSessao(valorCookie);
+  return sessao !== null && emailAutorizado(sessao.email);
 }

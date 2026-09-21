@@ -16,4 +16,14 @@ export function limiteExcedido(chave: string, max: number, janelaMs: number, ago
   return recentes.length > max;
 }
 
+/** Só CONSULTA (não registra): já passou do máximo dentro da janela? */
+export function excedeu(chave: string, max: number, janelaMs: number, agora = Date.now()): boolean {
+  return (tentativas.get(chave) ?? []).filter((t) => agora - t < janelaMs).length >= max;
+}
+
+/** Registra uma tentativa (usado só para as que FALHARAM, como senha errada). */
+export function registrarTentativa(chave: string, agora = Date.now()): void {
+  tentativas.set(chave, [...(tentativas.get(chave) ?? []), agora]);
+}
+
 export const _reiniciarLimites = () => tentativas.clear();

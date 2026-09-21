@@ -264,3 +264,41 @@ describe("Homologação: o número de TESTE vale no lugar do oficial", () => {
     expect(await statusDaReserva(banco, id)).toBe("aguardando");
   });
 });
+
+describe("Barreira extra do 0200: o NÚMERO EXIBIDO também é barrado, em qualquer ambiente", () => {
+  const com0200 = (o: Parameters<typeof corpoMensagem>[0]) => {
+    const corpo = JSON.parse(corpoMensagem(o));
+    corpo.entry[0].changes[0].value.metadata.display_phone_number = "553432220200";
+    return JSON.stringify(corpo);
+  };
+
+  it("mesmo com o Phone Number ID igual ao da QUINTA HITS, um evento que exibe o 0200 NÃO confirma e NÃO responde", async () => {
+    ligarEnvio();
+    const id = await criarPedidoAguardando(banco, { edicaoId, mesaId, codigo: "QH-123456" });
+    const r = await POST(requisicao(com0200({ texto: "QH-123456" })));
+    expect(r.status).toBe(200);
+    expect(await statusDaReserva(banco, id)).toBe("aguardando");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("em HOMOLOGAÇÃO, com a variável apontando (por engano) para o ID do 0200, o evento continua barrado pelo número exibido", async () => {
+    ligarEnvio();
+    vi.stubEnv("APP_AMBIENTE", "homologacao");
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_OUTRO_NUMERO);
+    const id = await criarPedidoAguardando(banco, { edicaoId, mesaId, codigo: "QH-123456" });
+    const r = await POST(requisicao(com0200({ phoneNumberId: ID_OUTRO_NUMERO, texto: "QH-123456" })));
+    expect(r.status).toBe(200);
+    expect(await statusDaReserva(banco, id)).toBe("aguardando");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("formatos do número exibido (com +, espaços, hífen) também são reconhecidos; outro número não é afetado", async () => {
+    const { classificarDestino } = await import("@/lib/agente/roteador");
+    for (const exibido of ["553432220200", "+55 34 3222-0200", "(34) 3222-0200", "3432220200"]) {
+      expect(classificarDestino(ID_QUINTA_HITS, ID_QUINTA_HITS, exibido), exibido).toBe("ignorado_outro_numero");
+    }
+    expect(classificarDestino(ID_QUINTA_HITS, ID_QUINTA_HITS, "5534991167064")).toBe("quinta_hits");
+    expect(classificarDestino(ID_QUINTA_HITS, ID_QUINTA_HITS, null)).toBe("quinta_hits");
+    expect(classificarDestino(ID_QUINTA_HITS, ID_QUINTA_HITS)).toBe("quinta_hits");
+  });
+});
