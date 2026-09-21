@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { exigirSessao } from "@/lib/adminSessao";
+import { auditarPainel, exigirSessao } from "@/lib/adminSessao";
+import { erroInterno } from "@/lib/respostas";
 import { validarConfig } from "@/lib/adminValidacao";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export async function GET() {
     .eq("id", 1)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
   return NextResponse.json({ config: data ?? {} });
 }
 
@@ -38,8 +39,9 @@ export async function PUT(req: Request) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
 
   revalidatePath("/", "layout");
+  await auditarPainel("config_site_atualizada", "site_config", "1", { campos: Object.keys(validacao.campos) });
   return NextResponse.json({ config: data });
 }

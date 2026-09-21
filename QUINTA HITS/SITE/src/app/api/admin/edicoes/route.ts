@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { exigirSessao } from "@/lib/adminSessao";
+import { auditarPainel, exigirSessao } from "@/lib/adminSessao";
+import { erroInterno } from "@/lib/respostas";
 import { validarEdicao } from "@/lib/adminValidacao";
 import { dataISOValida, ehQuinta } from "@/lib/edicao";
 
@@ -17,7 +18,7 @@ export async function GET() {
     .select("*")
     .order("data", { ascending: false });
 
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
   return NextResponse.json({ edicoes: data });
 }
 
@@ -40,8 +41,9 @@ export async function POST(req: Request) {
   if (error?.code === "23505") {
     return NextResponse.json({ erro: `Já existe uma edição em ${body.data}.` }, { status: 409 });
   }
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
 
   revalidatePath("/", "layout");
+  await auditarPainel("edicao_criada", "edicao", body.data);
   return NextResponse.json({ edicao: data }, { status: 201 });
 }

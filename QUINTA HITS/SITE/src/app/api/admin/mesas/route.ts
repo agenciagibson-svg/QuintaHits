@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { exigirSessao } from "@/lib/adminSessao";
+import { auditarPainel, exigirSessao } from "@/lib/adminSessao";
+import { erroInterno } from "@/lib/respostas";
 import { validarMesa } from "@/lib/adminValidacao";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export async function GET() {
   if (negado) return negado;
 
   const { data, error } = await supabaseAdmin().from("mesas").select("id, numero, lugares, area, x, y, ativa").order("numero");
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
   return NextResponse.json({ mesas: (data ?? []).map((m) => ({ ...m, x: Number(m.x), y: Number(m.y) })) });
 }
 
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
   if (error?.code === "23505") {
     return NextResponse.json({ erro: `Já existe a mesa ${validacao.campos.numero}.` }, { status: 409 });
   }
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
+  await auditarPainel("mesa_criada", "mesa", (data as { id: string }).id, { numero: validacao.campos.numero });
   return NextResponse.json({ mesa: data }, { status: 201 });
 }

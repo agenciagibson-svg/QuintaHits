@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirSessao } from "@/lib/adminSessao";
+import { atorDaSessao, exigirSessao } from "@/lib/adminSessao";
 import { dataISOValida } from "@/lib/edicao";
 import { carregarPainelDeRegras, salvarRegrasECanais, validarCanais } from "@/lib/regras";
 import { validarRegras } from "@/lib/regrasEdicao";
@@ -41,7 +41,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (canais && "erro" in canais) return erro(canais.erro, 400);
 
   try {
-    const r = await salvarRegrasECanais(id, { regras: regras?.campos, canais: canais?.itens });
+    const r = await salvarRegrasECanais(id, { regras: regras?.campos, canais: canais?.itens }, await atorDaSessao());
     if (!r.ok) return erro(r.erro, r.status);
     return NextResponse.json(await carregarPainelDeRegras(id));
   } catch (e) {

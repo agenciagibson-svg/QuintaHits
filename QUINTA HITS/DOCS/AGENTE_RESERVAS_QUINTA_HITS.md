@@ -1008,6 +1008,26 @@ Migração parte 2 (**aditiva**, não apaga nada): `SITE/supabase/migracao-2026-
 
 **O código tolera a ausência da parte 2**: sem a coluna `reservas_site` nenhuma edição fica liberada para o site (site fechado) e o painel avisa que a parte 2 precisa ser aplicada; o agente e o resto continuam funcionando.
 
+### 31.4 Identidade real no painel, auditoria e erros sem vazamento
+
+- O cookie de sessão agora carrega o **e-mail de quem entrou** dentro do que é assinado (`<expira>.<e-mail>.<assinatura>`); cookies no formato antigo são recusados (basta entrar de novo). Toda ação usa esse e-mail como autor, e o campo "seu nome" do atendimento foi **removido** (um nome digitado no corpo da requisição é ignorado).
+- **Auditoria** (`auditoria`) passou a cobrir também login, reservas (status), mesas, edições e configuração da casa, além do que já cobria (regras, atendimento, pausa, notas). O detalhe guarda só nomes de campos e contagens.
+- **Erros internos** do painel não devolvem mais a mensagem do banco ao navegador (só o código no log e uma frase genérica).
+- **Limite de tentativas** no login (5 a cada 15 min por endereço, 429). Vale **por instância** do servidor (limite conhecido de ambiente serverless); a proteção principal continua sendo o Supabase Auth (login) e o Turnstile (reserva).
+- Testes: `tests/adminSeguranca.test.ts` (cookie: e-mail, adulteração, expiração, formato antigo, outro segredo; middleware; **toda rota /api/admin recusa 401 sem sessão**, descoberta automaticamente; limite de tentativas).
+
+### 31.5 Atendimento humano completo (`/admin`)
+
+Lista com **filtros por status** (em aberto, aguardando, com a equipe, devolvidas, encerradas, todas); **mensagens não lidas** (por atendimento e total; abrir marca como lida); **edição e reserva relacionadas** e motivo da transferência; **telefone mascarado** ("(34) 9****-8888"); assumir, devolver ao agente e encerrar com o e-mail de quem executou; **notas internas** (nunca vão para o cliente); histórico. Enquanto o envio real estiver desligado, o painel mostra o aviso **MODO SIMULADO** e a resposta escrita fica na fila (`simulado: true`), sem chamar a Meta. Testes: `tests/atendimentoApi.test.ts`, `tests/atendimentoCompleto.test.ts`. Notas e "lida até" dependem da parte 2 da migração; sem ela o painel avisa e o resto funciona.
+
+### 31.6 Integrações e auditoria no painel
+
+Seção **Integrações e chaves de segurança** (somente leitura): estado das 4 chaves (mais repasse humano e retenção), credenciais como "configurada/ausente" (**nunca valores**), ambiente do deploy × banco, envio real liberado ou bloqueado, situação do site, migrações parte 1 e 2, pausa, números de teste (só a quantidade) e retenção. Seção **Auditoria** (últimas 100 ações). Testes: `tests/integracoes.test.ts` (inclui a prova de que valores inventados de token e segredo não aparecem na resposta).
+
+### 31.7 Formulário de reserva do site (pronto, fechado por padrão)
+
+Com `RESERVAS_SITE_ENABLED=true` e a confirmação possível, o site: mostra só edições **completas e liberadas** para o site; exibe as **regras da noite** cadastradas (abertura, prazo, tolerância, cancelamento, consumação, valor e instruções; campo não definido não aparece); pede **caixa de consentimento** ("Li e concordo com a Política de Privacidade", exigida também pela API: sem `politica: true`, 400); valida dados mínimos; cria o pedido **atomicamente** (o índice único do banco impede duplicidade: a segunda tentativa recebe 409) com código `QH-NNNNNN` e origem `site`, que aparece no painel na hora; e limita 10 pedidos por 10 min por endereço. **O envio pelo WhatsApp é complementar**: a reserva já existe no banco, então uma falha de envio não duplica nem apaga nada. Testes: `tests/edicaoSite.test.ts` (23 casos, incluindo **8 tentativas simultâneas pela última mesa: exatamente 1 vence**, todos os campos obrigatórios, banco só com a parte 1, formulário fechado sem nenhuma reserva e sem nenhuma chamada externa).
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

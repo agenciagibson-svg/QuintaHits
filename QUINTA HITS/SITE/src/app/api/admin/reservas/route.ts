@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { exigirSessao } from "@/lib/adminSessao";
+import { erroInterno } from "@/lib/respostas";
 import { dataISOValida } from "@/lib/edicao";
 import { expirarPedidosVencidos } from "@/lib/reservas";
 
@@ -26,6 +27,6 @@ export async function GET(req: Request) {
     .eq("edicao_id", edicao)
     .order("created_at", { ascending: true });
 
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
   return NextResponse.json({ reservas: data ?? [] });
 }

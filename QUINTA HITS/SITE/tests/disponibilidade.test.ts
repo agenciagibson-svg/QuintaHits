@@ -137,7 +137,7 @@ describe("disponibilidade única por canal (com a migração)", () => {
 describe("POST /api/reservas (site) com a disponibilidade única", () => {
   let edicao: string;
   const post = (corpo: Record<string, unknown>) =>
-    POST(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Ana Teste", whatsapp: "(34) 99999-8888", pessoas: 2, edicao_id: edicao, turnstile: "ok", ...corpo }) }));
+    POST(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Ana Teste", whatsapp: "(34) 99999-8888", pessoas: 2, edicao_id: edicao, turnstile: "ok", politica: true, ...corpo }) }));
 
   beforeEach(async () => {
     definirBanco(banco);
@@ -242,7 +242,7 @@ describe("SEM a migração (estado da produção hoje): o site segue exatamente 
     vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true"); // sem o envio ligado o site não libera reservas
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
     const t1 = await criarMesa(bancoAntigo, "T1", 4);
-    const r = await POST(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Ana Teste", whatsapp: "(34) 99999-8888", pessoas: 2, edicao_id: edicao, mesa_id: t1, turnstile: "ok" }) }));
+    const r = await POST(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Ana Teste", whatsapp: "(34) 99999-8888", pessoas: 2, edicao_id: edicao, mesa_id: t1, turnstile: "ok", politica: true }) }));
     expect(r.status).toBe(409);
     expect((await bancoAntigo.sql("select 1 from reservas")).length).toBe(0);
   });

@@ -14,6 +14,7 @@ vi.mock("@/lib/supabaseAdmin", async () => {
 });
 vi.mock("@/lib/adminSessao", () => ({
   exigirSessao: async () => (sessao.autenticado ? null : NextResponse.json({ erro: "Não autenticado." }, { status: 401 })),
+  atorDaSessao: async () => "equipe@teste.com",
 }));
 
 import { GET, PUT } from "@/app/api/admin/edicoes/[id]/regras/route";

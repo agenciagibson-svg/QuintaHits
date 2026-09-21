@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { site, instagramUrl } from "@/config/site";
 import { edicoesProntasParaSite } from "@/lib/regras";
+import { regrasPublicas } from "@/lib/regrasEdicao";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import ReservaMesa from "@/components/ReservaMesa";
 
@@ -40,7 +41,7 @@ export default async function Reservar() {
             </a>
           </div>
         ) : (
-          <ReservaMesa edicoes={edicoes} instagram={site.instagram} />
+          <ReservaMesa edicoes={edicoes} instagram={site.instagram} regras={Object.fromEntries(prontas.map((p) => [p.edicao.id, regrasPublicas(p.regras)]))} />
         )}
       </div>
     </section>

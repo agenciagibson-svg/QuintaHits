@@ -362,3 +362,11 @@ button { font: inherit; cursor: pointer; }
 .prosa__tabela th, .prosa__tabela td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid rgba(23, 23, 23, 0.18); }
 .prosa__tabela th { font-family: var(--display); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: var(--verde); }
 @media (max-width: 640px) { .prosa__tabela th, .prosa__tabela td { padding: 8px 6px; font-size: 14px; } }
+
+/* Regras da noite e consentimento no formulário de reserva */
+.reserva__regras { margin: 10px 0 14px; font-size: 14px; }
+.reserva__regras ul { margin: 6px 0 6px 1.1em; padding: 0; }
+.reserva__regras li { margin-bottom: 2px; }
+.reserva__consentimento { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4; }
+.reserva__consentimento input { width: auto; margin-top: 3px; flex: none; }
+.reserva__consentimento a { text-decoration: underline; text-underline-offset: 2px; }

@@ -7,6 +7,7 @@ import { verificarMesa } from "@/lib/disponibilidade";
 import { verificarTurnstile } from "@/lib/turnstile";
 import { numeroDaCasa } from "@/lib/whatsapp";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
+import { limiteExcedido } from "@/lib/limiteTaxa";
 import {
   MAX_RESERVAS_POR_WHATSAPP,
   PRAZO_CONFIRMACAO_MIN,
@@ -45,9 +46,14 @@ export async function POST(req: Request) {
   if (typeof body.site === "string" && body.site !== "") return NextResponse.json({ ok: true }, { status: 201 });
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+  // Barreira extra contra abuso (10 pedidos a cada 10 min por endereço; vale por instância do servidor). Sem IP não limita ninguém.
+  if (ip && limiteExcedido(`reserva:${ip}`, 10, 10 * 60_000)) return erro("Muitas tentativas. Aguarde alguns minutos e tente de novo.", 429);
   if (!(await verificarTurnstile(body.turnstile, ip))) {
     return erro("Não conseguimos confirmar que você não é um robô. Recarregue a página e tente de novo.", 403);
   }
+
+  // Consentimento informado: o cliente precisa ter lido a Política de Privacidade (o formulário exige a caixa marcada).
+  if (body.politica !== true) return erro("Leia a Política de Privacidade e marque a caixa para continuar.", 400);
 
   const numeroCasa = numeroDaCasa();
   if (!numeroCasa) return erro("A reserva pelo site está indisponível agora. Fale com a gente pelo Instagram.", 503);

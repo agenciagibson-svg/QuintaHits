@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { exigirSessao } from "@/lib/adminSessao";
+import { auditarPainel, exigirSessao } from "@/lib/adminSessao";
+import { erroInterno } from "@/lib/respostas";
 import { validarMesa } from "@/lib/adminValidacao";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +26,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     .maybeSingle();
 
   if (error?.code === "23505") return NextResponse.json({ erro: "Já existe uma mesa com esse número." }, { status: 409 });
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
   if (!data) return NextResponse.json({ erro: "Mesa não encontrada." }, { status: 404 });
+  await auditarPainel("mesa_atualizada", "mesa", id, { campos: Object.keys(validacao.campos) });
   return NextResponse.json({ mesa: data });
 }
 
@@ -40,6 +42,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (error?.code === "23503") {
     return NextResponse.json({ erro: "Essa mesa tem reservas registradas. Desative a mesa em vez de excluir." }, { status: 409 });
   }
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
+  await auditarPainel("mesa_excluida", "mesa", id);
   return NextResponse.json({ ok: true });
 }

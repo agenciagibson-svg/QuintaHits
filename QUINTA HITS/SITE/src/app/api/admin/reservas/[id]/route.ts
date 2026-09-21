@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { exigirSessao } from "@/lib/adminSessao";
+import { auditarPainel, exigirSessao } from "@/lib/adminSessao";
+import { erroInterno } from "@/lib/respostas";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (error?.code === "23505") {
     return NextResponse.json({ erro: "Essa mesa já tem outro pedido ativo nesta edição." }, { status: 409 });
   }
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
   if (!data) return NextResponse.json({ erro: "Reserva não encontrada." }, { status: 404 });
+  await auditarPainel("reserva_status_alterado", "reserva", id, { status });
   return NextResponse.json({ reserva: data });
 }

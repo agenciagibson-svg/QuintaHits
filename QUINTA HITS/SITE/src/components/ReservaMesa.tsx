@@ -4,13 +4,35 @@ import { useEffect, useRef, useState } from "react";
 import { instagramUrl } from "@/config/site";
 import { formatData, type Edicao } from "@/lib/edicao";
 import type { MesaPublica } from "@/lib/reserva";
+import { formatarReais, type RegrasPublicas } from "@/lib/regrasEdicao";
 import MapaMesas from "./MapaMesas";
 import Turnstile, { TURNSTILE_SITE_KEY } from "./Turnstile";
 import ConfirmacaoWhatsapp, { type PedidoEnviado } from "./ConfirmacaoWhatsapp";
 
 type Mapa = { mesas: MesaPublica[]; ocupadas: string[] };
 
-export default function ReservaMesa({ edicoes, instagram }: { edicoes: Edicao[]; instagram: string }) {
+const dataHoraBR = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+/** Regras da noite, exatamente como cadastradas no painel (nada é inventado: campo não definido não aparece). */
+function RegrasDaNoite({ r }: { r: RegrasPublicas }) {
+  const itens: string[] = [];
+  if (r.abertura) itens.push(`Abertura: ${r.abertura}`);
+  if (r.reservas_ate) itens.push(`Reservas até ${dataHoraBR(r.reservas_ate)}`);
+  if (r.tolerancia_min !== null) itens.push(`Tolerância de chegada: ${r.tolerancia_min} min`);
+  if (r.cancelamento_ate_horas !== null) itens.push(`Cancelamento até ${r.cancelamento_ate_horas} h antes`);
+  if (r.consumacao_minima_centavos !== null && r.consumacao_minima_centavos > 0) itens.push(`Consumação mínima: ${formatarReais(r.consumacao_minima_centavos)}`);
+  if (r.preco_centavos !== null && r.preco_centavos > 0) itens.push(`Valor: ${formatarReais(r.preco_centavos)}`);
+  if (itens.length === 0 && !r.instrucoes_chegada) return null;
+  return (
+    <div className="reserva__regras">
+      <strong>Regras desta noite</strong>
+      <ul>{itens.map((i) => <li key={i}>{i}</li>)}</ul>
+      {r.instrucoes_chegada && <p className="reserva__aviso">{r.instrucoes_chegada}</p>}
+    </div>
+  );
+}
+
+export default function ReservaMesa({ edicoes, instagram, regras }: { edicoes: Edicao[]; instagram: string; regras?: Record<string, RegrasPublicas> }) {
   const [edicaoId, setEdicaoId] = useState(edicoes[0].id);
   const [mapa, setMapa] = useState<Mapa | null>(null);
   const [erroMapa, setErroMapa] = useState("");
@@ -19,6 +41,7 @@ export default function ReservaMesa({ edicoes, instagram }: { edicoes: Edicao[];
   const [whatsapp, setWhatsapp] = useState("");
   const [pessoas, setPessoas] = useState("");
   const [armadilha, setArmadilha] = useState("");
+  const [politica, setPolitica] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const [enviada, setEnviada] = useState<PedidoEnviado | null>(null);
@@ -65,7 +88,7 @@ export default function ReservaMesa({ edicoes, instagram }: { edicoes: Edicao[];
       const res = await fetch("/api/reservas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ edicao_id: edicaoId, mesa_id: mesa.id, nome, whatsapp, pessoas: Number(pessoas), site: armadilha, turnstile: tokenRobo }),
+        body: JSON.stringify({ edicao_id: edicaoId, mesa_id: mesa.id, nome, whatsapp, pessoas: Number(pessoas), site: armadilha, turnstile: tokenRobo, politica }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -163,6 +186,7 @@ export default function ReservaMesa({ edicoes, instagram }: { edicoes: Edicao[];
         <div className="placa placa--p placa--vazada reserva__painel">
           <div className="eyebrow">{formatData(edicao.data, "longa")}</div>
           <h2 className="display h-3">{edicao.artista || "Line-up em breve"}</h2>
+          {regras?.[edicao.id] && <RegrasDaNoite r={regras[edicao.id]} />}
           {!mesa ? (
             <>
               {/* Erro que tirou a mesa escolhida (ex.: outra pessoa reservou antes) continua visível. */}
@@ -208,13 +232,17 @@ export default function ReservaMesa({ edicoes, instagram }: { edicoes: Edicao[];
                   <input value={armadilha} onChange={(e) => setArmadilha(e.target.value)} tabIndex={-1} autoComplete="off" />
                 </label>
               </div>
+              <label className="reserva__consentimento">
+                <input type="checkbox" checked={politica} onChange={(e) => setPolitica(e.target.checked)} required />
+                <span>Li e concordo com a <a href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span>
+              </label>
               <Turnstile chave={chaveRobo} onToken={setTokenRobo} />
               {erro && <p className="reserva__erro" role="alert">{erro}</p>}
-              <button type="submit" className="btn btn--terracota" disabled={enviando}>
+              <button type="submit" className="btn btn--terracota" disabled={enviando || !politica}>
                 {enviando ? "Enviando…" : "Pedir reserva"}
               </button>
               <p className="reserva__aviso">
-                No próximo passo você confirma a reserva mandando um código pelo WhatsApp. Usamos seus dados só para falar sobre esta reserva. Saiba mais na <a href="/privacidade">Política de Privacidade</a>.
+                No próximo passo você confirma a reserva mandando um código pelo WhatsApp. Usamos seus dados só para falar sobre esta reserva; veja os detalhes na <a href="/privacidade">Política de Privacidade</a>.
               </p>
             </form>
           )}

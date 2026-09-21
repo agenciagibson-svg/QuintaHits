@@ -159,5 +159,18 @@ function faltandoDaEdicao(edicao: Edicao | null, regras: RegrasEdicao | null, ag
   return faltando;
 }
 
+/** O que o CLIENTE pode ver das regras da edição (nada interno: sem sinal e sem observações). */
+export type RegrasPublicas = Pick<RegrasEdicao, "abertura" | "reservas_ate" | "tolerancia_min" | "cancelamento_ate_horas" | "consumacao_minima_centavos" | "preco_centavos" | "instrucoes_chegada">;
+
+export const regrasPublicas = (r: RegrasEdicao): RegrasPublicas => ({
+  abertura: r.abertura,
+  reservas_ate: r.reservas_ate,
+  tolerancia_min: r.tolerancia_min,
+  cancelamento_ate_horas: r.cancelamento_ate_horas,
+  consumacao_minima_centavos: r.consumacao_minima_centavos,
+  preco_centavos: r.preco_centavos,
+  instrucoes_chegada: r.instrucoes_chegada,
+});
+
 /** "R$ 50,00" a partir de centavos. */
 export const formatarReais = (centavos: number) => `R$ ${(centavos / 100).toFixed(2).replace(".", ",")}`;

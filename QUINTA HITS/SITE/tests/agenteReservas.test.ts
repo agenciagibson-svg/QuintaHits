@@ -117,7 +117,7 @@ describe("CORRIDA entre canais pela mesma mesa (estoque único)", () => {
   });
 
   const site = (mesaId: string, telefone: string) =>
-    postSite(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Cliente Site", whatsapp: telefone, pessoas: 2, edicao_id: ED, mesa_id: mesaId, turnstile: "ok" }) }));
+    postSite(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Cliente Site", whatsapp: telefone, pessoas: 2, edicao_id: ED, mesa_id: mesaId, turnstile: "ok", politica: true }) }));
 
   it("SITE e WHATSAPP tentam a MESMA mesa ao mesmo tempo: só uma operação é aceita, em qualquer ordem de chegada", async () => {
     for (let rodada = 0; rodada < 6; rodada++) {

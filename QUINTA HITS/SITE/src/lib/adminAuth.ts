@@ -33,21 +33,40 @@ function deBase64Url(texto: string): Uint8Array<ArrayBuffer> | null {
   }
 }
 
-/** Gera o valor do cookie de sessão: "<expiraEm>.<assinatura>". */
-export async function criarSessao(): Promise<string> {
+/**
+ * Gera o valor do cookie de sessão: "<expiraEm>.<e-mail em base64url>.<assinatura>".
+ * O e-mail de quem entrou vai DENTRO do que é assinado: identifica quem executa cada ação do painel (auditoria)
+ * e não pode ser trocado sem invalidar a assinatura.
+ */
+export async function criarSessao(email: string): Promise<string> {
   const expiraEm = String(Date.now() + SESSAO_DURACAO_S * 1000);
-  const assinatura = await crypto.subtle.sign("HMAC", await chaveHmac("sign"), encoder.encode(expiraEm));
-  return `${expiraEm}.${paraBase64Url(assinatura)}`;
+  const carga = `${expiraEm}.${paraBase64Url(encoder.encode(email.trim().toLowerCase()).buffer as ArrayBuffer)}`;
+  const assinatura = await crypto.subtle.sign("HMAC", await chaveHmac("sign"), encoder.encode(carga));
+  return `${carga}.${paraBase64Url(assinatura)}`;
 }
 
-/** Valida o cookie de sessão: assinatura correta (verificação em tempo constante) e ainda não expirada. */
-export async function sessaoValida(valorCookie: string | undefined): Promise<boolean> {
-  if (!valorCookie) return false;
-  const [expiraEmStr, assinaturaStr] = valorCookie.split(".");
-  if (!expiraEmStr || !assinaturaStr) return false;
+/**
+ * Lê o cookie de sessão: assinatura correta (verificação em tempo constante) e ainda não expirada.
+ * Devolve o e-mail de quem entrou, ou null. Cookies no formato antigo (sem e-mail) são recusados: basta entrar de novo.
+ */
+export async function lerSessao(valorCookie: string | undefined): Promise<{ email: string } | null> {
+  if (!valorCookie) return null;
+  const partes = valorCookie.split(".");
+  if (partes.length !== 3) return null;
+  const [expiraEmStr, emailB64, assinaturaStr] = partes;
+  if (!expiraEmStr || !emailB64 || !assinaturaStr) return null;
   const expiraEm = Number(expiraEmStr);
-  if (!Number.isFinite(expiraEm) || Date.now() > expiraEm) return false;
+  if (!Number.isFinite(expiraEm) || Date.now() > expiraEm) return null;
   const assinatura = deBase64Url(assinaturaStr);
-  if (!assinatura) return false;
-  return crypto.subtle.verify("HMAC", await chaveHmac("verify"), assinatura, encoder.encode(expiraEmStr));
+  const emailBytes = deBase64Url(emailB64);
+  if (!assinatura || !emailBytes) return null;
+  const confere = await crypto.subtle.verify("HMAC", await chaveHmac("verify"), assinatura, encoder.encode(`${expiraEmStr}.${emailB64}`));
+  if (!confere) return null;
+  const email = new TextDecoder().decode(emailBytes);
+  return email ? { email } : null;
+}
+
+/** Sessão válida? (usado pelo middleware) */
+export async function sessaoValida(valorCookie: string | undefined): Promise<boolean> {
+  return (await lerSessao(valorCookie)) !== null;
 }

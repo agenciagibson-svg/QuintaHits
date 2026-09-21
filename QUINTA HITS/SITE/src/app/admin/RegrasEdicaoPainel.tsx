@@ -7,7 +7,7 @@ import type { CanalDaMesa } from "@/lib/regras";
 import type { Prontidao, RegrasEdicao } from "@/lib/regrasEdicao";
 import { s } from "./estilos";
 
-type Painel = { migrado: false } | { migrado: true; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; mesas: CanalDaMesa[] };
+type Painel = { migrado: false } | { migrado: true; parte2: boolean; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; prontidaoSite: Prontidao; mesas: CanalDaMesa[] };
 
 type Formulario = {
   abertura: string;
@@ -21,6 +21,7 @@ type Formulario = {
   instrucoes_chegada: string;
   observacoes: string;
   atendimento_automatico: boolean;
+  reservas_site: boolean;
 };
 
 const FUSO = "America/Sao_Paulo";
@@ -57,6 +58,7 @@ function formularioDe(r: RegrasEdicao): Formulario {
     instrucoes_chegada: r.instrucoes_chegada ?? "",
     observacoes: r.observacoes,
     atendimento_automatico: r.atendimento_automatico,
+    reservas_site: r.reservas_site,
   };
 }
 
@@ -135,6 +137,8 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
             instrucoes_chegada: form.instrucoes_chegada,
             observacoes: form.observacoes,
             atendimento_automatico: form.atendimento_automatico,
+            // Só envia a liberação do site se a migração parte 2 já existe neste banco (senão o salvamento falharia).
+            ...(painel?.migrado && painel.parte2 ? { reservas_site: form.reservas_site } : {}),
           },
           mesas: mesas.map((m) => ({ mesa_id: m.mesa_id, disponivel_site: m.disponivel_site, disponivel_whatsapp: m.disponivel_whatsapp, disponivel_admin: m.disponivel_admin, lugares_ajuste: m.lugares_ajuste })),
         }),
@@ -190,6 +194,20 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
               ? "Pronta para reservas automáticas pelo WhatsApp."
               : `NÃO está pronta para reservas automáticas. O agente não confirma nada e passa o cliente para a equipe. Faltam: ${painel.prontidao.faltando.join("; ")}.`}
           </div>
+          <div
+            role="status"
+            style={{ ...s.aviso, marginInline: 0, background: painel.prontidaoSite.pronta ? "#17352B" : "#B84A32", fontWeight: 600 }}
+          >
+            {painel.prontidaoSite.pronta
+              ? "Pronta para reservas pelo SITE (quando RESERVAS_SITE_ENABLED estiver ligada na Vercel)."
+              : `NÃO está pronta para reservas pelo site. Faltam: ${painel.prontidaoSite.faltando.join("; ")}.`}
+          </div>
+          {!painel.parte2 && (
+            <div style={{ ...s.avisoErro, marginInline: 0, background: "#3a3320" }} role="note">
+              A migração parte 2 ainda não foi aplicada neste banco: a liberação para o site não pode ser gravada e o site continua fechado para todas as edições.
+              Aplique o arquivo <code>migracao-2026-09-21-parte2-site-e-atendimento.sql</code> no SQL Editor do Supabase.
+            </div>
+          )}
           <p style={s.legenda}>
             Horário do evento e local são editados na tabela de programação. Nada é preenchido por padrão: campo vazio significa &quot;ainda não definido&quot;.
           </p>
@@ -218,6 +236,10 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
             <label style={{ ...s.campo, gridColumn: "1 / -1", flexDirection: "row", alignItems: "center", gap: 8 }}>
               <input type="checkbox" checked={form.atendimento_automatico} onChange={(e) => trocar("atendimento_automatico", e.target.checked)} />
               <span>Liberar esta edição para o atendimento automático (WhatsApp)</span>
+            </label>
+            <label style={{ ...s.campo, gridColumn: "1 / -1", flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={form.reservas_site} disabled={!painel.parte2} onChange={(e) => trocar("reservas_site", e.target.checked)} />
+              <span>Liberar esta edição para reservas pelo SITE (exige todos os campos acima e ao menos uma mesa oferecida ao site)</span>
             </label>
           </div>
 

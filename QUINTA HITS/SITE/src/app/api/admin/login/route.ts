@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { COOKIE_NAME, SESSAO_DURACAO_S, criarSessao } from "@/lib/adminAuth";
 import { verificarLogin } from "@/lib/adminLogin";
+import { registrarAuditoria } from "@/lib/auditoria";
+import { limiteExcedido } from "@/lib/limiteTaxa";
 
 export async function POST(req: Request) {
+  // Limite de tentativas por endereço (5 a cada 15 min), além do atraso fixo de cada erro. Vale por instância do servidor.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "sem-ip";
+  if (limiteExcedido(`login:${ip}`, 5, 15 * 60_000)) {
+    return NextResponse.json({ erro: "Muitas tentativas. Aguarde alguns minutos e tente de novo." }, { status: 429 });
+  }
   const body = await req.json().catch(() => null);
   const email = body?.email;
   const senha = body?.senha;
@@ -13,7 +20,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ erro: "E-mail ou senha incorretos." }, { status: 401 });
   }
 
-  const valorCookie = await criarSessao();
+  const emailNormalizado = email.trim().toLowerCase();
+  const valorCookie = await criarSessao(emailNormalizado);
+  await registrarAuditoria({ ator: emailNormalizado, acao: "login_painel", entidade: "sessao" });
   const resposta = NextResponse.json({ ok: true });
   resposta.cookies.set(COOKIE_NAME, valorCookie, {
     httpOnly: true,

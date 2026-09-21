@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { s } from "./estilos";
 import MesasEditor from "./MesasEditor";
 import AtendimentoPainel from "./AtendimentoPainel";
+import AuditoriaPainel from "./AuditoriaPainel";
+import IntegracoesPainel from "./IntegracoesPainel";
 import RegrasEdicaoPainel from "./RegrasEdicaoPainel";
 import ReservasPainel from "./ReservasPainel";
 import { GENERO_VALORES, STATUS_VALORES, type Edicao } from "@/lib/edicao";
@@ -181,6 +183,12 @@ export default function AdminDashboard() {
         <AtendimentoPainel onContagem={setAguardandoHumano} />
       </section>
 
+      {/* INTEGRAÇÕES E CHAVES */}
+      <section style={s.secao}>
+        <h2 style={s.h2}>Integrações e chaves de segurança</h2>
+        <IntegracoesPainel />
+      </section>
+
       {/* CONFIG DA CASA */}
       <section style={s.secao}>
         <h2 style={s.h2}>Casa &amp; reserva</h2>
@@ -342,6 +350,13 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* AUDITORIA */}
+      <section style={s.secao}>
+        <h2 style={s.h2}>Auditoria</h2>
+        <p style={s.legenda}>Quem fez o quê no painel e no atendimento (últimas 100 ações).</p>
+        <AuditoriaPainel />
       </section>
     </div>
   );

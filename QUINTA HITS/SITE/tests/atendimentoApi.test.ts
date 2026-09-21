@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { criarBancoTeste, type BancoTeste } from "./helpers/bancoTeste";
 import { definirBanco } from "./helpers/holder";
 
-const sessao = vi.hoisted(() => ({ autenticado: true, tarefas: [] as (() => Promise<unknown>)[] }));
+const sessao = vi.hoisted(() => ({ autenticado: true, email: "marcos@teste.com", tarefas: [] as (() => Promise<unknown>)[] }));
 
 vi.mock("@/lib/supabaseAdmin", async () => {
   const h = await import("./helpers/holder");
@@ -11,13 +11,14 @@ vi.mock("@/lib/supabaseAdmin", async () => {
 });
 vi.mock("@/lib/adminSessao", () => ({
   exigirSessao: async () => (sessao.autenticado ? null : NextResponse.json({ erro: "Não autenticado." }, { status: 401 })),
+  atorDaSessao: async () => sessao.email,
 }));
 vi.mock("@/lib/agente/depois", () => ({ agendarDepois: (fn: () => Promise<unknown>) => { sessao.tarefas.push(fn); } }));
 
 import { GET as listar } from "@/app/api/admin/whatsapp/atendimento/route";
 import { GET as historico, POST as acionar } from "@/app/api/admin/whatsapp/atendimento/[id]/route";
 import { GET as lerConfig, PUT as gravarConfig } from "@/app/api/admin/whatsapp/config/route";
-import { abrirTransferencia, assumir, enviarComoAtendente, nomeDeAtendenteValido } from "@/lib/agente/atendimento";
+import { abrirTransferencia, assumir, enviarComoAtendente } from "@/lib/agente/atendimento";
 import { gravarMensagem, obterOuAbrirConversa, obterOuCriarContato } from "@/lib/agente/repositorio";
 
 let banco: BancoTeste;
@@ -25,6 +26,7 @@ let bancoAntigo: BancoTeste;
 beforeAll(async () => { banco = await criarBancoTeste(); bancoAntigo = await criarBancoTeste({ migracao: false }); });
 afterAll(async () => { definirBanco(null); await banco.pg.close(); await bancoAntigo.pg.close(); });
 
+const listarPor = (status?: string) => listar(new Request(`http://localhost/api/admin/whatsapp/atendimento${status ? `?status=${status}` : ""}`));
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const acao = (id: string, corpo: unknown) => acionar(new Request("http://localhost/x", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) }), ctx(id));
 
@@ -45,13 +47,6 @@ beforeEach(async () => {
   sessao.tarefas.length = 0;
   await banco.limpar();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
-});
-
-describe("nome do atendente", () => {
-  it("de 2 a 60 caracteres, sem controle; o resto é recusado", () => {
-    expect(nomeDeAtendenteValido("  Marcos  ")).toBe("Marcos");
-    for (const ruim of ["", "M", "x".repeat(61), null, 5, undefined]) expect(nomeDeAtendenteValido(ruim)).toBeNull();
-  });
 });
 
 describe("transferências (lib)", () => {
@@ -88,7 +83,7 @@ describe("API do painel: fila de atendimento", () => {
   it("sem sessão: 401 em todas as rotas e nada é alterado", async () => {
     const { transferenciaId } = await conversaTransferida();
     sessao.autenticado = false;
-    expect((await listar()).status).toBe(401);
+    expect((await listarPor()).status).toBe(401);
     expect((await historico(new Request("http://x"), ctx(transferenciaId))).status).toBe(401);
     expect((await acao(transferenciaId, { acao: "assumir", atendente: "Marcos" })).status).toBe(401);
     expect((await lerConfig()).status).toBe(401);
@@ -100,10 +95,10 @@ describe("API do painel: fila de atendimento", () => {
   it("lista com contador de pendentes, motivo, contato e última mensagem", async () => {
     await conversaTransferida("5534999998888");
     await conversaTransferida("5534988887777");
-    const j = await (await listar()).json();
+    const j = await (await listarPor()).json();
     expect(j).toMatchObject({ migrado: true, pendentes: 2 });
     expect(j.itens[0]).toMatchObject({ motivo: "pedido_do_cliente", status: "aguardando", ultima_mensagem: "Preciso de ajuda" });
-    expect(j.itens[0].contato.telefone).toMatch(/^\(34\) 9\d{4}-\d{4}$/);
+    expect(j.itens[0].contato.telefone).toMatch(/^\(34\) 9\*{4}-\d{4}$/); // telefone mascarado no painel de atendimento
   });
 
   it("histórico da conversa e validação do id", async () => {
@@ -115,7 +110,7 @@ describe("API do painel: fila de atendimento", () => {
     expect((await historico(new Request("http://x"), ctx("00000000-0000-4000-8000-000000000000"))).status).toBe(404);
   });
 
-  it("assumir, responder, devolver ao agente e encerrar, com o nome do atendente na auditoria", async () => {
+  it("assumir, responder, devolver ao agente e encerrar, com o E-MAIL de quem está logado na auditoria", async () => {
     const { transferenciaId, conv } = await conversaTransferida();
     expect((await acao(transferenciaId, { acao: "assumir", atendente: "Marcos" })).status).toBe(200);
     expect((await acao(transferenciaId, { acao: "assumir", atendente: "Vitor" })).status).toBe(409);
@@ -129,8 +124,8 @@ describe("API do painel: fila de atendimento", () => {
     expect((await acao(transferenciaId, { acao: "encerrar", atendente: "Marcos" })).status).toBe(404); // já finalizada
 
     const atores = (await banco.sql<{ ator: string; acao: string }>("select ator, acao from auditoria order by id")).map((a) => `${a.ator}|${a.acao}`);
-    expect(atores).toContain("atendente:Marcos|atendimento_assumido");
-    expect(atores).toContain("atendente:Marcos|atendimento_devolvido_ao_agente");
+    expect(atores).toContain("marcos@teste.com|atendimento_assumido");
+    expect(atores).toContain("marcos@teste.com|atendimento_devolvido_ao_agente");
     const bruto = JSON.stringify(await banco.sql("select * from auditoria"));
     expect(bruto).not.toContain("Oi Ana");
     expect(bruto).not.toContain("Preciso de ajuda");
@@ -143,10 +138,8 @@ describe("API do painel: fila de atendimento", () => {
     expect((await banco.sql<{ status: string }>("select status from wa_conversas where id = $1", [conv.id]))[0].status).toBe("encerrada");
   });
 
-  it("valida o pedido: nome do atendente, ação e texto; responder sem assumir é 409", async () => {
+  it("valida o pedido: ação e texto; responder sem assumir é 409", async () => {
     const { transferenciaId } = await conversaTransferida();
-    expect((await acao(transferenciaId, { acao: "assumir" })).status).toBe(400);
-    expect((await acao(transferenciaId, { acao: "assumir", atendente: "M" })).status).toBe(400);
     expect((await acao(transferenciaId, { acao: "explodir", atendente: "Marcos" })).status).toBe(400);
     expect((await acao("invalido", { acao: "assumir", atendente: "Marcos" })).status).toBe(400);
     expect((await acao(transferenciaId, { acao: "enviar", atendente: "Marcos", texto: "oi" })).status).toBe(409);
@@ -157,7 +150,7 @@ describe("API do painel: fila de atendimento", () => {
 
   it("sem a migração aplicada: a lista responde { migrado: false } e a configuração também", async () => {
     definirBanco(bancoAntigo);
-    expect(await (await listar()).json()).toEqual({ migrado: false, pendentes: 0, itens: [] });
+    expect(await (await listarPor()).json()).toEqual({ migrado: false, pendentes: 0, nao_lidas: 0, itens: [], envio_real: false });
     expect(await (await lerConfig()).json()).toEqual({ migrado: false });
     expect((await gravarConfig(new Request("http://x", { method: "PUT", body: JSON.stringify({ pausa_emergencia: true }) }))).status).toBe(503);
   });

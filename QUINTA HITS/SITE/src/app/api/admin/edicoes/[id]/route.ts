@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { exigirSessao } from "@/lib/adminSessao";
+import { auditarPainel, exigirSessao } from "@/lib/adminSessao";
+import { erroInterno } from "@/lib/respostas";
 import { validarEdicao } from "@/lib/adminValidacao";
 
 export const dynamic = "force-dynamic";
@@ -25,10 +26,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     .select()
     .maybeSingle();
 
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
   if (!data) return NextResponse.json({ erro: "Edição não encontrada." }, { status: 404 });
 
   revalidatePath("/", "layout");
+  await auditarPainel("edicao_atualizada", "edicao", id, { campos: Object.keys(validacao.campos) });
   return NextResponse.json({ edicao: data });
 }
 
@@ -45,8 +47,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       { status: 409 },
     );
   }
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ erro: erroInterno(error) }, { status: 500 });
 
   revalidatePath("/", "layout");
+  await auditarPainel("edicao_excluida", "edicao", id);
   return NextResponse.json({ ok: true });
 }

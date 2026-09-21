@@ -19,3 +19,9 @@ export function telefoneParaExibir(telefone: string | null): string {
   if (!telefone) return "número internacional";
   return `(${telefone.slice(0, 2)}) ${telefone.slice(2, 7)}-${telefone.slice(7)}`;
 }
+
+/** "34999998888" -> "(34) 9****-8888": mostra só o DDD e os 4 últimos dígitos. Para telas em que o número inteiro não é necessário. */
+export function telefoneMascarado(telefone: string | null): string {
+  if (!telefone) return "número internacional";
+  return `(${telefone.slice(0, 2)}) ${telefone.slice(2, 3)}****-${telefone.slice(-4)}`;
+}
