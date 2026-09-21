@@ -638,6 +638,32 @@ Autorizado: implementar e testar **localmente**. Continua proibido: SQL em qualq
 - **Rede e ambiente bloqueados por padrão** (`tests/setup.ts`): todas as variáveis sensíveis são zeradas antes de cada teste e qualquer `fetch` não simulado lança erro, então nenhum teste pode falar com a Meta nem com um Supabase.
 - **Limite:** o adaptador não é o Supabase real (não exercita PostgREST nem os papéis reais); a homologação continua obrigatória.
 
+### 27.2 Roteamento do webhook por `phone_number_id` (fluxo atual preservado)
+
+**Endpoint ampliado, sem segunda rota:** `POST /api/whatsapp/webhook` continua validando a assinatura e respondendo 200; agora separa cada evento pelo `phone_number_id`.
+
+| Evento | Resultado |
+|---|---|
+| `1352142871312651` (QUINTA HITS) | tratado pelo fluxo atual `QH-NNNNNN` (lógica **movida sem alteração** para `lib/whatsappLegado.ts`) |
+| qualquer outro ID (ex.: o final 0200) | **HTTP 200, sem processar e sem resposta automática**. Log sanitizado; com o agente ligado por variável, grava também em `wa_webhook_eventos` (só ID do número e tipo; **sem conteúdo e sem telefone**; deduplicado) |
+| sem `phone_number_id` | idem |
+| atualização de status e mensagem que não é texto | ignoradas por ora (o fluxo atual não as usa) |
+
+**Arquivos novos:** `lib/agente/ambiente.ts` (interruptores e regras de ID), `lib/whatsappEventos.ts` (leitura do payload, com texto, resposta de botão/lista e status), `lib/agente/roteador.ts` (classificação), `lib/agente/eventos.ts` (idempotência e registro de ignorados), `lib/whatsappLegado.ts` (tratador atual). **Alterados:** `app/api/whatsapp/webhook/route.ts` e `lib/whatsapp.ts`.
+
+**Regras de segurança implementadas:**
+
+- **Produção:** o ID da QUINTA HITS é a constante oficial (não depende de variável). **Homologação:** vem de `WHATSAPP_PHONE_NUMBER_ID` (número de teste da Meta) e **nunca** pode ser o de produção. Configuração insegura ⇒ nenhum evento é da QUINTA HITS.
+- **Envio:** `enviarTexto` só envia com `WHATSAPP_SEND_ENABLED=true` (padrão desligado) **e** só se `WHATSAPP_PHONE_NUMBER_ID` for exatamente o número da QUINTA HITS do ambiente. Se a variável apontar para outro número (ex.: o 0200), **não envia nada**.
+- `META_GRAPH_API_VERSION` passa a definir a versão da Graph API (padrão `v21.0`, o que já era usado).
+- Interruptores nascem **desligados**: só `"true"` liga; o repasse humano nasce ligado.
+
+**Mudança de comportamento do fluxo atual, a saber:** a confirmação da reserva no banco é a mesma, mas a **resposta ao cliente** agora depende de `WHATSAPP_SEND_ENABLED=true`. Hoje a produção não tem nenhuma variável `WHATSAPP_*`, então nada muda; **no go-live o envio precisa ser ligado**, o que consta no checklist de produção.
+
+**Testes (39 novos, 47 no total):** leitura de payload (texto, botão, lista, status, lixo, dois números no mesmo callback); classificação; interruptores e IDs por ambiente; a rota completa contra o banco em memória, cobrindo GET, assinatura, o fluxo `QH-NNNNNN` (confirma, minúsculas, repetição, outro número do cliente, código inexistente, pedido vencido, mesa pega), o isolamento do 0200 (mensagem com código válido de outro ID **não confirma nem responde**, sem ID, status, callback com os dois números, registro sem conteúdo e sem telefone) e a homologação.
+
+**Não coberto:** o `next build` não foi rodado nesta etapa para não ler as credenciais reais do `.env.local`; lint, tipos e testes passam. Rodar o build no ambiente de homologação.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

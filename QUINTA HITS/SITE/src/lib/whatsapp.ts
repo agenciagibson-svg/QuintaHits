@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { envioLigadoPorEnv, idParaEnvio, versaoGraphApi } from "@/lib/agente/ambiente";
 
 /**
  * WhatsApp Cloud API (oficial da Meta).
@@ -35,15 +36,24 @@ export function assinaturaValida(corpo: string, assinatura: string | null): bool
   return esperada.length === recebida.length && timingSafeEqual(esperada, recebida);
 }
 
-/** Responde o cliente. Grátis dentro das 24h depois da mensagem dele (janela de atendimento). */
+/**
+ * Responde o cliente. Grátis dentro das 24h depois da mensagem dele (janela de atendimento).
+ *
+ * Só envia com WHATSAPP_SEND_ENABLED=true (desligado por padrão) e só pelo número da QUINTA HITS: se
+ * WHATSAPP_PHONE_NUMBER_ID apontar para outro número (ex.: o final 0200), não envia nada.
+ */
 export async function enviarTexto(para: string, texto: string): Promise<void> {
-  const token = process.env.WHATSAPP_TOKEN;
-  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  if (!token || !phoneId) {
-    console.error("WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID não definidos: resposta não enviada.");
+  if (!envioLigadoPorEnv()) {
+    console.info("WHATSAPP_SEND_ENABLED desligado: resposta não enviada.");
     return;
   }
-  const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+  const token = process.env.WHATSAPP_TOKEN;
+  const phoneId = idParaEnvio();
+  if (!token || !phoneId) {
+    console.error("WHATSAPP_TOKEN ausente ou WHATSAPP_PHONE_NUMBER_ID diferente do número da QUINTA HITS: resposta não enviada.");
+    return;
+  }
+  const res = await fetch(`https://graph.facebook.com/${versaoGraphApi()}/${phoneId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ messaging_product: "whatsapp", to: para, type: "text", text: { body: texto } }),

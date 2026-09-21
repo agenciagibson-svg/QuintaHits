@@ -13,6 +13,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Cada arquivo de teste de banco sobe um PostgreSQL em memória (WASM, pesado): rodar arquivos em paralelo
+    // estoura a memória. Em sequência, cada um libera o seu antes do próximo.
+    fileParallelism: false,
     include: ["tests/**/*.test.ts"],
     // Os testes de banco carregam o schema num PostgreSQL em memória; dão folga ao arranque.
     testTimeout: 30_000,
