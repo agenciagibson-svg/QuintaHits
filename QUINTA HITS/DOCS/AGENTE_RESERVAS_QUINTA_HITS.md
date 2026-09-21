@@ -716,6 +716,26 @@ Funções: `estoqueDaEdicao` (expira pedidos vencidos, lê mesas, ocupação e c
 
 **Testes (24 novos, 118 no total):** telefone; as regras de ativação (todas as combinações relevantes); contatos, conversas, mensagens e idempotência contra o banco em memória, incluindo **corrida de gravação de conversa** e **dez entregas simultâneas do mesmo evento**; e o banco **sem a migração** (configuração nula, registro "indisponível", sem lançar).
 
+### 27.6 Máquina de estados determinística (fase 1, sem IA)
+
+**Arquivos:** `lib/agente/maquina.ts` (a máquina) e `lib/agente/textos.ts` (todas as respostas). A máquina **não acessa banco nem rede**: tudo que vem de fora passa pelas "portas" (`lib/agente/tipos.ts`: edições prontas, mesas livres, criar/cancelar/atualizar reserva, reservas do contato, relógio). Por isso o mesmo código roda em produção, nos testes e na demonstração simulada, e dá para trocar as regras de interpretação sem tocar em dados.
+
+**Estados** (os 14 do prompt): `NEW`, `WELCOME`, `SELECTING_EVENT`, `ASKING_GUEST_COUNT`, `CHECKING_AVAILABILITY`, `SELECTING_TABLE`, `COLLECTING_NAME`, `COLLECTING_NOTES`, `REVIEWING_RESERVATION`, `CONFIRMED`, `ALTERING_RESERVATION`, `CANCELLING_RESERVATION`, `WAITING_HUMAN`, `CLOSED`.
+
+**Fluxo de reserva:** boas-vindas com menu (Reservar mesa · Minhas reservas · Falar com a equipe) → edição (uma só edição pronta segue direto; várias viram lista) → quantas pessoas → **consulta a disponibilidade real** → lista de mesas livres (até 10) → nome → observações → resumo com as regras cadastradas → **Confirmar** → grava → só então envia o código `QH-NNNNNN`. O cliente responde **por toque, pelo número da opção, ou escrevendo** (por exemplo, "08/10").
+
+**Também no menu:** minhas reservas; cancelar (com confirmação; fora do prazo ou prazo não cadastrado vira transferência); alterar **nome** e **observações**. Mudança de mesa, número de pessoas ou data é "Outra mudança" e vai para a equipe (alterar mesa mexe no estoque e fica com uma pessoa na fase 1).
+
+**Sempre vira atendimento humano:** o cliente pedir uma pessoa ou atendente; falar de pagamento, sinal, PIX, estorno; reclamação; duas mensagens seguidas sem entender numa etapa; edição sem regras completas ou não liberada; reserva que falhou por erro ou limite; mensagem do cliente com número que não é celular brasileiro. Enquanto a conversa está com uma pessoa (`WAITING_HUMAN`), **o agente não responde nada**.
+
+**Regras de conteúdo (protegidas por teste):** todo local é o **Florindos Bar, em Uberlândia**; **nenhuma resposta cita "Tatu Bola"**, mesmo que o termo apareça em um campo escrito no banco (é filtrado); **nada é inventado**: o resumo só cita as regras cadastradas (campo vazio não aparece); respostas dentro dos limites da Cloud API (até 3 botões de 20 caracteres, lista de até 10 itens, corpo até 1024).
+
+**Segurança de comportamento:** nome com a palavra "atendente" não dispara transferência (só a frase exata); conversa parada por mais de 24 h recomeça do menu; a máquina é determinística (mesma conversa, mesmas respostas); o contexto guardado não carrega segredos nem texto além do necessário. **Ainda sem IA**: a arquitetura permite plugar um interpretador de intenção no lugar das palavras-chave no futuro, atrás de flag.
+
+**Testes (48 novos, 166 no total):** primeiro contato e menu; fluxo completo com verificação de que grava **uma vez** e **só depois** confirma; falhas de gravação nunca produzem "Reserva confirmada"; mesa tomada no meio; sem mesa; leitura de pessoas ("quatro", "somos 6"); nome e observações; alterar o pedido; edição sem regras (nada é inventado); dúvidas repetidas e mensagens que não são texto; transferências (oito frases e as três motivações); cancelar e alterar; expiração de 24 h; e as regras de conteúdo (sem Tatu Bola, local, limites do WhatsApp, determinismo, estados oficiais).
+
+**Defeitos achados pelos próprios testes e corrigidos:** a normalização do texto não limpava a pontuação quando havia espaço depois dela, e "preciso de uma pessoa" não era reconhecido como pedido de atendente.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
