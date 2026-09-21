@@ -59,7 +59,11 @@ export async function enviarTexto(para: string, texto: string): Promise<void> {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ messaging_product: "whatsapp", to: para, type: "text", text: { body: texto } }),
   });
-  if (!res.ok) console.error("Falha ao enviar WhatsApp:", res.status, await res.text().catch(() => ""));
+  if (!res.ok) {
+    // Só o status e o código do erro: o corpo da resposta pode conter o telefone do cliente ou detalhes internos.
+    const codigo = ((await res.json().catch(() => ({}))) as { error?: { code?: number } }).error?.code;
+    console.error("Falha ao enviar WhatsApp:", res.status, codigo ?? "sem código");
+  }
 }
 
 /** `enviadaEm`: quando o cliente mandou (ms), pelo relógio da Meta — não quando chegou aqui. */

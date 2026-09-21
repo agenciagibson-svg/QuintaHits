@@ -1028,6 +1028,39 @@ Seção **Integrações e chaves de segurança** (somente leitura): estado das 4
 
 Com `RESERVAS_SITE_ENABLED=true` e a confirmação possível, o site: mostra só edições **completas e liberadas** para o site; exibe as **regras da noite** cadastradas (abertura, prazo, tolerância, cancelamento, consumação, valor e instruções; campo não definido não aparece); pede **caixa de consentimento** ("Li e concordo com a Política de Privacidade", exigida também pela API: sem `politica: true`, 400); valida dados mínimos; cria o pedido **atomicamente** (o índice único do banco impede duplicidade: a segunda tentativa recebe 409) com código `QH-NNNNNN` e origem `site`, que aparece no painel na hora; e limita 10 pedidos por 10 min por endereço. **O envio pelo WhatsApp é complementar**: a reserva já existe no banco, então uma falha de envio não duplica nem apaga nada. Testes: `tests/edicaoSite.test.ts` (23 casos, incluindo **8 tentativas simultâneas pela última mesa: exatamente 1 vence**, todos os campos obrigatórios, banco só com a parte 1, formulário fechado sem nenhuma reserva e sem nenhuma chamada externa).
 
+### 31.8 Retenção: rotina pronta, agenda NÃO configurada
+
+Política (configurável em `wa_config`; **validação administrativa e jurídica pendente**): conteúdo das mensagens **90 dias**; metadados e status **12 meses**; detalhe de erro 90 dias; registros de idempotência do webhook (`wa_webhook_eventos`) **30 dias**; conversas encerradas anonimizadas após 12 meses; reservas **anonimizadas após 24 meses** (a linha fica só para estatística, sem nome nem telefone); as **notas internas** seguem o prazo do conteúdo (90 dias). Padrão **simulação** (só conta, registra só quantidades na auditoria). A execução real exige, ao mesmo tempo, `RETENCAO_ENABLED=true` (texto exato), `wa_config.limpeza_ativa`, o mesmo ambiente no deploy e no banco e, em produção, a política validada. **Nenhum dado existente foi apagado ou alterado nesta etapa.**
+
+Para rodar por tarefa agendada existe `GET /api/cron/retencao`, protegida por `Authorization: Bearer <CRON_SECRET>` (formato do Vercel Cron). Sem `CRON_SECRET` (16+ caracteres) a rota responde 503; com a chave errada, 401; se a execução real não estiver liberada, ela **simula em vez de apagar**. O agendamento em si (`vercel.json`) **não foi criado**: veja a seção de ativação. Testes: `tests/retencaoAgendada.test.ts`, `tests/retencao.test.ts`.
+
+### 31.9 Registro do número: só por script manual, nunca automático
+
+`SITE/scripts/registrar-numero.mjs` **não foi executado** e não deve ser antes da aprovação da Meta. Só roda com **todas** as travas juntas: `WHATSAPP_REGISTRATION_ENABLED=true` (texto exato), o argumento `--confirmo-registrar-quinta-hits`, terminal interativo, `WHATSAPP_PHONE_NUMBER_ID` igual a `1352142871312651` (nunca o 0200), token presente, digitar a frase `REGISTRAR 1352142871312651` e digitar o PIN de 6 dígitos **sem eco** (o PIN nunca vai para argumento, arquivo, log ou chat). Nenhum código do site chama `/register`. Testes com rede e respostas falsas: `tests/registroNumero.test.ts` (cada trava barra sozinha; nada é perguntado nem enviado quando recusa; token e PIN nunca aparecem na saída).
+
+### 31.10 Segurança adicional
+
+Cabeçalho `Permissions-Policy`; `Cache-Control: no-store` em `/admin` e `/api/admin`; `robots.txt` esconde `/admin` e `/api`; log de falha de envio só com status e código (o corpo da resposta da Meta podia conter o telefone do cliente). Já existiam: assinatura `X-Hub-Signature-256` em tempo constante sobre o corpo cru, validação do payload, idempotência do webhook, consultas parametrizadas, RLS sem acesso de `anon`/`authenticated`, `service_role` só no servidor. **Sem CSP** (pendência de melhoria: exige testar Turnstile, fontes e Spotify em navegador). Testes: `tests/seguranca.test.ts`, `tests/whatsappGate.test.ts`.
+
+### 31.11 Política de privacidade com os dados oficiais
+
+`/privacidade` traz: controlador (**GIBSON PROMOÇÕES**, razão social **K. L & F PRODUÇÕES E PROMOÇÕES ARTÍSTICAS LTDA**), endereço (Av. dos Vinhedos, 70, Sala 109 – Uberlândia/MG – CEP 38411-217), contato de privacidade **agenciagibson@gmail.com**, finalidades, dados coletados, reservas, atendimento por WhatsApp e registros de conversa, compartilhamentos necessários (Meta, Supabase, Vercel, Cloudflare, Google Fonts, Spotify), retenção, segurança, direitos (acesso, correção, exclusão) e data da última atualização. **Não há encarregado de dados designado** e a página não inventa um. Está no `sitemap.xml`, linkada no rodapé e no formulário de reserva (com caixa de consentimento) e pode ser informada no painel da Meta como URL da política (`https://quinta-hits-eight.vercel.app/privacidade`).
+
+**CNPJ pendente de confirmação.** O número informado ("58.820.970/0013-7") tem **13 dígitos** e não passa na validação dos dígitos verificadores. O **único** ajuste de um dígito que valida é **58.820.970/0013-57** (faltaria o "5"), mas é um dado legal deduzido e por isso **não foi publicado**: o campo \`site.privacidade.cnpj\` está vazio e a página o omite. Depois de confirmar, basta preencher em \`SITE/src/config/site.ts\` (a página só exibe CNPJ com 14 dígitos válidos; \`tests/privacidade.test.ts\` barra qualquer valor malformado).
+
+### 31.12 Backup lógico e aplicação da parte 2 (única etapa que exige o SQL Editor)
+
+Backup feito **antes de qualquer alteração** com \`node scripts/backup-logico.mjs\` (somente leitura; grava em \`SITE/supabase/backups/\`, fora do Git; sem imprimir chaves). Estado encontrado: **13 edições, 6 mesas, 1 linha de site_config, 0 reservas, 0 regras por edição**, \`wa_config\` presente (ambiente \`homologacao\`, agente e envio desligados) e a parte 2 **ausente**. Procedimento de restauração no cabeçalho do próprio script (a migração é aditiva: o normal é não precisar restaurar nada).
+
+**Como o SQL só pode ser aplicado com acesso de administração ao banco (que esta sessão não tem), a parte 2 fica para o responsável**, sem pressa e sem risco (o código publicado funciona com ou sem ela; sem ela o site fica fechado para todas as edições e o painel avisa):
+
+1. SQL Editor do Supabase → rodar \`SITE/supabase/banco-atual/1-antes-e-depois.sql\` (somente leitura) e guardar o resultado;
+2. rodar **inteiro** \`SITE/supabase/migracao-2026-09-21-parte2-site-e-atendimento.sql\` (esperado: "Success. No rows returned"; o aviso de operação destrutiva, se aparecer, refere-se a \`drop\` que **não existe** neste arquivo: se aparecer, pare e me avise);
+3. rodar de novo \`1-antes-e-depois.sql\`: contagens e as 4 impressões digitais **iguais** às do passo 1;
+4. rodar \`SITE/supabase/banco-atual/4-verificar-parte2.sql\`: **RESULTADO GERAL = APROVADO**;
+5. teste de acesso por papel, em consultas separadas: \`set role anon; select count(*) from wa_notas_internas;\` (esperado **permission denied**), depois \`reset role; set role authenticated; select count(*) from wa_notas_internas;\` (**permission denied**) e \`reset role;\`;
+6. reversão, se necessário: \`reverter-2026-09-21-parte2-site-e-atendimento.sql\`.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
