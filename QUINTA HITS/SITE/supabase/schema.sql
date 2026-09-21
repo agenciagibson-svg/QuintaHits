@@ -49,15 +49,15 @@ insert into edicoes (id, data, artista, instagram, tema, genero, horario, local,
 ('2026-09-10', '2026-09-10', 'NETO FOG', 'netofog', 'Quinta Hits Pop Rock', 'pop-rock', '', 'Tatu Bola', 'realizada', ''),
 ('2026-09-17', '2026-09-17', '', '', '', '', '', 'Florindos Bar', 'cancelada', 'Sem edição nesta data — não existe quinta em 17/09/2026'),
 ('2026-09-24', '2026-09-24', 'Jhean Marcell', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', ''),
-('2026-10-01', '2026-10-01', '', '', '', '', '', 'Florindos Bar', 'cancelada', 'Sem edição nesta data — não existe quinta em 01/10/2026'),
-('2026-10-08', '2026-10-08', 'DJ Jabá', 'dj.jabba', '', 'dj', '', 'Florindos Bar', 'confirmada', ''),
-('2026-10-15', '2026-10-15', 'Voo Livre', 'oficialgrupovoolivre', 'Tributo ao Roupa Nova', 'hits', '', 'Florindos Bar', 'confirmada', ''),
-('2026-10-22', '2026-10-22', 'Jay-C', 'oficialjayc', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
-('2026-10-29', '2026-10-29', 'Jhean Marcell', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', ''),
-('2026-11-05', '2026-11-05', 'DJ Jabá', 'dj.jabba', '', 'dj', '', 'Florindos Bar', 'confirmada', ''),
-('2026-11-12', '2026-11-12', 'NETO FOG', 'netofog', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
-('2026-11-19', '2026-11-19', 'Jay-C', 'oficialjayc', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
-('2026-11-26', '2026-11-26', 'Jhean Marcell', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', '')
+('2026-10-01', '2026-10-01', 'Jhean Marcell e DJ Leona', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', ''),
+('2026-10-08', '2026-10-08', 'Cibele e DJ Jabá', 'dj.jabba', '', 'dj', '', 'Florindos Bar', 'confirmada', 'Cibele em voz e violão'),
+('2026-10-15', '2026-10-15', 'Voo Livre e DJ Leona', 'oficialgrupovoolivre', 'Tributo ao Roupa Nova', 'hits', '', 'Florindos Bar', 'confirmada', ''),
+('2026-10-22', '2026-10-22', 'Jay-C e DJ Leona', 'oficialjayc', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
+('2026-10-29', '2026-10-29', 'Jhean Marcell e DJ Leona', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', ''),
+('2026-11-05', '2026-11-05', 'Cibele e DJ Jabá', 'dj.jabba', '', 'dj', '', 'Florindos Bar', 'confirmada', 'Cibele em voz e violão'),
+('2026-11-12', '2026-11-12', 'NETO FOG e DJ Leona', 'netofog', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
+('2026-11-19', '2026-11-19', 'Jay-C e DJ Leona', 'oficialjayc', '', 'pop-rock', '', 'Florindos Bar', 'confirmada', ''),
+('2026-11-26', '2026-11-26', 'Jhean Marcell e DJ Leona', 'jheanmarcell', '', '2000s', '', 'Florindos Bar', 'confirmada', '')
 on conflict (id) do nothing;
 
 update site_config set casa_endereco = 'Av. Francisco Galassi, 1551', casa_bairro = 'Morada da Colina'
