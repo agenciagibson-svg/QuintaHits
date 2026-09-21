@@ -44,7 +44,7 @@ function mesesAtras(agora: Date, m: number): string {
 
 /** A execução REAL só é permitida com tudo isto junto; qualquer coisa faltando = só simulação. */
 export function podeExecutar(cfg: Pick<ConfigRetencao, "limpeza_ativa" | "ambiente" | "politica_retencao_validada_em">, env: { retencaoEnv?: string; ambienteApp: "producao" | "homologacao" }): { ok: boolean; motivo: string } {
-  if (env.retencaoEnv?.trim().toLowerCase() !== "true") return { ok: false, motivo: "RETENCAO_ENABLED não está ligada (desativada por padrão)" };
+  if (env.retencaoEnv !== "true") return { ok: false, motivo: "RETENCAO_ENABLED não está ligada (desativada por padrão)" };
   if (!cfg.limpeza_ativa) return { ok: false, motivo: "wa_config.limpeza_ativa está desligada" };
   if (cfg.ambiente !== env.ambienteApp) return { ok: false, motivo: "ambiente da aplicação diferente do ambiente marcado no banco" };
   if (cfg.ambiente === "producao" && !cfg.politica_retencao_validada_em) return { ok: false, motivo: "política de retenção ainda não validada (administrativa e jurídica)" };
@@ -86,6 +86,15 @@ export async function executarRetencao(db: SupabaseClient, o: { agora?: Date; si
   c.mensagens_conteudo_removido = await contar(filtroConteudo());
   if (aplicar && c.mensagens_conteudo_removido > 0) {
     await db.from("wa_mensagens").update({ conteudo: "", conteudo_removido_em: iso }).lt("criada_em", corteConteudo).is("conteudo_removido_em", null).neq("conteudo", "");
+  }
+
+  // 1b. Notas internas da equipe (parte 2 da migração): seguem o prazo do conteúdo das mensagens. Sem a tabela, não há o que fazer.
+  {
+    const { count, error } = await db.from("wa_notas_internas").select("id", { count: "exact", head: true }).lt("criada_em", corteConteudo);
+    if (!error) {
+      c.notas_internas_apagadas = count ?? 0;
+      if (aplicar && c.notas_internas_apagadas > 0) await db.from("wa_notas_internas").delete().lt("criada_em", corteConteudo);
+    }
   }
 
   // 2. Texto guardado no payload da fila (itens já finalizados).
