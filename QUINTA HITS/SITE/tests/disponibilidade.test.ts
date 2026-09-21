@@ -149,6 +149,7 @@ describe("POST /api/reservas (site) com a disponibilidade única", () => {
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "1352142871312651");
     vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
     vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); // sem o envio ligado o site não libera reservas
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
   });
 
@@ -232,6 +233,7 @@ describe("SEM a migração (estado da produção hoje): o site segue exatamente 
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "1352142871312651");
     vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
     vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); // sem o envio ligado o site não libera reservas
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
     const t1 = await criarMesa(bancoAntigo, "T1", 4);
     const r = await POST(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Ana Teste", whatsapp: "(34) 99999-8888", pessoas: 2, edicao_id: edicao, mesa_id: t1, turnstile: "ok" }) }));

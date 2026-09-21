@@ -111,6 +111,7 @@ describe("CORRIDA entre canais pela mesma mesa (estoque único)", () => {
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "1352142871312651");
     vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
     vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); // sem o envio ligado o site não libera reservas
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
   });
 
