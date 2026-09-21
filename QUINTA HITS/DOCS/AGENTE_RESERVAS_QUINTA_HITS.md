@@ -774,6 +774,30 @@ Funções: `estoqueDaEdicao` (expira pedidos vencidos, lê mesas, ocupação e c
 
 **Testes (27 novos, 234 no total):** 15 de integração pelo webhook (agente desligado por variável, por banco, por lista de testes e por pausa; base sem a migração; conversa completa até a reserva com `origem_reserva = whatsapp_agent`, todas as respostas enfileiradas e **nada enviado**; entrega repetida processada uma vez; **código `QH-NNNNNN` com prioridade**; envio ligado com tudo liberado; número 0200 sem nenhum efeito; edição sem regras vai para a equipe; bloqueado, não brasileiro e limite por hora; status de entrega; transferência com o agente em silêncio, assumir, devolver e reencerrar; pagamento e reclamação; repasse desligado) e 12 da API do painel (sessão, listagem, histórico, ações, validações, **dois atendentes assumindo ao mesmo tempo**, auditoria sem conteúdo, sem migração, pausa de emergência).
 
+### 27.9 Rotinas de retenção (modo simulação)
+
+**Arquivos:** `lib/agente/retencao.ts` (lógica, independente de framework), `scripts/retencao.mjs` (linha de comando, **só homologação**) e `api/admin/whatsapp/retencao/route.ts` (painel). A política é a da seção 21.7, lida de `wa_config` (mudar o valor muda o corte). **Continua PENDENTE de validação administrativa e jurídica antes da produção.**
+
+**O que cada rodada faz** (a contagem sempre acontece primeiro):
+
+| Etapa | Ação |
+|---|---|
+| Conteúdo das mensagens (90 d) | apaga o texto e marca `conteudo_removido_em`; a linha (metadados) fica |
+| `payload` da fila (90 d) | esvazia itens já finalizados; itens **pendentes são preservados** |
+| Detalhe de erro (90 d) | zera `erro_detalhe` em mensagens, fila e tentativas; o **código do erro fica** |
+| Metadados e status (12 m) | apaga mensagens e itens finalizados da fila |
+| Eventos de webhook (30 d) | apaga |
+| Conversas encerradas (12 m) | anonimiza o contato (nome, telefone e observações apagados, `wa_id` vira `anon-…`) e zera o contexto da conversa |
+| Reservas (24 m) | anonimiza nome e WhatsApp; mantém edição, mesa, pessoas e status |
+
+**Garantias:** (1) **nasce desligada** e a execução real só é liberada com `RETENCAO_ENABLED=true` **e** `wa_config.limpeza_ativa` **e** o mesmo ambiente na aplicação e no banco **e**, em produção, `politica_retencao_validada_em` preenchida; sem isso a chamada real **lança e não altera nada**; (2) **simulação é o padrão** (só conta); (3) registra **apenas quantidades** em `auditoria`, nunca o conteúdo apagado (nem nos logs); (4) **respeita reservas abertas**: contato com reserva aberta ou futura, conversa aberta ou recente, e reserva de edição de hoje em diante não são tocados; (5) é **idempotente**.
+
+**Script:** `node --env-file=.env.development.local scripts/retencao.mjs --ambiente=homologacao [--executar]`. Recusa rodar sem `--ambiente=homologacao`, sem `APP_AMBIENTE=homologacao`, sem as variáveis do Supabase de homologação ou se o banco não estiver marcado como homologação (`wa_config.ambiente`). Não foi executado contra nenhum banco real.
+
+**Testes (16 novos, 250 no total):** as permissões de execução; simulação sem alterar nada; auditoria só com números; execução recusada por padrão; execução permitida com cada etapa conferida; reservas abertas e contatos vivos preservados; idempotência; prazos vindos da configuração; nenhum conteúdo nos logs; base sem a migração; a rota do painel (401, simulação padrão, 409 sem permissão, execução com tudo liberado); e o **script** (recusas e carregamento direto do módulo TypeScript no Node, sem rede e sem credenciais).
+
+**Limites:** o filtro `payload <> '{}'` sobre a coluna `jsonb` e as atualizações em lote só foram exercitados no banco em memória; precisam ser conferidos no Supabase de homologação. O agendamento periódico (Vercel Cron ou `pg_cron`) **não foi configurado**: a rotina é chamada pelo script ou pelo painel.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
