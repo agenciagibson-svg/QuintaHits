@@ -33,7 +33,7 @@ export const site = {
   // pública por padrão — não precisa de nenhuma configuração extra para tocar no site.
   spotifyPlaylistId: "37i9dQZF1DX3oM43CtKnRV",
 
-  // Reserva de mesa: link atual da operação. Enquanto vazio, o botão leva ao Instagram.
+  // Reserva de mesa: link externo da operação. Enquanto vazio, o botão leva ao mapa de mesas (/reservar).
   reservaUrl: process.env.NEXT_PUBLIC_RESERVA_URL ?? "",
 
   // Horário padrão de início (texto livre, ex.: "20h"). Vazio = não exibe.
@@ -46,4 +46,11 @@ export const site = {
 
 export const instagramUrl = (handle: string) => `https://instagram.com/${handle.replace(/^@/, "")}`;
 
-export const reservaHref = () => site.reservaUrl || instagramUrl(site.instagram);
+/** Página de reserva com mapa de mesas; um link externo cadastrado (reservaUrl) tem prioridade. */
+export const RESERVA_PAGINA = "/reservar";
+
+export const reservaHref = () => site.reservaUrl || RESERVA_PAGINA;
+
+/** Link externo abre em nova aba; página do próprio site abre na mesma. */
+export const alvoLink = (href: string) =>
+  /^https?:\/\//.test(href) ? ({ target: "_blank", rel: "noopener noreferrer" } as const) : {};

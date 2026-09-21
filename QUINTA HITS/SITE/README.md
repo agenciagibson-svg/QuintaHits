@@ -16,10 +16,12 @@ Variáveis (`.env.local` local e **Vercel → Settings → Environment Variables
 |---|---|
 | `SUPABASE_URL` | URL do projeto Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | chave **service_role** (não a anon) — só no servidor |
-| `ADMIN_PASSWORD` | senha do painel `/admin` |
+| `ADMIN_EMAILS` | e-mails que entram no painel `/admin` (a senha é a do usuário no Supabase Auth) |
 | `ADMIN_SESSION_SECRET` | segredo aleatório (32+ caracteres) que assina o login |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | verificação "não sou robô" da reserva (Cloudflare Turnstile) |
+| `WHATSAPP_*` | confirmação automática da reserva pelo WhatsApp — ver "Reserva de mesa" |
 
-Banco: rode `supabase/schema.sql` no SQL Editor do Supabase (bancos antigos: `supabase/migracao-2026-09-15-checks.sql`).
+Banco: rode `supabase/schema.sql` no SQL Editor do Supabase (bancos antigos: rode as `supabase/migracao-*.sql` que faltarem, em ordem de data).
 
 ## O que muda onde
 
@@ -50,6 +52,30 @@ Vertentes fixas: NETO FOG = `pop-rock` · Jhean Marcell = `2000s` · DJ Jabá = 
 Quintas sem registro aparecem automaticamente como "line-up em breve".
 **Quinta que NÃO vai ter edição precisa de um registro com `status: "cancelada"`** — sem
 registro, o site assume que a quinta existe e cria o card sozinho.
+
+## Reserva de mesa (`/reservar`)
+
+1. Cliente escolhe a quinta e uma mesa livre no mapa, informa nome, WhatsApp e pessoas, e passa pela verificação "não sou robô" (Cloudflare Turnstile).
+2. O pedido nasce **aguardando**, com um código (ex.: `QH-482193`), e segura a mesa por **15 minutos**.
+3. O cliente toca em "Enviar pelo WhatsApp" e manda o código para o número da casa.
+4. A Meta avisa o site (`/api/whatsapp/webhook`). Se a mensagem veio **do mesmo número informado**, a reserva vira **confirmada** e o cliente recebe a resposta automática. Número falso nunca consegue mandar a mensagem.
+5. Sem mensagem no prazo, o pedido vira **expirada** e a mesa volta a ficar livre.
+
+No painel `/admin`: cadastro e posição das mesas (arrastar), lista de pedidos por edição, confirmação manual (cliente que não conseguiu enviar) e cancelamento.
+
+### Configurar o WhatsApp Cloud API (uma vez)
+
+Precisa de um número de telefone **só para o sistema** — enquanto estiver na API, ele não funciona no app WhatsApp do celular.
+
+1. [developers.facebook.com](https://developers.facebook.com) → **Criar app** → tipo **Empresa** → adicionar o produto **WhatsApp**, ligado ao portfólio (Meta Business) da GIBSON PROMOÇÕES.
+2. **WhatsApp → Configuração da API** → adicionar o número de telefone e verificar por SMS. Copiar o **ID do número de telefone** → `WHATSAPP_PHONE_NUMBER_ID`; o número com 55 → `WHATSAPP_NUMERO_CASA`.
+3. **Token permanente:** business.facebook.com → Configurações → **Usuários do sistema** → criar (admin) → **Gerar token** com as permissões `whatsapp_business_messaging` e `whatsapp_business_management` → `WHATSAPP_TOKEN`.
+4. **Chave secreta do app:** no app → Configurações → Básico → **Chave secreta do aplicativo** → `WHATSAPP_APP_SECRET`.
+5. Inventar um texto qualquer → `WHATSAPP_VERIFY_TOKEN`. Cadastrar as variáveis na Vercel e publicar.
+6. **WhatsApp → Configuração → Webhook:** URL `https://<domínio do site>/api/whatsapp/webhook`, token de verificação = o mesmo texto do passo 5 → **Verificar e salvar** → em campos do webhook, assinar **messages**.
+7. Publicar o app (modo **Ativo**) e fazer uma reserva de teste do celular.
+
+Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas na Meta.
 
 ## Dinâmico
 

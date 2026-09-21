@@ -1,5 +1,5 @@
 import { formatData, mesCurto, type Edicao } from "@/lib/edicao";
-import { instagramUrl, type site as siteType } from "@/config/site";
+import { alvoLink, instagramUrl, type site as siteType } from "@/config/site";
 import { reservaHrefFrom } from "@/lib/siteConfig";
 import Aba from "./Aba";
 import Compartilhar from "./Compartilhar";
@@ -46,7 +46,7 @@ export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: 
           )}
         </div>
         <div className="proxima__acoes">
-          <a className="btn btn--terracota" href={reservaHrefFrom(site)} target="_blank" rel="noopener noreferrer">
+          <a className="btn btn--terracota" href={reservaHrefFrom(site)} {...alvoLink(reservaHrefFrom(site))}>
             Reservar mesa
           </a>
           <Compartilhar titulo={site.nome} texto={textoShare} url={site.url} />

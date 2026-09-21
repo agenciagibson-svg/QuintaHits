@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { instagramUrl } from "@/config/site";
+import { alvoLink, instagramUrl } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 
 export default async function Header() {
@@ -16,7 +16,7 @@ export default async function Header() {
           <a className="nav__oculto-m" href={instagramUrl(site.instagram)} target="_blank" rel="noopener noreferrer">
             Instagram
           </a>
-          <a className="btn btn--terracota btn--p" href={reservaHrefFrom(site)} target="_blank" rel="noopener noreferrer">
+          <a className="btn btn--terracota btn--p" href={reservaHrefFrom(site)} {...alvoLink(reservaHrefFrom(site))}>
             Reservar mesa
           </a>
         </nav>

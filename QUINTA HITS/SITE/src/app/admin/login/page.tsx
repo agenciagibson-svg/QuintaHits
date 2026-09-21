@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function AdminLogin() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -17,7 +18,7 @@ export default function AdminLogin() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ senha }),
+        body: JSON.stringify({ email, senha }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -35,17 +36,26 @@ export default function AdminLogin() {
     <div style={estilos.pagina}>
       <form onSubmit={entrar} style={estilos.card}>
         <h1 style={estilos.titulo}>QUINTA HITS — Admin</h1>
-        <p style={estilos.sub}>Entre com a senha do painel.</p>
+        <p style={estilos.sub}>Entre com seu e-mail e senha.</p>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="E-mail"
+          autoComplete="username"
+          autoFocus
+          style={estilos.input}
+        />
         <input
           type="password"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
           placeholder="Senha"
-          autoFocus
+          autoComplete="current-password"
           style={estilos.input}
         />
         {erro && <p style={estilos.erro}>{erro}</p>}
-        <button type="submit" disabled={carregando || !senha} style={estilos.botao}>
+        <button type="submit" disabled={carregando || !email || !senha} style={estilos.botao}>
           {carregando ? "Entrando…" : "Entrar"}
         </button>
       </form>

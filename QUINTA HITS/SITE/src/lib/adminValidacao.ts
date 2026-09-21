@@ -1,4 +1,5 @@
 import { HORARIO_RE, ehGenero, ehStatus } from "@/lib/edicao";
+import { inteiroEntre, posicaoValida } from "@/lib/reserva";
 
 const LIMITE = 200;
 
@@ -36,6 +37,38 @@ export function validarEdicao(body: Record<string, unknown>): Resultado {
   if ("status" in c && !ehStatus(c.status)) return { erro: "Status inválido." };
   if (c.horario && !HORARIO_RE.test(c.horario)) return { erro: 'Horário no formato "20h" ou "20h30".' };
   return r;
+}
+
+type CamposMesa = { numero?: string; lugares?: number; area?: string; x?: number; y?: number; ativa?: boolean };
+
+/** Campos de uma mesa do mapa. Ausente = não muda. */
+export function validarMesa(body: Record<string, unknown>): { erro: string } | { campos: CamposMesa } {
+  const campos: CamposMesa = {};
+  if (body.numero !== undefined) {
+    const numero = typeof body.numero === "string" ? body.numero.trim() : "";
+    if (!numero || numero.length > 20) return { erro: "Número da mesa inválido (até 20 caracteres)." };
+    campos.numero = numero;
+  }
+  if (body.area !== undefined) {
+    if (typeof body.area !== "string" || body.area.trim().length > 60) return { erro: "Área inválida (até 60 caracteres)." };
+    campos.area = body.area.trim();
+  }
+  if (body.lugares !== undefined) {
+    const lugares = inteiroEntre(body.lugares, 1, 50);
+    if (lugares === null) return { erro: "Lugares precisa ser um número de 1 a 50." };
+    campos.lugares = lugares;
+  }
+  for (const eixo of ["x", "y"] as const) {
+    if (body[eixo] === undefined) continue;
+    const valor = posicaoValida(body[eixo]);
+    if (valor === null) return { erro: "Posição da mesa fora do mapa." };
+    campos[eixo] = valor;
+  }
+  if (body.ativa !== undefined) {
+    if (typeof body.ativa !== "boolean") return { erro: 'Campo "ativa" inválido.' };
+    campos.ativa = body.ativa;
+  }
+  return { campos };
 }
 
 /** Campos da configuração da casa (linha única site_config). */

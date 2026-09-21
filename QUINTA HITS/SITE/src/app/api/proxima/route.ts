@@ -18,7 +18,7 @@ export async function GET() {
       inicio: inicio.toISOString(),
       segundosRestantes: Math.max(0, Math.floor((inicio.getTime() - agora.getTime()) / 1000)),
       casa: site.casa.nome,
-      reserva: reservaHrefFrom(site),
+      reserva: new URL(reservaHrefFrom(site), site.url).toString(),
       assinatura: site.assinatura,
     },
     { headers: { "Cache-Control": "no-store" } },

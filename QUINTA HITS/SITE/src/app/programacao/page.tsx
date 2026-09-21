@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { site } from "@/config/site";
+import { alvoLink, site } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 import { edicoesAnteriores, proximasEdicoes, temEdicaoHoje } from "@/lib/programacao";
 import ProgramacaoFiltro from "@/components/ProgramacaoFiltro";
@@ -29,7 +29,7 @@ export default async function Programacao() {
               <div className="eyebrow">Programação</div>
               <h1 className="display h-1" style={{ margin: "6px 0 0" }}>Toda quinta. Sempre.</h1>
             </div>
-            <a className="btn btn--terracota" href={reservaHrefFrom(cfg)} target="_blank" rel="noopener noreferrer">
+            <a className="btn btn--terracota" href={reservaHrefFrom(cfg)} {...alvoLink(reservaHrefFrom(cfg))}>
               Reservar mesa
             </a>
           </div>

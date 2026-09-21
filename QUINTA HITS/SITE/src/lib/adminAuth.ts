@@ -51,15 +51,3 @@ export async function sessaoValida(valorCookie: string | undefined): Promise<boo
   if (!assinatura) return false;
   return crypto.subtle.verify("HMAC", await chaveHmac("verify"), assinatura, encoder.encode(expiraEmStr));
 }
-
-/** Compara em tempo constante: os dois lados viram SHA-256 (mesmo tamanho) antes da comparação byte a byte. */
-export async function verificarSenha(senhaEnviada: string): Promise<boolean> {
-  const senhaCorreta = process.env.ADMIN_PASSWORD;
-  if (!senhaCorreta) return false;
-  const [a, b] = await Promise.all(
-    [senhaEnviada, senhaCorreta].map(async (s) => new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(s)))),
-  );
-  let diferenca = 0;
-  for (let i = 0; i < a.length; i++) diferenca |= a[i] ^ b[i];
-  return diferenca === 0;
-}

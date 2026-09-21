@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { alvoLink } from "@/config/site";
 import { temEdicaoNoDia } from "@/lib/edicao";
 
 /**
@@ -20,7 +21,7 @@ export default function HojeBanner({ reservaUrl, datasCanceladas }: { reservaUrl
   return (
     <div className="hoje" role="status">
       Hoje é quinta. Tem Quinta Hits. —{" "}
-      <a href={reservaUrl} target="_blank" rel="noopener noreferrer">
+      <a href={reservaUrl} {...alvoLink(reservaUrl)}>
         garanta sua mesa
       </a>
     </div>

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { instagramUrl } from "@/config/site";
+import { alvoLink, instagramUrl } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 import { edicoesAnteriores, formatData, inicioDaEdicao, proximaEdicao, proximasEdicoes, temEdicaoHoje } from "@/lib/programacao";
 import Countdown from "@/components/Countdown";
@@ -82,7 +82,7 @@ export default async function Home() {
               Música, amigos, drinks e encontros. Toda quinta, no {site.casa.nome}, em {site.cidade}.
             </p>
             <div className="hero__acoes">
-              <a className="btn btn--terracota" href={reserva} target="_blank" rel="noopener noreferrer">
+              <a className="btn btn--terracota" href={reserva} {...alvoLink(reserva)}>
                 Reservar mesa
               </a>
               <Link className="btn btn--vazado" href="/programacao">Ver programação</Link>
@@ -191,7 +191,7 @@ export default async function Home() {
             </dl>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <a className="btn btn--creme btn--p" href={site.casa.mapsUrl} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
-              <a className="btn btn--vazado btn--p" href={reserva} target="_blank" rel="noopener noreferrer">Reservar mesa</a>
+              <a className="btn btn--vazado btn--p" href={reserva} {...alvoLink(reserva)}>Reservar mesa</a>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { site, instagramUrl } from "@/config/site";
+import { site, RESERVA_PAGINA } from "@/config/site";
 
 export type SiteConfig = typeof site;
 
@@ -38,5 +38,5 @@ export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
 
 /** Mesma lógica de reservaHref() de config/site.ts, mas a partir de um SiteConfig já resolvido. */
 export function reservaHrefFrom(cfg: SiteConfig): string {
-  return cfg.reservaUrl || instagramUrl(cfg.instagram);
+  return cfg.reservaUrl || RESERVA_PAGINA;
 }

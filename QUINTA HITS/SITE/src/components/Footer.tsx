@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { instagramUrl } from "@/config/site";
+import { alvoLink, instagramUrl } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 
 export default async function Footer() {
@@ -19,7 +19,7 @@ export default async function Footer() {
           </div>
           <div className="footer__col">
             <Link href="/programacao">Programação</Link>
-            <a href={reservaHrefFrom(site)} target="_blank" rel="noopener noreferrer">Reservar mesa</a>
+            <a href={reservaHrefFrom(site)} {...alvoLink(reservaHrefFrom(site))}>Reservar mesa</a>
             <a href={instagramUrl(site.instagram)} target="_blank" rel="noopener noreferrer">@{site.instagram}</a>
             <a href={site.casa.mapsUrl} target="_blank" rel="noopener noreferrer">Como chegar</a>
           </div>

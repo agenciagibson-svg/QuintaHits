@@ -290,6 +290,55 @@ button { font: inherit; cursor: pointer; }
 .footer__empresa { font-family: var(--display); letter-spacing: 0.1em; font-size: 16px; }
 .footer__base { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--linha-clara); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; opacity: 0.6; font-size: 13px; }
 
+/* ---------- reserva de mesa ---------- */
+.reserva { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 48px); align-items: start; }
+@media (max-width: 860px) { .reserva { grid-template-columns: 1fr; } }
+.reserva__edicoes { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+.reserva__edicao { text-align: left; line-height: 1.1; }
+.reserva__edicao small { display: block; font-family: var(--texto); font-size: 13px; letter-spacing: 0; text-transform: none; opacity: 0.8; margin-top: 2px; }
+.reserva__painel { padding: clamp(20px, 3vw, 32px); }
+.reserva__painel h2 { margin: 0 0 6px; }
+.reserva__form { display: grid; gap: 14px; margin-top: 18px; }
+.reserva__form label { display: grid; gap: 6px; font-size: 14px; }
+.reserva__form input {
+  font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 10px 10px 0 10px;
+  border: 2px solid var(--preto); background: #fffaf0; color: var(--preto); width: 100%;
+}
+.reserva__form input:focus-visible { outline: 3px solid var(--mostarda); outline-offset: 1px; }
+.reserva__erro { color: var(--terracota); font-weight: 600; font-size: 15px; margin: 0; }
+.reserva__aviso { font-size: 13px; opacity: 0.75; margin: 0; }
+.reserva__legenda { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; font-size: 14px; }
+.reserva__legenda span { display: inline-flex; align-items: center; gap: 8px; }
+.reserva__legenda i { width: 16px; height: 16px; border-radius: 50%; display: inline-block; border: 2px solid var(--preto); }
+.reserva__confirmar { display: grid; gap: 14px; justify-items: start; }
+.reserva__confirmar p { margin: 0; }
+.reserva__codigo { font-family: var(--display); font-size: clamp(40px, 6vw, 64px); letter-spacing: 0.08em; line-height: 1; padding: 10px 18px 6px; background: var(--preto); color: var(--mostarda); border-radius: 12px 12px 0 12px; }
+.honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* mapa do salão: mesas posicionadas em % do mapa */
+.mapa {
+  position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
+  background-color: var(--creme-escuro);
+  background-image: linear-gradient(var(--linha) 1px, transparent 1px), linear-gradient(90deg, var(--linha) 1px, transparent 1px);
+  background-size: 10% 10%;
+  border: 3px solid var(--preto); border-radius: var(--raio-p) var(--raio-p) 0 var(--raio-p);
+}
+.mapa--editavel { touch-action: none; } /* só no painel: arrastar mesa sem rolar a página */
+.mapa__mesa {
+  position: absolute; transform: translate(-50%, -50%);
+  width: clamp(38px, calc(var(--t) * 1%), 84px); aspect-ratio: 1; border-radius: 50%;
+  display: grid; place-content: center; gap: 0; padding: 0;
+  border: 2px solid var(--preto); background: var(--verde); color: var(--creme);
+  font-family: var(--display); line-height: 0.9; transition: transform 0.12s ease, background 0.12s;
+}
+.mapa__num { font-size: clamp(15px, 2vw, 24px); }
+.mapa__lug { font-family: var(--texto); font-size: 10px; opacity: 0.85; }
+.mapa__mesa--livre:hover { transform: translate(-50%, -50%) scale(1.08); background: var(--verde-escuro); }
+.mapa__mesa--selecionada { background: var(--terracota); box-shadow: 0 0 0 4px var(--mostarda); transform: translate(-50%, -50%) scale(1.08); }
+.mapa__mesa--ocupada { background: repeating-linear-gradient(45deg, #b9ad95 0 5px, #cfc3aa 5px 10px); color: var(--preto); opacity: 0.8; cursor: not-allowed; }
+.mapa__mesa--inativa { background: transparent; color: var(--preto); border-style: dashed; opacity: 0.55; }
+.mapa__mesa:focus-visible { outline: 3px solid var(--mostarda); outline-offset: 2px; }
+
 /* ---------- 404 ---------- */
 .nao { min-height: 70vh; display: grid; place-items: center; text-align: center; padding: var(--gutter); }
 
