@@ -1,10 +1,12 @@
 import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { edicaoReservavel, expirarPedidosVencidos } from "@/lib/reservas";
+import { expirarPedidosVencidos } from "@/lib/reservas";
+import { edicaoProntaParaSite } from "@/lib/regras";
 import { verificarMesa } from "@/lib/disponibilidade";
 import { verificarTurnstile } from "@/lib/turnstile";
-import { numeroDaCasa, whatsappConfigurado } from "@/lib/whatsapp";
+import { numeroDaCasa } from "@/lib/whatsapp";
+import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import {
   MAX_RESERVAS_POR_WHATSAPP,
   PRAZO_CONFIRMACAO_MIN,
@@ -26,6 +28,16 @@ const erro = (mensagem: string, status: number) => NextResponse.json({ erro: men
  * mandar o código pelo WhatsApp (o webhook em /api/whatsapp/webhook confirma).
  */
 export async function POST(req: Request) {
+  // Primeira coisa, antes de ler o corpo ou falar com qualquer serviço: com a chave desligada nenhuma reserva é criada.
+  const estado = estadoDasReservasDoSite();
+  if (!estado.aberto) {
+    return erro(
+      estado.motivo === "chave_desligada"
+        ? "As reservas online abrirão em breve. Fale com a gente pelo Instagram."
+        : "A reserva pelo site está indisponível agora. Fale com a gente pelo Instagram.",
+      503,
+    );
+  }
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return erro("Pedido inválido.", 400);
 
@@ -37,12 +49,8 @@ export async function POST(req: Request) {
     return erro("Não conseguimos confirmar que você não é um robô. Recarregue a página e tente de novo.", 403);
   }
 
-  // Sem a integração completa o pedido nunca seria confirmado: melhor não aceitar.
   const numeroCasa = numeroDaCasa();
-  if (!numeroCasa || !whatsappConfigurado()) {
-    console.error("Variáveis WHATSAPP_* incompletas: reservas pelo site desligadas.");
-    return erro("A reserva pelo site está indisponível agora. Fale com a gente pelo Instagram.", 503);
-  }
+  if (!numeroCasa) return erro("A reserva pelo site está indisponível agora. Fale com a gente pelo Instagram.", 503);
 
   const nome = typeof body.nome === "string" ? body.nome.trim() : "";
   if (nome.length < 2 || nome.length > 80) return erro("Informe seu nome.", 400);
@@ -58,7 +66,8 @@ export async function POST(req: Request) {
   if (!UUID_RE.test(mesaId)) return erro("Escolha uma mesa no mapa.", 400);
 
   try {
-    if (!(await edicaoReservavel(edicaoId))) return erro("Essa edição não está mais aberta para reservas.", 409);
+    // Só edição completa (regras, mesa oferecida ao site) e liberada explicitamente para o site aceita reserva.
+    if (!(await edicaoProntaParaSite(edicaoId))) return erro("Essa edição não está aberta para reservas pelo site.", 409);
     await expirarPedidosVencidos();
 
     const db = supabaseAdmin();

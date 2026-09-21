@@ -130,7 +130,7 @@ describe("fila de saída", () => {
     });
 
     it("variável ligada, mas o BANCO desligado: continua bloqueado", async () => {
-      vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+      vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
       await configurar("envio_ativo = false, restringir_a_numeros_teste = false");
       await prepararItem();
       const enviador = vi.fn<Enviador>();
@@ -139,7 +139,7 @@ describe("fila de saída", () => {
     });
 
     it("pausa de emergência bloqueia mesmo com tudo ligado", async () => {
-      vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+      vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
       await ligarTudo();
       await configurar("pausa_emergencia = true");
       await prepararItem();
@@ -156,7 +156,7 @@ describe("fila de saída", () => {
 
   describe("envio permitido (simulado)", () => {
     beforeEach(async () => {
-      vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+      vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
       await ligarTudo();
     });
 
@@ -265,7 +265,7 @@ describe("fila de saída", () => {
   describe("envio real pela Graph API (fetch simulado)", () => {
     const corpo = { messaging_product: "whatsapp", to: WA, type: "text", text: { body: "x" } };
     beforeEach(() => {
-      vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+      vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
       vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio-de-teste");
       vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
     });

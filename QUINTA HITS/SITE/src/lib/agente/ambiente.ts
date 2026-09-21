@@ -4,7 +4,12 @@
  * REGRA DURA: o agente da QUINTA HITS só processa o Phone Number ID 1352142871312651 (+55 34 99116-7064).
  * O outro número da GIBSON PROMOÇÕES (final 0200) nunca é tratado, respondido nem alterado por este código.
  *
- * Tudo que liga o agente ou o envio nasce DESLIGADO: variável ausente, vazia ou diferente de "true" = desligado.
+ * Tudo que liga uma funcionalidade nasce DESLIGADO: variável ausente, vazia ou diferente de EXATAMENTE "true" = desligado.
+ * Ter credenciais da Meta configuradas NUNCA liga nada por si só: cada funcionalidade tem a sua própria chave.
+ *   WHATSAPP_AGENT_ENABLED         agente de atendimento
+ *   WHATSAPP_SEND_ENABLED          envio de mensagens (o envio REAL exige as duas chaves acima)
+ *   WHATSAPP_REGISTRATION_ENABLED  registro do número na Meta (script manual separado, com confirmação interativa)
+ *   RESERVAS_SITE_ENABLED          reserva de mesa pelo site
  */
 
 /** Phone Number ID oficial da QUINTA HITS na WhatsApp Cloud API. Identificador técnico, não é segredo. */
@@ -17,13 +22,23 @@ export function ambienteAtual(): Ambiente {
   return process.env.APP_AMBIENTE?.trim().toLowerCase() === "homologacao" ? "homologacao" : "producao";
 }
 
-const ligado = (v: string | undefined) => v?.trim().toLowerCase() === "true";
+/** Modo estrito: só o texto exato "true" liga. "TRUE", "1", "yes", " true" ou vazio = desligado. */
+const ligado = (v: string | undefined) => v === "true";
 
 /** Interruptor mestre do agente pela variável de ambiente. Só "true" liga. */
 export const agenteLigadoPorEnv = () => ligado(process.env.WHATSAPP_AGENT_ENABLED);
 
-/** Interruptor mestre de QUALQUER envio (agente e fluxo atual). Só "true" liga. */
+/** Chave de envio, isolada. NÃO basta para enviar: veja `envioRealPermitidoPorEnv`. */
 export const envioLigadoPorEnv = () => ligado(process.env.WHATSAPP_SEND_ENABLED);
+
+/** Envio REAL pela Meta: exige, ao mesmo tempo, o agente ligado E o envio ligado. */
+export const envioRealPermitidoPorEnv = () => agenteLigadoPorEnv() && envioLigadoPorEnv();
+
+/** Registro do número na Meta: só o script manual usa; sozinha esta chave não registra nada. */
+export const registroLigadoPorEnv = () => ligado(process.env.WHATSAPP_REGISTRATION_ENABLED);
+
+/** Reserva de mesa pelo site (formulário e API). Independe de qualquer credencial do WhatsApp. */
+export const reservasSiteLigadoPorEnv = () => ligado(process.env.RESERVAS_SITE_ENABLED);
 
 /** Repasse para humano: padrão LIGADO; só "false" desliga. */
 export const repasseHumanoLigadoPorEnv = () => process.env.WHATSAPP_HUMAN_HANDOFF_ENABLED?.trim().toLowerCase() !== "false";

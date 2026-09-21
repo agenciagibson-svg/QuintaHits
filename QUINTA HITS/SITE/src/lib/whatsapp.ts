@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { envioLigadoPorEnv, idParaEnvio, versaoGraphApi } from "@/lib/agente/ambiente";
+import { envioRealPermitidoPorEnv, idParaEnvio, versaoGraphApi } from "@/lib/agente/ambiente";
 
 /**
  * WhatsApp Cloud API (oficial da Meta).
@@ -21,7 +21,7 @@ export function numeroDaCasa(): string | null {
  * sem isso o site aceitaria reservas e o cliente nunca receberia a confirmação (a reserva ficaria presa até expirar).
  */
 export function whatsappConfigurado(): boolean {
-  return Boolean(numeroDaCasa() && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_APP_SECRET && envioLigadoPorEnv() && idParaEnvio());
+  return Boolean(numeroDaCasa() && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_APP_SECRET && envioRealPermitidoPorEnv() && idParaEnvio());
 }
 
 /** A assinatura X-Hub-Signature-256 bate com o corpo recebido? */
@@ -40,12 +40,12 @@ export function assinaturaValida(corpo: string, assinatura: string | null): bool
 /**
  * Responde o cliente. Grátis dentro das 24h depois da mensagem dele (janela de atendimento).
  *
- * Só envia com WHATSAPP_SEND_ENABLED=true (desligado por padrão) e só pelo número da QUINTA HITS: se
+ * Só envia com WHATSAPP_AGENT_ENABLED=true E WHATSAPP_SEND_ENABLED=true (desligados por padrão) e só pelo número da QUINTA HITS: se
  * WHATSAPP_PHONE_NUMBER_ID apontar para outro número (ex.: o final 0200), não envia nada.
  */
 export async function enviarTexto(para: string, texto: string): Promise<void> {
-  if (!envioLigadoPorEnv()) {
-    console.info("WHATSAPP_SEND_ENABLED desligado: resposta não enviada.");
+  if (!envioRealPermitidoPorEnv()) {
+    console.info("Envio real desligado (exige WHATSAPP_AGENT_ENABLED e WHATSAPP_SEND_ENABLED): resposta não enviada.");
     return;
   }
   const token = process.env.WHATSAPP_TOKEN;

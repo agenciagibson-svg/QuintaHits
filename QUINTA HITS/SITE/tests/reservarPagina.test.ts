@@ -3,43 +3,61 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ID_QUINTA_HITS } from "./helpers/whatsapp";
 
-vi.mock("@/lib/reservas", () => ({ edicoesReservaveis: vi.fn(async () => [{ id: "2026-10-08" }]) }));
+vi.mock("@/lib/regras", () => ({ edicoesProntasParaSite: vi.fn(async () => [{ edicao: { id: "2026-10-08" }, regras: {}, mesasSite: 6 }]) }));
 vi.mock("@/components/ReservaMesa", () => ({ default: () => createElement("div", null, "FORMULARIO_DE_RESERVA") }));
 
 import Reservar from "@/app/reservar/page";
-import { edicoesReservaveis } from "@/lib/reservas";
+import { edicoesProntasParaSite } from "@/lib/regras";
 
 const renderizar = async () => renderToStaticMarkup(await Reservar());
 
-describe("/reservar antes e depois de a integração do WhatsApp estar configurada", () => {
-  afterEach(() => { vi.unstubAllEnvs(); vi.mocked(edicoesReservaveis).mockClear(); });
+/** Credenciais completas (fictícias) e as chaves de envio ligadas; a chave do SITE fica por conta de cada teste. */
+function integracaoCompleta() {
+  vi.stubEnv("APP_AMBIENTE", "producao");
+  vi.stubEnv("WHATSAPP_NUMERO_CASA", "5534991167064");
+  vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
+  vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
+  vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
+  vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+  vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
+}
 
-  it("sem as variáveis do WhatsApp (produção hoje): mostra aviso amigável e o Instagram, sem formulário", async () => {
+describe("/reservar: formulário escondido enquanto a reserva do site não estiver aberta", () => {
+  afterEach(() => { vi.unstubAllEnvs(); vi.mocked(edicoesProntasParaSite).mockClear(); });
+
+  it("sem nenhuma variável (produção hoje): aviso amigável e Instagram, sem formulário e sem consultar o banco", async () => {
     const html = await renderizar();
     expect(html).not.toContain("FORMULARIO_DE_RESERVA");
     expect(html).toContain("abrem em breve");
     expect(html).toContain("instagram.com/quintahits");
-    expect(edicoesReservaveis).not.toHaveBeenCalled();
+    expect(edicoesProntasParaSite).not.toHaveBeenCalled();
   });
 
-  it("com a integração completa e o envio ligado: mostra o formulário", async () => {
-    vi.stubEnv("APP_AMBIENTE", "producao");
-    vi.stubEnv("WHATSAPP_NUMERO_CASA", "5534999998888");
-    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
-    vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
-    vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+  it("credenciais completas e chaves de envio ligadas, mas RESERVAS_SITE_ENABLED desligada: continua fechado", async () => {
+    integracaoCompleta();
+    const html = await renderizar();
+    expect(html).not.toContain("FORMULARIO_DE_RESERVA");
+    expect(html).toContain("abrem em breve");
+    expect(edicoesProntasParaSite).not.toHaveBeenCalled();
+  });
+
+  it("RESERVAS_SITE_ENABLED ligada mas sem como confirmar pelo WhatsApp (sem credenciais): continua fechado", async () => {
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    const html = await renderizar();
+    expect(html).not.toContain("FORMULARIO_DE_RESERVA");
+    expect(html).toContain("abrem em breve");
+  });
+
+  it("chave ligada e integração completa: mostra o formulário", async () => {
+    integracaoCompleta();
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
     expect(await renderizar()).toContain("FORMULARIO_DE_RESERVA");
   });
 
-  it("integração completa, mas sem edições abertas: mensagem de reservas ainda não abertas", async () => {
-    vi.stubEnv("APP_AMBIENTE", "producao");
-    vi.stubEnv("WHATSAPP_NUMERO_CASA", "5534999998888");
-    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
-    vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
-    vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
-    vi.mocked(edicoesReservaveis).mockResolvedValueOnce([]);
+  it("chave ligada, integração completa, mas nenhuma edição pronta e liberada: mensagem de reservas ainda não abertas", async () => {
+    integracaoCompleta();
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    vi.mocked(edicoesProntasParaSite).mockResolvedValueOnce([]);
     const html = await renderizar();
     expect(html).toContain("Ainda não abrimos reservas");
     expect(html).not.toContain("FORMULARIO_DE_RESERVA");

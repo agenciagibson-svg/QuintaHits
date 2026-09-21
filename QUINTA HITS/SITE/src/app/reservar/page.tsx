@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { site, instagramUrl } from "@/config/site";
-import { edicoesReservaveis } from "@/lib/reservas";
-import { whatsappConfigurado } from "@/lib/whatsapp";
+import { edicoesProntasParaSite } from "@/lib/regras";
+import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import ReservaMesa from "@/components/ReservaMesa";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +13,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Reservar() {
-  // Sem a integração do WhatsApp o pedido nunca seria confirmado (a API recusa com 503): não mostra o formulário à toa.
-  const reservaAberta = whatsappConfigurado();
-  const edicoes = reservaAberta ? await edicoesReservaveis() : [];
+  // Reserva desligada (RESERVAS_SITE_ENABLED) ou sem como confirmar: a API recusa com 503, então não mostra o formulário à toa.
+  const reservaAberta = estadoDasReservasDoSite().aberto;
+  // Só edições completas e liberadas explicitamente para o site (regras no painel); nenhuma = "em breve".
+  const prontas = reservaAberta ? await edicoesProntasParaSite() : [];
+  const edicoes = prontas.map((p) => p.edicao);
 
   return (
     <section className="secao secao--creme">

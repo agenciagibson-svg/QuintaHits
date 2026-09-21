@@ -16,12 +16,13 @@ const ler = (arquivo: string) => readFileSync(DIR_SUPABASE + arquivo, "utf8");
 // schema.sql pede a extensão pgcrypto; no Postgres 13+ gen_random_uuid() já é nativo.
 const BASE = ler("schema.sql").replace(/create extension if not exists pgcrypto;/i, "");
 const MIGRACAO = ler("migracao-2026-09-21-agente-whatsapp.sql");
+const MIGRACAO_PARTE2 = ler("migracao-2026-09-21-parte2-site-e-atendimento.sql");
 
 export type ErroBanco = { code: string; message: string; details: string | null; hint: string | null };
 type Resposta<T> = { data: T; error: ErroBanco | null; count: number | null };
 
 const TABELAS_DE_DADOS = [
-  "reservas_historico", "reservas", "edicoes_mesas", "edicoes_regras", "wa_fila_tentativas", "wa_fila_saida",
+  "wa_notas_internas", "reservas_historico", "reservas", "edicoes_mesas", "edicoes_regras", "wa_fila_tentativas", "wa_fila_saida",
   "wa_mensagens", "wa_transferencias", "wa_conversas", "wa_contatos", "wa_webhook_eventos", "auditoria",
   "wa_config", "mesas", "site_config", "edicoes",
 ];
@@ -195,11 +196,13 @@ export type BancoTeste = {
   limpar: () => Promise<void>;
 };
 
-export async function criarBancoTeste(opcoes: { migracao?: boolean } = {}): Promise<BancoTeste> {
+/** `migracao: false` = banco antigo (sem nada do agente); `parte2: false` = só a parte 1 aplicada (estado do banco antes da parte 2). */
+export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean } = {}): Promise<BancoTeste> {
   const pg = new PGlite();
   await pg.exec("create role anon; create role authenticated; create role service_role;");
   await pg.exec(BASE);
   if (opcoes.migracao !== false) await pg.exec(MIGRACAO);
+  if (opcoes.migracao !== false && opcoes.parte2 !== false) await pg.exec(MIGRACAO_PARTE2);
   const temMigracao = opcoes.migracao !== false;
 
   const supabase = { from: (tabela: string) => new Consulta(pg, tabela) } as unknown as SupabaseClient;

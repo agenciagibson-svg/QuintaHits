@@ -37,7 +37,7 @@ beforeEach(async () => {
 
 /** Liga o envio como em produção: variável + token fictício + ID do número da QUINTA HITS. */
 const ligarEnvio = () => {
-  vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+  vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
   vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio-de-teste");
   vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
 };
@@ -245,7 +245,7 @@ describe("Homologação: o número de TESTE vale no lugar do oficial", () => {
   it("com APP_AMBIENTE=homologacao, o ID de teste é tratado e o ID de produção passa a ser 'outro número'", async () => {
     vi.stubEnv("APP_AMBIENTE", "homologacao");
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "1029384756");
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
     vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio-de-teste");
     const id = await criarPedidoAguardando(banco, { edicaoId, mesaId });
 

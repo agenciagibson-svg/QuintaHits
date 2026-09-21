@@ -84,7 +84,12 @@ describe("ambiente e interruptores", () => {
       expect(agenteLigadoPorEnv()).toBe(false);
       expect(envioLigadoPorEnv()).toBe(false);
     }
-    vi.stubEnv("WHATSAPP_AGENT_ENABLED", " TRUE ");
+    // Modo estrito: só o texto exato "true" liga (maiúsculas ou espaços = desligado).
+    for (const v of [" TRUE ", "TRUE", "True", " true", "true "]) {
+      vi.stubEnv("WHATSAPP_AGENT_ENABLED", v);
+      expect(agenteLigadoPorEnv(), JSON.stringify(v)).toBe(false);
+    }
+    vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
     expect(agenteLigadoPorEnv()).toBe(true);
   });
 

@@ -981,6 +981,33 @@ Antes de pedir autorização de deploy rodei o `next build` (aprovado; `/privaci
 
 **Pendências manuais do deploy-checker:** confirmar o hostname `quinta-hits-eight.vercel.app` no widget do Cloudflare Turnstile; confirmar que a `SUPABASE_URL` da Vercel é o projeto que recebeu a migração (as variáveis são Sensitive e não podem ser lidas); `robots.txt` e CSP não existem (melhorias). **Deploy recomendado:** `vercel deploy --prod --scope agenciagibson-1820` a partir de `SITE/`; **rollback:** `vercel rollback https://quinta-hits-ddm499rgu-agenciagibson-1820.vercel.app --scope agenciagibson-1820` (o banco migrado não precisa ser revertido).
 
+## 31. Finalização técnica: aguardando a Meta (diário, 21/09/2026)
+
+Objetivo desta etapa: deixar tudo implementado, migrado, testado e publicado, faltando só a aprovação da Meta, as credenciais definitivas e a ativação manual das chaves.
+
+### 31.1 Identificação do Supabase (feita antes de qualquer alteração)
+
+As variáveis da Vercel são Sensitive e não podem ser lidas de volta. A identidade foi provada por comparação somente leitura: os 6 UUIDs de mesa (gerados aleatoriamente pelo banco) devolvidos pelo site publicado em `/api/reservas/mapa?edicao=2026-10-08` são **idênticos** aos do banco do `.env.local` (projeto `bbj…qjq`, mascarado). Esse banco já tem a migração parte 1 (`wa_config` existe, `ambiente = homologacao`, agente e envio desligados).
+
+### 31.2 As quatro chaves independentes
+
+| Variável | Liga | Padrão |
+|---|---|---|
+| `WHATSAPP_AGENT_ENABLED` | agente de atendimento | desligada |
+| `WHATSAPP_SEND_ENABLED` | envio de mensagens | desligada |
+| `WHATSAPP_REGISTRATION_ENABLED` | registro do número na Meta (só por script manual separado) | desligada |
+| `RESERVAS_SITE_ENABLED` | reserva de mesa pelo site | desligada |
+
+Regras (`src/lib/agente/ambiente.ts`): só o texto **exato** `true` liga (`TRUE`, `1`, espaço ou vazio = desligada); credenciais da Meta **nunca** ligam nada; **envio real exige agente E envio ao mesmo tempo** (na Graph API, na fila e nas respostas do fluxo legado `QH-NNNNNN`); o site só abre com `RESERVAS_SITE_ENABLED=true` **e** com a confirmação pelo WhatsApp possível (credenciais + envio real). Com a chave do site desligada, nenhuma credencial é consultada: `/reservar` mostra "as reservas pelo site abrem em breve" (com o Instagram) e `POST /api/reservas` responde 503 antes de ler o corpo ou falar com qualquer serviço. Testes: `tests/flags.test.ts`, `tests/reservarPagina.test.ts`.
+
+### 31.3 Habilitação explícita da edição para o site (migração parte 2)
+
+Antes só o agente tinha liberação explícita por edição (`atendimento_automatico`); o site aceitava qualquer edição futura. Agora uma edição só aceita reserva do **site** se: horário do evento, local, abertura, prazo final de reserva (ainda não vencido), tolerância, prazo de cancelamento, capacidade máxima, consumação mínima (0 se não houver) e instruções de chegada estiverem preenchidos, houver ao menos uma mesa oferecida ao site **e** a caixa `reservas_site` estiver marcada. O painel mostra exatamente o que falta. Nenhum valor é inventado: campo vazio = "não definido".
+
+Migração parte 2 (**aditiva**, não apaga nada): `SITE/supabase/migracao-2026-09-21-parte2-site-e-atendimento.sql` acrescenta `edicoes_regras.reservas_site boolean not null default false`, `wa_transferencias.lida_ate` e a tabela `wa_notas_internas` (RLS ligado, sem policies, sem acesso de `anon`/`authenticated`). Reversão: `reverter-2026-09-21-parte2-site-e-atendimento.sql`. Verificação: `banco-atual/4-verificar-parte2.sql` (8 checagens). Testada em memória (`npm run test:parte2` em `SITE/supabase/testes`, 15 verificações: dados idênticos antes e depois, aplicar duas vezes, reversão, trava contra reserva duplicada).
+
+**O código tolera a ausência da parte 2**: sem a coluna `reservas_site` nenhuma edição fica liberada para o site (site fechado) e o painel avisa que a parte 2 precisa ser aplicada; o agente e o resto continuam funcionando.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

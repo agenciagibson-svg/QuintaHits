@@ -36,7 +36,8 @@ export function decidirAgente(flags: Flags, config: ConfigAgente, waId: string):
 export function decidirEnvio(flags: Flags, config: ConfigAgente, para: string): Decisao {
   if (config.ambiente !== flags.ambienteApp) return { ativo: false, motivo: "ambiente_divergente" };
   if (config.pausa_emergencia) return { ativo: false, motivo: "pausa_emergencia" };
-  if (!flags.envEnvio || !config.envio_ativo) return { ativo: false, motivo: "agente_desligado" };
+  // Envio real exige as DUAS chaves de ambiente (agente e envio) e as duas configurações do banco.
+  if (!flags.envAgente || !flags.envEnvio || !config.agente_ativo || !config.envio_ativo) return { ativo: false, motivo: "agente_desligado" };
   if (config.restringir_a_numeros_teste && !config.numeros_teste.includes(para)) return { ativo: false, motivo: "fora_da_lista_de_teste" };
   return { ativo: true, motivo: "ok" };
 }

@@ -23,13 +23,18 @@ export type RegrasEdicao = {
   instrucoes_chegada: string | null;
   /** Liberação explícita da edição para o atendimento automático. */
   atendimento_automatico: boolean;
+  /** Liberação explícita da edição para reservas pelo site (coluna da migração parte 2; ausente = false). */
+  reservas_site: boolean;
   observacoes: string;
 };
 
 export const CAMPOS_REGRAS = [
   "abertura", "reservas_ate", "tolerancia_min", "cancelamento_ate_horas", "capacidade_maxima",
-  "consumacao_minima_centavos", "preco_centavos", "sinal_centavos", "instrucoes_chegada", "atendimento_automatico", "observacoes",
+  "consumacao_minima_centavos", "preco_centavos", "sinal_centavos", "instrucoes_chegada", "atendimento_automatico", "reservas_site", "observacoes",
 ] as const satisfies readonly (keyof RegrasEdicao)[];
+
+/** Campos que existem desde a migração parte 1 (o banco atual pode ainda não ter a coluna `reservas_site`). */
+export const CAMPOS_REGRAS_PARTE1 = CAMPOS_REGRAS.filter((c) => c !== "reservas_site");
 
 export const REGRAS_VAZIAS: RegrasEdicao = {
   abertura: null,
@@ -42,6 +47,7 @@ export const REGRAS_VAZIAS: RegrasEdicao = {
   sinal_centavos: null,
   instrucoes_chegada: null,
   atendimento_automatico: false,
+  reservas_site: false,
   observacoes: "",
 };
 
@@ -96,9 +102,10 @@ export function validarRegras(body: unknown): Resultado {
     if (typeof v !== "string" || v.trim().length > limite) return { erro: `Texto de "${campo}" passa de ${limite} caracteres.` };
     (campos as Record<string, string | null>)[campo] = v.trim();
   }
-  if ("atendimento_automatico" in b) {
-    if (typeof b.atendimento_automatico !== "boolean") return { erro: 'Campo "atendimento_automatico" inválido.' };
-    campos.atendimento_automatico = b.atendimento_automatico;
+  for (const campo of ["atendimento_automatico", "reservas_site"] as const) {
+    if (!(campo in b)) continue;
+    if (typeof b[campo] !== "boolean") return { erro: `Campo "${campo}" inválido.` };
+    campos[campo] = b[campo] as boolean;
   }
   return { campos };
 }
@@ -111,10 +118,30 @@ export type Prontidao = { pronta: boolean; faltando: string[] };
  */
 export function avaliarProntidao(entrada: { edicao: Edicao | null; regras: RegrasEdicao | null; mesasWhatsapp: number; agora?: Date }): Prontidao {
   const { edicao, regras, mesasWhatsapp } = entrada;
-  const agora = entrada.agora ?? new Date();
-  const faltando: string[] = [];
+  const faltando = faltandoDaEdicao(edicao, regras, entrada.agora ?? new Date());
+  if (!edicao) return { pronta: false, faltando };
+  if (mesasWhatsapp < 1) faltando.push("ao menos uma mesa liberada para o WhatsApp");
+  if (!(regras ?? REGRAS_VAZIAS).atendimento_automatico) faltando.push("liberação da edição para o atendimento automático");
+  return { pronta: faltando.length === 0, faltando };
+}
 
-  if (!edicao) return { pronta: false, faltando: ["edição não encontrada"] };
+/**
+ * A edição está pronta para reservas pelo SITE? Mesmas exigências de dados do agente, mais a liberação EXPLÍCITA
+ * para o site (\`reservas_site\`) e ao menos uma mesa oferecida ao site. Um só item faltando = o site NÃO aceita reserva.
+ */
+export function avaliarProntidaoDoSite(entrada: { edicao: Edicao | null; regras: RegrasEdicao | null; mesasSite: number; agora?: Date }): Prontidao {
+  const { edicao, regras, mesasSite } = entrada;
+  const faltando = faltandoDaEdicao(edicao, regras, entrada.agora ?? new Date());
+  if (!edicao) return { pronta: false, faltando };
+  if (mesasSite < 1) faltando.push("ao menos uma mesa oferecida ao site");
+  if (!(regras ?? REGRAS_VAZIAS).reservas_site) faltando.push("liberação da edição para reservas pelo site");
+  return { pronta: faltando.length === 0, faltando };
+}
+
+/** Exigências de dados comuns ao site e ao agente. Devolve exatamente o que falta (lista vazia = completo). */
+function faltandoDaEdicao(edicao: Edicao | null, regras: RegrasEdicao | null, agora: Date): string[] {
+  const faltando: string[] = [];
+  if (!edicao) return ["edição não encontrada"];
   if (edicao.data < hojeISO(agora)) faltando.push("edição que já passou");
   if (edicao.status !== "confirmada" && edicao.status !== "a_confirmar") faltando.push("edição cancelada ou já realizada");
   if (!edicao.horario || !HORARIO_RE.test(edicao.horario)) faltando.push("horário do evento");
@@ -129,10 +156,7 @@ export function avaliarProntidao(entrada: { edicao: Edicao | null; regras: Regra
   if (r.capacidade_maxima === null) faltando.push("capacidade máxima");
   if (r.consumacao_minima_centavos === null) faltando.push("consumação mínima (use 0 se não houver)");
   if (!r.instrucoes_chegada) faltando.push("instruções de chegada");
-  if (mesasWhatsapp < 1) faltando.push("ao menos uma mesa liberada para o WhatsApp");
-  if (!r.atendimento_automatico) faltando.push("liberação da edição para o atendimento automático");
-
-  return { pronta: faltando.length === 0, faltando };
+  return faltando;
 }
 
 /** "R$ 50,00" a partir de centavos. */

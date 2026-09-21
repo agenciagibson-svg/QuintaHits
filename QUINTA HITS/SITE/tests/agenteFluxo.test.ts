@@ -84,7 +84,7 @@ beforeEach(async () => {
 
 describe("agente desligado: o fluxo atual segue como sempre", () => {
   it("agente desligado por variável: 'oi' recebe a resposta padrão do fluxo do código (com o envio ligado) e NADA é gravado nas tabelas do agente", async () => {
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio"); vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true"); vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio"); vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
     await enviar({ texto: "oi" });
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).text.body).toMatch(/Este WhatsApp confirma reservas da QUINTA HITS/);
     for (const t of ["wa_contatos", "wa_conversas", "wa_mensagens", "wa_fila_saida"]) expect((await banco.sql(`select 1 from ${t}`)).length, t).toBe(0);
@@ -92,7 +92,7 @@ describe("agente desligado: o fluxo atual segue como sempre", () => {
 
   it("variável ligada mas banco desligado, ou número fora da lista de testes, ou pausa de emergência: continua o fluxo atual", async () => {
     vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio"); vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true"); vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio"); vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
     await enviar({ texto: "oi", wamid: "wamid.1" }); // banco desligado (agente_ativo = false)
     await banco.sql("update wa_config set agente_ativo = true, restringir_a_numeros_teste = true");
     await enviar({ texto: "oi", wamid: "wamid.2" }); // lista de testes vazia
@@ -105,7 +105,7 @@ describe("agente desligado: o fluxo atual segue como sempre", () => {
   it("agente ligado numa base SEM a migração: cai no fluxo atual, sem quebrar", async () => {
     definirBanco(bancoAntigo);
     vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio"); vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true"); vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio"); vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
     await enviar({ texto: "oi" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -171,7 +171,7 @@ describe("agente ligado (modo teste): conversa de reserva completa pelo webhook"
   it("com o envio ligado (variável + banco + lista de testes), a resposta sai depois da resposta à Meta, pelo número da QUINTA HITS", async () => {
     await prepararEdicaoPronta();
     await ligarAgente();
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio"); vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true"); vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio"); vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
     await banco.sql("update wa_config set envio_ativo = true");
     await enviar({ texto: "oi" });
     expect(fetchMock).toHaveBeenCalledTimes(1);

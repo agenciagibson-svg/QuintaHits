@@ -3,7 +3,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { estoqueDaEdicao, mesasDoCanal, tabelaAusente, type Estoque } from "@/lib/disponibilidade";
 import { edicoesReservaveis } from "@/lib/reservas";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { CAMPOS_REGRAS, REGRAS_VAZIAS, avaliarProntidao, type Prontidao, type RegrasEdicao } from "@/lib/regrasEdicao";
+import { CAMPOS_REGRAS, CAMPOS_REGRAS_PARTE1, REGRAS_VAZIAS, avaliarProntidao, avaliarProntidaoDoSite, type Prontidao, type RegrasEdicao } from "@/lib/regrasEdicao";
+import { edicaoReservavel } from "@/lib/reservas";
 import type { Edicao } from "@/lib/edicao";
 
 const CAMPOS_EDICAO = "id, data, artista, instagram, tema, genero, horario, local, status, destaque";
@@ -22,7 +23,7 @@ export type CanalDaMesa = {
 
 export type PainelDeRegras =
   | { migrado: false }
-  | { migrado: true; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; mesas: CanalDaMesa[] };
+  | { migrado: true; parte2: boolean; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; prontidaoSite: Prontidao; mesas: CanalDaMesa[] };
 
 async function lerEdicao(id: string): Promise<Edicao | null> {
   const { data, error } = await supabaseAdmin().from("edicoes").select(CAMPOS_EDICAO).eq("id", id).maybeSingle();
@@ -30,12 +31,26 @@ async function lerEdicao(id: string): Promise<Edicao | null> {
   return (data as Edicao | null) ?? null;
 }
 
-/** null = a tabela não existe (migração não aplicada neste banco). */
-async function lerRegras(edicaoId: string): Promise<{ regras: RegrasEdicao | null } | null> {
-  const { data, error } = await supabaseAdmin().from("edicoes_regras").select(CAMPOS_REGRAS.join(", ")).eq("edicao_id", edicaoId).maybeSingle();
+/** A coluna `reservas_site` (migração parte 2) ainda não existe neste banco? (Vem antes de `tabelaAusente`: a mensagem também diz "does not exist".) */
+const colunaSiteAusente = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === "42703" || e.code === "PGRST204" || /reservas_site/i.test(e.message ?? ""));
+
+/**
+ * null = a tabela não existe (migração parte 1 não aplicada). `parte2: false` = falta a coluna `reservas_site`: as regras
+ * vêm sem ela (nenhuma edição fica liberada para o site) e o painel avisa que a parte 2 precisa ser aplicada.
+ */
+async function lerRegras(edicaoId: string): Promise<{ regras: RegrasEdicao | null; parte2: boolean } | null> {
+  const consulta = (campos: readonly string[]) => supabaseAdmin().from("edicoes_regras").select(campos.join(", ")).eq("edicao_id", edicaoId).maybeSingle();
+  let parte2 = true;
+  let { data, error } = await consulta(CAMPOS_REGRAS);
+  if (colunaSiteAusente(error)) {
+    parte2 = false;
+    ({ data, error } = await consulta(CAMPOS_REGRAS_PARTE1));
+  }
   if (tabelaAusente(error)) return null;
   if (error) throw new Error(`Erro ao buscar regras: ${error.message}`);
-  return { regras: (data as unknown as RegrasEdicao | null) ?? null };
+  const linha = data as unknown as RegrasEdicao | null;
+  return { regras: linha ? { ...REGRAS_VAZIAS, ...linha, reservas_site: parte2 ? linha.reservas_site === true : false } : null, parte2 };
 }
 
 function canaisDoEstoque(estoque: Estoque): CanalDaMesa[] {
@@ -58,11 +73,14 @@ export async function carregarPainelDeRegras(edicaoId: string, agora = new Date(
   if (!lido) return { migrado: false };
   const [edicao, estoque] = await Promise.all([lerEdicao(edicaoId), estoqueDaEdicao(edicaoId)]);
   const mesasWhatsapp = mesasDoCanal(estoque, "whatsapp").length;
+  const mesasSite = mesasDoCanal(estoque, "site").length;
   return {
     migrado: true,
+    parte2: lido.parte2,
     edicao,
     regras: lido.regras ?? { ...REGRAS_VAZIAS },
     prontidao: avaliarProntidao({ edicao, regras: lido.regras, mesasWhatsapp, agora }),
+    prontidaoSite: avaliarProntidaoDoSite({ edicao, regras: lido.regras, mesasSite, agora }),
     mesas: canaisDoEstoque(estoque),
   };
 }
@@ -102,6 +120,7 @@ export async function salvarRegrasECanais(edicaoId: string, entrada: { regras?: 
 
   if (entrada.regras && Object.keys(entrada.regras).length > 0) {
     const { error } = await db.from("edicoes_regras").upsert({ edicao_id: edicaoId, ...entrada.regras, updated_at: agora }, { onConflict: "edicao_id" });
+    if (colunaSiteAusente(error)) return { ok: false, status: 503, erro: "A migração parte 2 (liberação para o site) ainda não foi aplicada neste banco." };
     if (tabelaAusente(error)) return { ok: false, status: 503, erro: "A migração do agente ainda não foi aplicada neste banco." };
     if (error?.code === "23503") return { ok: false, status: 404, erro: "Edição não encontrada." };
     if (error) return { ok: false, status: 500, erro: "Não foi possível salvar as regras." };
@@ -133,9 +152,10 @@ export type EdicaoPronta = { edicao: Edicao; regras: RegrasEdicao; mesasWhatsapp
  * mesa oferecida ao WhatsApp. Sem migração ou sem nenhuma pronta, a lista vem vazia (e o agente repassa a humano).
  */
 export async function edicoesProntasParaAgente(agora = new Date(), limite = 6): Promise<EdicaoPronta[]> {
-  const candidatas = await edicoesReservaveis(agora, limite);
+  const candidatas = await edicoesReservaveis(agora, 50);
   const prontas: EdicaoPronta[] = [];
   for (const edicao of candidatas) {
+    if (prontas.length >= limite) break;
     const lido = await lerRegras(edicao.id);
     if (!lido) return [];
     const estoque = await estoqueDaEdicao(edicao.id);
@@ -144,4 +164,32 @@ export async function edicoesProntasParaAgente(agora = new Date(), limite = 6): 
     if (prontidao.pronta && lido.regras) prontas.push({ edicao, regras: lido.regras, mesasWhatsapp });
   }
   return prontas;
+}
+
+export type EdicaoProntaSite = { edicao: Edicao; regras: RegrasEdicao; mesasSite: number };
+
+/** Só devolve a edição se ela estiver COMPLETA e liberada para o site (regras, mesa oferecida ao site e `reservas_site`). */
+async function prontaParaSite(edicao: Edicao, agora: Date): Promise<EdicaoProntaSite | null> {
+  const lido = await lerRegras(edicao.id);
+  if (!lido || !lido.regras || !lido.parte2) return null;
+  const estoque = await estoqueDaEdicao(edicao.id);
+  const mesasSite = mesasDoCanal(estoque, "site").length;
+  return avaliarProntidaoDoSite({ edicao, regras: lido.regras, mesasSite, agora }).pronta ? { edicao, regras: lido.regras, mesasSite } : null;
+}
+
+/** Edições em que o SITE pode aceitar reserva agora. Nenhuma completa e liberada = lista vazia (o site mostra "em breve"). */
+export async function edicoesProntasParaSite(agora = new Date(), limite = 6): Promise<EdicaoProntaSite[]> {
+  const prontas: EdicaoProntaSite[] = [];
+  for (const edicao of await edicoesReservaveis(agora, 50)) {
+    if (prontas.length >= limite) break;
+    const pronta = await prontaParaSite(edicao, agora);
+    if (pronta) prontas.push(pronta);
+  }
+  return prontas;
+}
+
+/** A edição, se o site pode aceitar reserva dela agora; senão null. */
+export async function edicaoProntaParaSite(id: string, agora = new Date()): Promise<EdicaoProntaSite | null> {
+  const edicao = await edicaoReservavel(id, agora);
+  return edicao ? prontaParaSite(edicao, agora) : null;
 }

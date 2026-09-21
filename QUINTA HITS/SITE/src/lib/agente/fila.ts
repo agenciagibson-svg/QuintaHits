@@ -1,7 +1,7 @@
 import "server-only";
 import { createHmac } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { ambienteAtual, envioLigadoPorEnv, idParaEnvio, versaoGraphApi } from "./ambiente";
+import { agenteLigadoPorEnv, ambienteAtual, envioLigadoPorEnv, envioRealPermitidoPorEnv, idParaEnvio, versaoGraphApi } from "./ambiente";
 import { decidirEnvio } from "./ativacao";
 import { atrasoDeReenvioSegundos, dentroDaJanela, falhaTemporaria, montarPayloadGraph, sanitizarErro } from "./graph";
 import { obterConfig } from "./repositorio";
@@ -45,7 +45,7 @@ export async function enfileirar(p: { conversaId: string; mensagemId: string | n
 export const enviarViaGraph: Enviador = async (para, corpo) => {
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = idParaEnvio();
-  if (!envioLigadoPorEnv() || !token || !phoneId) return { ok: false, httpStatus: 0, codigo: "envio_nao_configurado" };
+  if (!envioRealPermitidoPorEnv() || !token || !phoneId) return { ok: false, httpStatus: 0, codigo: "envio_nao_configurado" };
 
   const prova = process.env.META_APP_SECRET_PROOF_ENABLED?.trim().toLowerCase() === "true" && process.env.WHATSAPP_APP_SECRET
     ? `?appsecret_proof=${createHmac("sha256", process.env.WHATSAPP_APP_SECRET).update(token).digest("hex")}`
@@ -77,7 +77,7 @@ export async function processarFila(o: { agora?: Date; limite?: number; enviador
   const resumo: ResumoFila = { enviadas: 0, reagendadas: 0, falhas: 0, mortas: 0, bloqueadas: 0, canceladas: 0, adiadas: 0, semMigracao: false };
   const config = await obterConfig();
   if (!config) return { ...resumo, semMigracao: true };
-  const flags = { envAgente: true, envEnvio: envioLigadoPorEnv(), ambienteApp: ambienteAtual() };
+  const flags = { envAgente: agenteLigadoPorEnv(), envEnvio: envioLigadoPorEnv(), ambienteApp: ambienteAtual() };
   const db = supabaseAdmin();
 
   // Itens "enviando" com a trava vencida (processo que caiu no meio) voltam para a fila.

@@ -9,7 +9,7 @@ function ambienteCompleto() {
   vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", ID_QUINTA_HITS);
   vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
   vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
-  vi.stubEnv("WHATSAPP_SEND_ENABLED", "true");
+  vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true");
 }
 
 describe("whatsappConfigurado (libera as reservas do site)", () => {

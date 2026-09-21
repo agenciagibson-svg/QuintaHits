@@ -19,12 +19,12 @@ afterAll(async () => { definirBanco(null); await banco.pg.close(); });
 
 const ED = "2099-01-07";
 
-/** Edição com regras completas, liberada para o agente, com as mesas informadas oferecidas ao WhatsApp. */
+/** Edição com regras completas, liberada para o agente E para o site, com as mesas informadas oferecidas ao WhatsApp. */
 async function edicaoPronta(mesas: { id: string; whatsapp?: boolean; site?: boolean }[], id = ED, cancelamentoHoras: number | null = 24) {
   await criarEdicao(banco, { id, horario: "20h" });
   await banco.sql(
-    `insert into edicoes_regras (edicao_id, abertura, reservas_ate, tolerancia_min, cancelamento_ate_horas, capacidade_maxima, consumacao_minima_centavos, instrucoes_chegada, atendimento_automatico)
-     values ($1,'19h','2099-01-07T15:00:00Z',15,$2,120,0,'Instruções de teste.',true) on conflict (edicao_id) do nothing`,
+    `insert into edicoes_regras (edicao_id, abertura, reservas_ate, tolerancia_min, cancelamento_ate_horas, capacidade_maxima, consumacao_minima_centavos, instrucoes_chegada, atendimento_automatico, reservas_site)
+     values ($1,'19h','2099-01-07T15:00:00Z',15,$2,120,0,'Instruções de teste.',true,true) on conflict (edicao_id) do nothing`,
     [id, cancelamentoHoras],
   );
   for (const m of mesas) {
@@ -111,7 +111,8 @@ describe("CORRIDA entre canais pela mesma mesa (estoque único)", () => {
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "1352142871312651");
     vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
     vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); // sem o envio ligado o site não libera reservas
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true"); // sem o envio ligado o site não libera reservas
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
   });
 

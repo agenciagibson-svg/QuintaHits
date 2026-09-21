@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { criarBancoTeste, type BancoTeste } from "./helpers/bancoTeste";
 import { definirBanco } from "./helpers/holder";
-import { criarEdicao, criarMesa, criarPedidoAguardando } from "./helpers/cenarios";
+import { criarEdicao, criarMesa, criarPedidoAguardando, liberarEdicaoParaSite } from "./helpers/cenarios";
 
 vi.mock("@/lib/supabaseAdmin", async () => {
   const h = await import("./helpers/holder");
@@ -144,12 +144,14 @@ describe("POST /api/reservas (site) com a disponibilidade única", () => {
     _reiniciarCacheDeCanais();
     await banco.limpar();
     edicao = await criarEdicao(banco);
+    await liberarEdicaoParaSite(banco, edicao);
     vi.stubEnv("TURNSTILE_SECRET_KEY", "chave-ficticia");
     vi.stubEnv("WHATSAPP_NUMERO_CASA", "5534991167064");
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "1352142871312651");
     vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
     vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); // sem o envio ligado o site não libera reservas
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true"); // sem o envio ligado o site não libera reservas
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
   });
 
@@ -165,6 +167,7 @@ describe("POST /api/reservas (site) com a disponibilidade única", () => {
 
   it("mesa desligada para o SITE: 404, mesmo existindo e estando livre", async () => {
     const t1 = await criarMesa(banco, "T1", 4);
+    await criarMesa(banco, "T2", 4); // outra mesa segue oferecida ao site: a edição continua pronta
     await canais(banco, edicao, t1, false, true, true);
     const r = await post({ mesa_id: t1 });
     expect(r.status).toBe(404);
@@ -173,6 +176,7 @@ describe("POST /api/reservas (site) com a disponibilidade única", () => {
 
   it("mesa liberada só para o WhatsApp: o site não a reserva", async () => {
     const t1 = await criarMesa(banco, "T1", 4);
+    await criarMesa(banco, "T2", 4);
     await canais(banco, edicao, t1, false, true, false);
     expect((await post({ mesa_id: t1 })).status).toBe(404);
   });
@@ -195,6 +199,7 @@ describe("POST /api/reservas (site) com a disponibilidade única", () => {
 
   it("mesa inexistente ou inativa: 404 (igual a antes)", async () => {
     const t1 = await criarMesa(banco, "T1", 4);
+    await criarMesa(banco, "T2", 4);
     await banco.sql("update mesas set ativa = false where id = $1", [t1]);
     expect((await post({ mesa_id: t1 })).status).toBe(404);
     expect((await post({ mesa_id: "00000000-0000-4000-8000-000000000000" })).status).toBe(404);
@@ -227,17 +232,18 @@ describe("SEM a migração (estado da produção hoje): o site segue exatamente 
     expect(m.ocupadas).toEqual([t1]);
   });
 
-  it("POST /api/reservas cria o pedido normalmente, sem nenhuma tabela nova", async () => {
+  it("POST /api/reservas: sem a migração nenhuma edição está liberada para o site — recusa (409) e NÃO cria reserva", async () => {
     vi.stubEnv("TURNSTILE_SECRET_KEY", "chave-ficticia");
     vi.stubEnv("WHATSAPP_NUMERO_CASA", "5534991167064");
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "1352142871312651");
     vi.stubEnv("WHATSAPP_TOKEN", "token-ficticio");
     vi.stubEnv("WHATSAPP_APP_SECRET", "segredo-ficticio");
-    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); // sem o envio ligado o site não libera reservas
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    vi.stubEnv("WHATSAPP_SEND_ENABLED", "true"); vi.stubEnv("WHATSAPP_AGENT_ENABLED", "true"); // sem o envio ligado o site não libera reservas
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
     const t1 = await criarMesa(bancoAntigo, "T1", 4);
     const r = await POST(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Ana Teste", whatsapp: "(34) 99999-8888", pessoas: 2, edicao_id: edicao, mesa_id: t1, turnstile: "ok" }) }));
-    expect(r.status).toBe(201);
-    expect((await bancoAntigo.sql("select status from reservas"))[0]).toEqual({ status: "aguardando" });
+    expect(r.status).toBe(409);
+    expect((await bancoAntigo.sql("select 1 from reservas")).length).toBe(0);
   });
 });
