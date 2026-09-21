@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { edicaoReservavel, expirarPedidosVencidos } from "@/lib/reservas";
+import { verificarMesa } from "@/lib/disponibilidade";
 import { verificarTurnstile } from "@/lib/turnstile";
 import { numeroDaCasa, whatsappConfigurado } from "@/lib/whatsapp";
 import {
@@ -61,15 +62,14 @@ export async function POST(req: Request) {
     await expirarPedidosVencidos();
 
     const db = supabaseAdmin();
-    const { data: mesa, error: erroMesa } = await db
-      .from("mesas")
-      .select("id, numero, lugares")
-      .eq("id", mesaId)
-      .eq("ativa", true)
-      .maybeSingle();
-    if (erroMesa) throw erroMesa;
-    if (!mesa) return erro("Essa mesa não está disponível.", 404);
-    if (pessoas > mesa.lugares) {
+    // Disponibilidade única (lib/disponibilidade.ts): a mesma consulta do WhatsApp e do painel. "Ocupada" não barra
+    // aqui: quem decide a disputa é o índice único do banco, na gravação abaixo (resposta 409 de sempre).
+    const verificacao = await verificarMesa(edicaoId, mesaId, "site", pessoas);
+    if (!verificacao.ok && (verificacao.motivo === "mesa_inexistente" || verificacao.motivo === "canal_indisponivel")) {
+      return erro("Essa mesa não está disponível.", 404);
+    }
+    const mesa = verificacao.mesa!;
+    if (!verificacao.ok && verificacao.motivo === "lugares_insuficientes") {
       return erro(`A mesa ${mesa.numero} é para até ${mesa.lugares} pessoas. Escolha uma mesa maior.`, 400);
     }
 

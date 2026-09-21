@@ -1,7 +1,11 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { hojeISO, type Edicao } from "@/lib/edicao";
-import { STATUS_OCUPA_MESA, type MesaPublica } from "@/lib/reserva";
+import { type MesaPublica } from "@/lib/reserva";
+import { estoqueDaEdicao, mesasDoCanal } from "@/lib/disponibilidade";
+
+// A expiração mora em lib/expiracao.ts (evita ciclo com a disponibilidade); segue exportada daqui.
+export { expirarPedidosVencidos } from "@/lib/expiracao";
 
 const CAMPOS_EDICAO = "id, data, artista, instagram, tema, genero, horario, local, status, destaque";
 
@@ -30,30 +34,12 @@ export async function edicaoReservavel(id: string, agora = new Date()): Promise<
 }
 
 /**
- * Pedidos "aguardando" com prazo vencido viram "expirada" e soltam a mesa.
- * Roda antes de toda leitura/gravação de reservas (não há tarefa agendada): o índice único
- * do banco só enxerga o status, então a mesa só fica livre depois dessa troca.
+ * Mesas que o SITE oferece e quais já estão seguradas na edição. Não devolve nada de quem reservou.
+ * Usa a disponibilidade única (lib/disponibilidade.ts): sem configuração de canais, é o comportamento de sempre
+ * (todas as mesas ativas); com ela, a mesa desligada para o site some do mapa.
  */
-export async function expirarPedidosVencidos(): Promise<void> {
-  const { error } = await supabaseAdmin()
-    .from("reservas")
-    .update({ status: "expirada", updated_at: new Date().toISOString() })
-    .eq("status", "aguardando")
-    .lt("expira_em", new Date().toISOString());
-  if (error) throw new Error(`Erro ao expirar pedidos: ${error.message}`);
-}
-
-/** Mesas ativas e quais já estão seguradas na edição. Não devolve nada de quem reservou. */
 export async function mapaDaEdicao(edicaoId: string): Promise<{ mesas: MesaPublica[]; ocupadas: string[] }> {
-  await expirarPedidosVencidos();
-  const [resMesas, resReservas] = await Promise.all([
-    supabaseAdmin().from("mesas").select("id, numero, lugares, area, x, y").eq("ativa", true).order("numero"),
-    supabaseAdmin().from("reservas").select("mesa_id").eq("edicao_id", edicaoId).in("status", STATUS_OCUPA_MESA),
-  ]);
-  if (resMesas.error) throw new Error(`Erro ao buscar mesas: ${resMesas.error.message}`);
-  if (resReservas.error) throw new Error(`Erro ao buscar reservas: ${resReservas.error.message}`);
-  return {
-    mesas: (resMesas.data ?? []).map((m) => ({ ...m, x: Number(m.x), y: Number(m.y) })),
-    ocupadas: (resReservas.data ?? []).map((r) => r.mesa_id),
-  };
+  const estoque = await estoqueDaEdicao(edicaoId);
+  const mesas = mesasDoCanal(estoque, "site").map(({ id, numero, lugares, area, x, y }) => ({ id, numero, lugares, area, x, y }));
+  return { mesas, ocupadas: [...estoque.ocupadas] };
 }

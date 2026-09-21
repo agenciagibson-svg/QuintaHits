@@ -664,6 +664,28 @@ Autorizado: implementar e testar **localmente**. Continua proibido: SQL em qualq
 
 **Não coberto:** o `next build` não foi rodado nesta etapa para não ler as credenciais reais do `.env.local`; lint, tipos e testes passam. Rodar o build no ambiente de homologação.
 
+### 27.3 Disponibilidade única por canal (site, WhatsApp e painel sobre o mesmo estoque)
+
+**Nova consulta única** `lib/disponibilidade.ts`, usada por **todos** os canais. O estoque continua sendo um só: `mesas` + `reservas` + o índice único parcial do banco. `edicoes_mesas` só decide **quem pode oferecer** a mesa; nunca guarda quantidade nem status de reserva.
+
+| Mesa na edição | Site | WhatsApp | Painel |
+|---|---|---|---|
+| sem linha em `edicoes_mesas` (comportamento de hoje) | oferece | **não** oferece | oferece |
+| com linha | `disponivel_site` | `disponivel_whatsapp` | `disponivel_admin` |
+| três desligados, ou `mesas.ativa = false` | indisponível | indisponível | indisponível |
+
+Funções: `estoqueDaEdicao` (expira pedidos vencidos, lê mesas, ocupação e canais), `mesasDoCanal`, `mesasLivres(edicao, canal, pessoas?)` e `verificarMesa` (explica o motivo: inexistente, canal indisponível, lugares insuficientes ou ocupada). O ajuste `lugares_override` vale para todos os canais.
+
+**Integração com o site (alteração mínima e compatível):**
+
+- `mapaDaEdicao` (mapa do site) e `POST /api/reservas` passam a usar essa consulta. **"Ocupada" não barra no site:** quem decide a disputa continua sendo o índice único, na gravação, com a mesma resposta 409 de antes.
+- **Sem a migração aplicada (estado da produção hoje), tudo se comporta exatamente como antes**: a consulta da tabela nova falha de forma tratada (`42P01`/`PGRST205`), o resultado é "canais não configurados" e a falha não se repete por 60 s. Testado contra um banco **sem** a migração.
+- `expirarPedidosVencidos` foi movida para `lib/expiracao.ts` (evita ciclo de importação) e segue exportada por `lib/reservas.ts`; nenhum chamador mudou.
+
+**Testes (19 novos, 66 no total):** padrão sem configuração; liberação por canal; "indisponível"; mesa inativa; **estoque único** (reserva de um canal tira a mesa de todos, inclusive reserva vinda do agente); mesa fora do WhatsApp reservada pelo site; expiração; ajuste de lugares; motivos de `verificarMesa`; mapa do site igual ao de sempre e com mesa escondida; `POST /api/reservas` (cria como sempre, 404 com mesa desligada para o site ou só do WhatsApp, 400 com capacidade efetiva, 409 com mesa segurada por outro canal, 404 com mesa inativa); e o **banco sem migração** (mapa e `POST` iguais aos de antes).
+
+**Ainda não feito:** as telas do painel para configurar os canais (commit de regras por edição). Ainda **não há** a reserva feita pelo agente; a corrida site × WhatsApp na mesma mesa será testada com ela.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

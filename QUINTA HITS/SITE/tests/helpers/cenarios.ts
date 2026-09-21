@@ -3,7 +3,7 @@ import type { BancoTeste } from "./bancoTeste";
 /** Fábricas de cenário para os testes. Tudo fictício: nenhum dado real. */
 
 export async function criarEdicao(b: BancoTeste, o: { id?: string; status?: string; artista?: string; horario?: string; local?: string } = {}) {
-  const id = o.id ?? "2027-01-07";
+  const id = o.id ?? "2099-01-07";
   await b.sql(
     "insert into edicoes (id, data, artista, horario, local, status) values ($1, $2, $3, $4, $5, $6) on conflict (id) do nothing",
     [id, id, o.artista ?? "[TESTE] Artista", o.horario ?? "", o.local ?? "Florindos Bar", o.status ?? "confirmada"],
