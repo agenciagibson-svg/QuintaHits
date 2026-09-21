@@ -31,7 +31,7 @@ const SEGREDOS = {
   WHATSAPP_APP_SECRET: "app-secret-inventado-77b2d0",
   WHATSAPP_VERIFY_TOKEN: "verify-inventado-51e8aa",
   TURNSTILE_SECRET_KEY: "0x4AAA-turnstile-inventado-c4d2",
-  SUPABASE_SERVICE_ROLE_KEY: "eyJ-service-role-inventada-1234567890",
+  SUPABASE_SERVICE_ROLE_KEY: "chave-de-servico-inventada-1234567890",
   ADMIN_SESSION_SECRET: "sessao-inventada-com-mais-de-trinta-e-dois-caracteres",
   CRON_SECRET: "cron-inventado-aa77",
 };
