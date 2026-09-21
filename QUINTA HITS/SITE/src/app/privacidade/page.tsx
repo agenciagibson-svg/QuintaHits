@@ -79,10 +79,11 @@ export default function Privacidade() {
 
           <h2>4. Atendimento automático e atendimento humano</h2>
           <p>
-            As conversas pelo WhatsApp podem ser atendidas por um assistente automático, que funciona com menus e regras
+            As conversas pelo WhatsApp poderão ser atendidas por um assistente automático, que funciona com menus e regras
             definidas pela equipe (sem inteligência artificial generativa) e só oferece o que estiver cadastrado como disponível.
-            Quando o assunto foge do previsto, ou quando você pedir, a conversa passa para uma pessoa da equipe.
-            Você pode pedir atendimento humano a qualquer momento, escrevendo &quot;atendente&quot;.
+            Quando o assunto fugir do previsto, ou quando você pedir, a conversa passará para uma pessoa da equipe:
+            com o assistente em funcionamento, basta escrever &quot;atendente&quot;. Enquanto ele não estiver ativo, o
+            WhatsApp serve apenas para confirmar as reservas feitas pelo site, com o código que você recebe ao reservar.
           </p>
 
           <h2>5. Com quem compartilhamos</h2>
@@ -120,8 +121,10 @@ export default function Privacidade() {
             </tbody>
           </table>
           <p>
-            Podemos guardar por mais tempo apenas o que a lei exigir ou o que for necessário para nos defendermos em
-            processos. Passados os prazos, os dados são apagados ou anonimizados.
+            Esses são os prazos que adotamos como regra para os dados de reserva e de atendimento. A rotina automática de limpeza
+            ainda está em implantação; até ela entrar em funcionamento, você pode pedir a exclusão dos seus dados a qualquer
+            momento (veja a seção 8). Podemos guardar por mais tempo apenas o que a lei exigir ou o que for necessário para
+            nos defendermos em processos. Ao fim dos prazos, os dados são apagados ou anonimizados.
           </p>
 
           <h2>8. Seus direitos</h2>
@@ -149,7 +152,7 @@ export default function Privacidade() {
           <h2>9. Como protegemos os dados</h2>
           <p>
             Usamos conexão segura (HTTPS), acesso restrito ao banco de dados apenas pelo sistema, controle de acesso ao
-            painel da equipe, registro das ações administrativas e verificação anti-abuso no formulário. Nenhum sistema é
+            painel da equipe, registro de alterações de configuração e de atendimento e verificação anti-abuso no formulário. Nenhum sistema é
             totalmente livre de riscos; em caso de incidente que possa afetar você, comunicaremos conforme a lei.
           </p>
 

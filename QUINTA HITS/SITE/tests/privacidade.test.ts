@@ -27,6 +27,13 @@ describe("página /privacidade", () => {
     expect(texto).toMatch(/atendente/);
   });
 
+  it("não promete o que o sistema ainda não faz: assistente e limpeza automática aparecem como pendentes", () => {
+    expect(texto).toMatch(/poderão ser atendidas por um assistente automático/);
+    expect(texto).toMatch(/Enquanto ele não estiver ativo/);
+    expect(texto).toMatch(/rotina automática de limpeza ainda está em implantação/);
+    expect(texto).toMatch(/pedir a exclusão dos seus dados a qualquer momento/);
+  });
+
   it("informa os prazos de guarda e os direitos da LGPD", () => {
     for (const trecho of ["90 dias", "12 meses", "24 meses", "30 dias", "LGPD", "ANPD", "eliminação", "portabilidade", "revogação"]) {
       expect(texto).toContain(trecho);
