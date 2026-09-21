@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Testa as migrações SQL do agente de reservas num PostgreSQL em memória (PGlite). Não conecta em nenhum banco real.",
   "scripts": {
-    "test": "node testar-migracao.mjs"
+    "test": "node testar-migracao.mjs && node testar-banco-atual.mjs",
+    "test:banco-atual": "node testar-banco-atual.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8"

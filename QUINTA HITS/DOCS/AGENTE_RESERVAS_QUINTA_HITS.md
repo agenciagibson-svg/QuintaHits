@@ -897,6 +897,47 @@ QUINTA HITS                   200 · sem processar          200 · ignorado
 
 **Próxima autorização necessária:** você criar o projeto Supabase de homologação e me avisar; em seguida, **autorizar expressamente** a aplicação da migração e do seed **somente nesse projeto**. Sem isso, nada avança para banco algum.
 
+## 28. Modo "banco único": migração no Supabase atual, sem seed (autorizado em 21/09/2026)
+
+**Decisão do responsável:** como o site ainda não foi divulgado, tudo o que for feito no projeto pode ser teste, e a homologação usa **o mesmo Supabase atual** (substitui a decisão de um segundo projeto). **Autorização expressa recebida:** aplicar a migração no Supabase atual, **sem o seed**, marcando o banco como homologação durante os testes.
+
+**O que muda em relação ao plano da seção 24:** não há segundo projeto; **não se roda o seed** (ele criaria mesas e edições fictícias que o site público exibiria); as mesas e as regras são as **reais**, cadastradas pelo responsável no painel; o banco fica com `wa_config.ambiente = 'homologacao'` e volta para `'producao'` no lançamento; os testes usam apenas números autorizados; dados de teste levam o nome iniciado por `[TESTE]` e são limpos antes do lançamento. O deploy da Vercel **não muda** (o site publicado é a versão anterior ao agente e segue funcionando com o banco migrado, pois a migração só acrescenta).
+
+**Pacote pronto** (`SITE/supabase/banco-atual/`; **nada foi executado em nenhum banco**, pois o SQL só pode ser aplicado pelo responsável no SQL Editor):
+
+| Arquivo | Função |
+|---|---|
+| `1-antes-e-depois.sql` | **somente leitura**: confere os pré-requisitos (tabelas e colunas que a migração exige), mostra contagens e uma **impressão digital (hash)** de `edicoes`, `mesas`, `site_config` e `reservas`. Só contém contagens e hashes |
+| `2-aplicar.sql` | a migração aprovada, **cópia exata** (gerada por concatenação e conferida por teste), mais **uma linha** que marca `ambiente = 'homologacao'`. Sem nenhum dado de seed |
+| `3-verificar.sql` | somente leitura, **52 checagens**: 12 tabelas, RLS, sem acesso para `anon`/`authenticated`, colunas e gatilho, índice anti-duplicidade, tabelas do site intactas, configuração desligada e restrita a testes, sem dados fictícios |
+
+**Passo a passo (fora de quinta-feira à noite):**
+
+1. Rodar `1-antes-e-depois.sql`. Todos os "PRÉ-REQUISITO" devem dizer **OK** (se algum disser FALTA, **parar** e avisar). Guardar o resultado.
+2. Rodar `2-aplicar.sql` inteiro. Esperado: "Success. No rows returned". O Supabase pode exibir um aviso de operação destrutiva: é o `drop trigger if exists reservas_historico_trg`, que remove **o próprio gatilho** antes de recriá-lo (para o script poder rodar duas vezes); pode confirmar. Os demais "delete" do arquivo são só definições de chave estrangeira.
+3. Rodar `1-antes-e-depois.sql` de novo: as contagens e as **4 impressões digitais devem ser iguais** às do passo 1. (Se entrar uma reserva nova entre as duas rodadas, só a de `reservas` muda; confira as contagens.)
+4. Rodar `3-verificar.sql`: **RESULTADO GERAL = APROVADO**, nenhuma linha FALHA.
+5. Teste de acesso por papel, **em consultas separadas**: `set role anon; select count(*) from wa_contatos;` → esperado **permission denied**; depois `reset role; set role authenticated; select count(*) from wa_conversas;` → **permission denied**; `reset role;`.
+6. Colar o resultado dos passos 1, 3 e 4 no chat (não há segredo neles).
+
+**Reversão (só se algo der errado):** `reverter-2026-09-21-agente-whatsapp.sql`. Recusa rodar se houver reserva feita pelo agente, remove apenas as 12 tabelas e as 4 colunas novas e preserva os dados do site (testado).
+
+**Testes desta sequência** (`supabase/testes/testar-banco-atual.mjs`, `npm test` em `supabase/testes`): **22 verificações**, num banco em memória que imita a produção (mesas e reservas em vários status): o arquivo de aplicação é a migração aprovada e não tem seed nem comando destrutivo; a foto é somente leitura e sem segredos; **ANTES × DEPOIS idênticos**; a verificação aprova (52 checagens) e reprova se `anon` ganhar acesso ou se o ambiente estiver errado; aplicar duas vezes é seguro; um pedido do site é gravado normalmente, com histórico, e a trava contra reserva dupla continua valendo; a reversão preserva os dados do site e a migração pode ser reaplicada.
+
+**Riscos que continuam neste modo (e o controle de cada um):**
+
+| Risco | Controle |
+|---|---|
+| gatilho passa a gravar histórico a cada mudança de status do site | testado; reversão disponível |
+| um teste mexer em dado real | seed não roda; agente e envio desligados; só números autorizados; nomes `[TESTE]` |
+| execução acidental da reversão | recusa se houver reserva do agente; usar só sob orientação |
+| a rotina de retenção atuar sobre dados reais | `limpeza_ativa = false` e `RETENCAO_ENABLED` ausente; política não validada |
+| chave `service_role` de produção em ambiente local | é a mesma chave que o site já usa; fica só em arquivos ignorados pelo git; nunca no chat |
+
+**Limpeza obrigatória antes do lançamento:** apagar contatos, conversas, mensagens, fila e eventos de teste e as reservas `[TESTE]`; esvaziar `numeros_teste`; `update wa_config set ambiente = 'producao', numeros_teste = '{}' where id = 1;`; validar a política de retenção; conferir que nenhuma mesa ou edição fictícia existe. O roteiro exato de limpeza será conferido com o responsável antes de ser executado.
+
+**O que continua dependendo de decisão ou de terceiros:** o checklist do painel da Meta (22.3) e o destino do número 0200 antes de qualquer URL de webhook; o token da Cloud API (direto na Vercel, fora do chat); a URL pública do webhook para testes com a Meta (o site atual já é público e estável, mas o callback é único por app, então **nada é cadastrado antes do destino do 0200**).
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
