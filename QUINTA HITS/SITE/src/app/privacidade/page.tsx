@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { instagramUrl, site } from "@/config/site";
+import { cnpjValido } from "@/lib/cnpj";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade",
@@ -9,6 +10,8 @@ export const metadata: Metadata = {
 };
 
 const p = site.privacidade;
+// Defesa: um CNPJ malformado nunca é exibido (o teste também barra no repositório).
+const cnpj = p.cnpj && cnpjValido(p.cnpj) ? p.cnpj : "";
 
 /**
  * Política de Privacidade (LGPD). Descreve o que o sistema realmente faz hoje: reserva pelo site, atendimento
@@ -36,8 +39,9 @@ export default function Privacidade() {
           <p>
             A {site.nome} é uma label da <strong>{site.empresa}</strong>
             {p.razaoSocial ? ` (${p.razaoSocial})` : ""}
-            {p.cnpj ? `, CNPJ ${p.cnpj}` : ""}, e acontece toda quinta-feira no {site.casa.nome}, em {site.cidade}/{site.uf}.
+            {cnpj ? `, CNPJ ${cnpj}` : ""}, e acontece toda quinta-feira no {site.casa.nome}, em {site.cidade}/{site.uf}.
             A {site.empresa} é a controladora dos dados tratados por este site e pelo atendimento de reservas.
+            {p.endereco ? ` Endereço: ${p.endereco}.` : ""} Não há encarregado de dados designado: os pedidos de privacidade são atendidos pelo contato da seção 12.
           </p>
 
           <h2>2. Quais dados tratamos e para quê</h2>
@@ -172,7 +176,7 @@ export default function Privacidade() {
 
           <h2>12. Contato</h2>
           <p>
-            {site.nome} · {site.empresa} · {site.cidade}/{site.uf}
+            {site.nome} · {site.empresa}{p.razaoSocial ? ` (${p.razaoSocial})` : ""} · {p.endereco || `${site.cidade}/${site.uf}`}
             {p.emailContato ? <> · <a href={`mailto:${p.emailContato}`}>{p.emailContato}</a></> : null}
             {" · "}
             <a href={instagramUrl(site.instagram)} target="_blank" rel="noopener noreferrer">@{site.instagram}</a>

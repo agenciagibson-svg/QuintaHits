@@ -41,12 +41,16 @@ export const site = {
 
   empresa: "GIBSON PROMOÇÕES",
 
-  // Política de privacidade (/privacidade). Campos vazios NÃO aparecem na página: preencha quando estiverem definidos.
+  // Política de privacidade (/privacidade). Campos vazios NÃO aparecem na página.
   privacidade: {
     atualizadaEm: "21 de setembro de 2026",
-    razaoSocial: "" as string, // razão social completa da GIBSON PROMOÇÕES
+    razaoSocial: "K. L & F PRODUÇÕES E PROMOÇÕES ARTÍSTICAS LTDA",
+    // PENDENTE DE CONFIRMAÇÃO: o número informado ("58.820.970/0013-7") tem 13 dígitos e não é um CNPJ válido.
+    // O ÚNICO ajuste de um dígito que passa na validação é 58.820.970/0013-57 (faltaria o "5"). Não foi publicado por ser
+    // um dado legal deduzido: confirme e preencha aqui. A página só mostra o CNPJ se ele tiver 14 dígitos válidos.
     cnpj: "" as string,
-    emailContato: "" as string, // canal de privacidade / encarregado (DPO)
+    endereco: "Av. dos Vinhedos, 70, Sala 109 – Uberlândia/MG – CEP 38411-217",
+    emailContato: "agenciagibson@gmail.com", // contato de privacidade e exercício de direitos (não há encarregado/DPO designado)
   },
   hashtagEmpresa: "#GibsonPromoções",
   hashtags: ["#QuintaHits", "#Uberlândia", "#MúsicaAoVivo", "#QuintaFeira"],
