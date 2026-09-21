@@ -1,0 +1,13 @@
+{
+  "name": "quinta-hits-testes-migracao",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Testa as migrações SQL do agente de reservas num PostgreSQL em memória (PGlite). Não conecta em nenhum banco real.",
+  "scripts": {
+    "test": "node testar-migracao.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
+  }
+}

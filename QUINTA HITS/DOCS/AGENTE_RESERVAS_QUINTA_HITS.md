@@ -94,7 +94,7 @@ templates, painel de conversas, rota de registro do número, página de privacid
 | Fila de envio | Tabela `wa_fila_saida` (outbox) no Postgres, processada logo após a resposta ao webhook (`after()` do Next) e por reprocessamento agendado | Sem dependência nova. Redis/QStash só se o volume exigir |
 | Limite de taxa | Contadores no Postgres por contato e janela | Sem Redis no projeto |
 | Chaves liga/desliga | Duas camadas: variável de ambiente (mestre, exige redeploy) **e** `wa_config` (botões do painel, sem redeploy). Vale o mais restritivo | Pausa de emergência precisa ser instantânea |
-| Homologação | **Produção com flags desligadas + lista de números de teste** (só eles recebem resposta do agente) | Preview da Vercel tem proteção de login por padrão e a Meta não alcança a URL. Ideal: segundo projeto Supabase de homologação (decisão do responsável) |
+| Homologação | **Segundo projeto Supabase, separado da produção** (decidido em 21/09), com seed fictício e lista de números de teste. Substitui a proposta original de "homologar em produção" | Nenhum dado real no ambiente de teste; a proteção de login dos previews da Vercel impede a Meta de alcançar a URL, então a homologação com a Meta precisa de um deploy próprio ou de túnel (seção 24) |
 | Testes | `vitest` como devDependency (projeto não tem nenhum) | Única dependência nova, só de desenvolvimento |
 | Migrações | Aditivas, idempotentes, com `reverter-*.sql` que remove **apenas** o que foi criado | Sem CLI de migração; nada destrutivo |
 
@@ -124,7 +124,7 @@ Laterais: `ALTERING_RESERVATION`, `CANCELLING_RESERVATION`, `WAITING_HUMAN`, `CL
 - Duas mensagens seguidas não compreendidas → `WAITING_HUMAN`.
 - Toda transição é uma função pura e testável; nenhuma transição altera reserva sem passar pela camada de reservas validada.
 
-## 8. Estrutura do banco (proposta — **nada foi criado**)
+## 8. Estrutura do banco (proposta inicial — **superada pela seção 21**, que traz a versão final e o SQL)
 
 Prefixo `wa_` nas tabelas novas para não confundir com as do site. Todas com RLS ligado, sem policies (mesmo modelo de hoje).
 
@@ -207,7 +207,8 @@ Desenho, para cumprir as regras do prompt:
 - URL: `https://<domínio>/api/whatsapp/webhook`. **Publicada e respondendo antes** de salvar na Meta.
 - Token de verificação = `WHATSAPP_VERIFY_TOKEN` (texto inventado pelo responsável).
 - Campos assinados: `messages` (mensagens **e** status de entrega/leitura/falha). Templates só quando o primeiro for criado.
-- **Risco de colisão:** o webhook é configurado **por aplicativo**. Se o outro número da GIBSON PROMOÇÕES usa o mesmo app ou a mesma WABA, salvar esta URL muda o destino dele. Confirmar antes. Se for o caso, a alternativa é assinar a WABA com URL própria (`subscribed_apps` com `override_callback_uri`) sem mexer no app inteiro. O código já ignora com 200 qualquer `phone_number_id` diferente do da QUINTA HITS.
+- **Modelo adotado (decisão de 21/09/2026):** **um único callback por aplicativo**, o aplicativo inscrito na WABA e os eventos de **todos** os números vinculados chegando ao **mesmo** callback. A separação é obrigatória **no backend, pelo `phone_number_id`** (seção 23). Configuração de URL independente por número **não** é tratada como solução provável; só entra se houver evidência explícita no painel, documentada com captura e localização exata, e mesmo assim sem executar alteração.
+- **Risco de colisão:** salvar uma URL no app "Gibson Atendimento" muda o destino dos eventos do outro número (final 0200). **Nenhuma URL é salva ou substituída** até conhecermos o destino atual do 0200 (checklist da seção 22).
 - App em modo **Desenvolvimento**: só recebe de/para números de teste (até 5). Passar para **Ao vivo** exige política de privacidade e é decisão do responsável (seção 17).
 
 ## 13. Janela de 24 h e templates
@@ -221,7 +222,7 @@ atendimento. Sem mensagem em massa e sem campanha.
 
 - Assinatura do webhook obrigatória (já existe); segredos só no servidor; logs sem token, telefone completo nem conteúdo.
 - Idempotência por `wamid`; limite por contato e pausa global de emergência; sanitização de entradas.
-- Sem conteúdo de conversa por tempo indefinido: `wa_mensagens.conteudo` com data de expurgo e rotina de limpeza.
+- Sem conteúdo de conversa por tempo indefinido: política de retenção configurável e rotina de limpeza (seção 21.7), **pendente de validação administrativa e jurídica**.
 - Direito de exclusão/anonimização por solicitação (rotina documentada).
 - **Lacuna:** não existe página de política de privacidade (a Meta exige para colocar o app "Ao vivo"). O texto é jurídico e precisa de aprovação do responsável; será entregue como rascunho, sem inventar promessas.
 - Backup: o do Supabase; plano de recuperação a documentar na fase de deploy.
@@ -262,13 +263,22 @@ atendimento. Sem mensagem em massa e sem campanha.
 7. **Atendimento humano na fase 1:** só no painel (fila "Aguardando atendimento humano", destaque e contador). Sem e-mail/WhatsApp para a equipe (arquitetura preparada). Ao transferir, o agente pausa; o atendente assume, vê motivo e histórico e pode devolver ao agente.
 8. **Commit:** local, só deste documento, sem push/deploy.
 
+**Decisões adicionais (2ª aprovação, 21/09/2026):**
+
+9. **Webhook:** um único callback por aplicativo; eventos de todos os números no mesmo callback; separação no backend por `phone_number_id`. Configuração por número não é a solução provável (seção 12). Nenhuma URL da Meta é salva ou substituída até se conhecer o destino do número 0200.
+10. **Inspeção do CRM da Gibson:** autorizada **somente leitura** (nomes de variáveis, arquitetura). Feita em 21/09/2026; relatório na seção 22.
+11. **Mesas e disponibilidade:** **uma única fonte de estoque** (`edicoes`, `mesas`, `reservas` + índice único). Cada mesa pode ser liberada ou não por canal (site, WhatsApp, painel, indisponível) por configuração explícita, sem estoque paralelo. Testes de corrida entre canais obrigatórios (seções 21.3 e 21.6).
+12. **Retenção de dados (LGPD):** política inicial configurável (seção 21.7), rotina de limpeza desligada por padrão. **Pendente de validação administrativa e jurídica antes da produção.**
+13. **Homologação:** Supabase separado; endpoint público estável e sem login **apenas na rota do webhook**; nada é configurado ainda (seções 24 e 25).
+14. **Commits:** em português, seguindo o `CLAUDE.md`. Segundo commit local autorizado, sem push, deploy, merge nem SQL em qualquer Supabase.
+
 **Ainda pendentes:**
 
 - Valores das regras de cada edição (horários, consumação, tolerância etc.), cadastrados por você no painel quando o módulo existir. Nenhum valor provisório será tratado como oficial.
 - **Token permanente** da Cloud API (usuário do sistema com `whatsapp_business_messaging` e `whatsapp_business_management`), cadastrado direto na Vercel, fora do chat.
 - Criar o **projeto Supabase de homologação** (checklist na seção 24) e a lista de **contatos de teste autorizados** (até 5).
 - Auditar no painel da Meta o webhook atual do app (seção 22) — só você enxerga essa tela.
-- **Prazo de retenção** das mensagens (LGPD): sem valor definido, nada é expurgado; obrigatório definir antes da produção.
+- **Validação administrativa e jurídica** da política de retenção (seção 21.7): os valores iniciais estão definidos, mas nada vai para produção sem essa validação.
 - Plano da Vercel do time (define tarefa agendada e tempo máximo de função).
 - Aprovação do texto da política de privacidade.
 
@@ -311,3 +321,423 @@ atendimento. Sem mensagem em massa e sem campanha.
 | 21/09/2026 | Diagnóstico aprovado. Homologação passa a ser em **segundo projeto Supabase** (substitui "produção com flags desligadas") |
 | 21/09/2026 | Origem da reserva: `site`, `whatsapp_agent`, `admin`, `manual` (coluna `origem_reserva`) |
 | 21/09/2026 | Repasse humano só no painel na fase 1; sem disparo externo |
+| 21/09/2026 | Sem views e sem funções SQL chamáveis pela API nas migrações: o Supabase as expõe ao navegador. Fila e trava usam compara-e-troca no aplicativo |
+| 21/09/2026 | Regras por edição em tabela própria (`edicoes_regras`) sem valores padrão: `NULL` = "não definido", nunca um valor provisório |
+| 21/09/2026 | Trava `APP_AMBIENTE` (variável) = `wa_config.ambiente` (banco): se divergirem, o agente fica desligado |
+| 21/09/2026 | Roteamento: o endpoint existente é ampliado (sem segunda rota); só o Phone Number ID `1352142871312651` chega ao agente |
+| 21/09/2026 | **Corrige a proposta anterior:** URL exclusiva por número deixa de ser a solução recomendada. O modelo é webhook único do app, separação por `phone_number_id` no backend |
+| 21/09/2026 | Disponibilidade: estoque único; `edicoes_mesas` passa a guardar **canais** por mesa (`disponivel_site`, `disponivel_whatsapp`, `disponivel_admin`) em vez de "mesa ativa" |
+| 21/09/2026 | Retenção: `retencao_mensagens_dias` (nulo) substituído por seis prazos com a política do responsável e `limpeza_ativa = false`; `expurgar_em` removido em favor de `conteudo_removido_em` |
+| 21/09/2026 | Testes da migração passam a viver no repositório (`SITE/supabase/testes/`, pacote próprio, sem alterar o `package.json` do site): 101 verificações |
+| 21/09/2026 | Homologação com a Meta deve usar um **app de teste separado** com número de teste da Meta, para não tocar no app de produção nem no número 0200 (seção 25) |
+
+## 21. Modelagem final, migrações e rollback (**SQL escrito e testado localmente; NÃO executado em nenhum banco**)
+
+Arquivos (em `SITE/supabase/`):
+
+| Arquivo | Função |
+|---|---|
+| `migracao-2026-09-21-agente-whatsapp.sql` | cria as estruturas novas (idempotente) |
+| `reverter-2026-09-21-agente-whatsapp.sql` | desfaz só o que a migração criou, com trava de segurança |
+| `homologacao/seed-ficticio.sql` | dados fictícios; só roda em banco marcado como homologação |
+| `homologacao/verificar-homologacao.sql` | verificação somente leitura (51 checagens) para o projeto de homologação |
+| `testes/testar-migracao.mjs` + `package.json` | 101 verificações num PostgreSQL em memória; pacote próprio, sem alterar o `package.json` do site |
+| `../.env.homologacao.example` | variáveis do ambiente de teste (só nomes) |
+
+### 21.1 Antes de criar, o que já existia (equivalentes verificados)
+
+| Necessidade | Já existe? | Decisão |
+|---|---|---|
+| Eventos | `edicoes` | reutilizada |
+| Mesas/setores | `mesas` (`area` = setor) | reutilizada |
+| Reservas e anti-duplicidade | `reservas` + índice único parcial | reutilizada; recebe colunas |
+| Login e painel | `/admin` | reutilizado |
+| Contatos, conversas, mensagens, transferências, idempotência de evento, fila, tentativas, auditoria, regras por edição | **nada equivalente** (busca no código e no banco) | criar |
+
+### 21.2 As 12 tabelas novas: por que cada uma é necessária
+
+| # | Tabela | Por que é necessária | Sem ela |
+|---|---|---|---|
+| 1 | `wa_config` | interruptores globais (agente, envio, repasse), **pausa de emergência**, modo teste com lista de números, política de retenção, marca de ambiente. Nasce **desligada**, **restrita a testes** e com lista vazia | a pausa dependeria de redeploy; não haveria como restringir a testes nem configurar retenção sem mexer no código |
+| 2 | `edicoes_regras` | regras **por edição** editáveis no painel (abertura, prazo, tolerância, cancelamento, capacidade, consumação, preço, sinal, instruções). `NULL` = "não definido", sem nenhum valor padrão | as regras iriam para o código (proibido inventar) ou para colunas em `edicoes` (alteraria uma tabela existente) |
+| 3 | `edicoes_mesas` | **canais** por mesa em cada edição: site, WhatsApp, painel ou indisponível. **Não é estoque** | não haveria como esconder uma mesa do WhatsApp sem desativá-la também no site |
+| 4 | `wa_contatos` | identidade do cliente (`wa_id` único), consentimento, bloqueio e anonimização | reserva do agente sem vínculo com quem pediu; sem base para LGPD e exclusão |
+| 5 | `wa_conversas` | estado da máquina, contexto (edição, mesa, nome), trava otimista contra duas mensagens simultâneas, janela de 24 h | o agente não teria memória; retomada e expiração impossíveis |
+| 6 | `wa_transferencias` | fila "Aguardando atendimento humano": motivo, quem assumiu, devolução ao agente, histórico de cada ocorrência | o painel não teria contador, motivo nem tempo de espera; `wa_conversas.status` sozinho perde o histórico |
+| 7 | `wa_mensagens` | histórico que o atendente vê e status de entrega. `wamid` **único** garante idempotência | atendente sem contexto; reenvio da Meta processaria a mensagem duas vezes |
+| 8 | `wa_webhook_eventos` | deduplica **eventos** (inclusive status, que não são mensagens) e registra, **sem conteúdo e sem telefone**, o que foi ignorado de outros números | reentrega da Meta duplicaria efeitos; não haveria prova de que o número 0200 foi ignorado |
+| 9 | `wa_fila_saida` | fila de envio com retentativa, dead-letter (`morta`) e chave de idempotência | envio perdido ou duplicado em falha; 429 da Meta sem tratamento |
+| 10 | `wa_fila_tentativas` | uma linha por tentativa (HTTP, erro sanitizado, duração), com retenção independente da fila | sem diagnóstico de falhas e de limite; o detalhe de erro ficaria misturado à fila |
+| 11 | `auditoria` | rastro de ações do agente, do atendente e do sistema, sem segredos | ninguém saberia quem alterou reserva, regra ou configuração |
+| 12 | `reservas_historico` | trilha das mudanças de status de cada reserva, gravada por gatilho | só existiria o status atual da reserva |
+
+**Candidatas a enxugar, se preferir menos estruturas:** `wa_fila_tentativas` (poderia virar uma coluna JSON dentro de `wa_fila_saida`, perdendo a retenção separada) e `auditoria` (poderia absorver `reservas_historico`). Mantive separadas por clareza e por retenção; a decisão é sua.
+
+**Acesso:** RLS ligado e **sem policies** (igual às tabelas de hoje) e `revoke` de todas as permissões para `anon` e `authenticated`. Sem views e sem funções expostas. Só a service_role, no servidor, lê e escreve.
+
+### 21.3 Mudanças em tabelas existentes (`reservas`) e impacto
+
+| Mudança | Impacto |
+|---|---|
+| `origem_reserva` (`site`, `whatsapp_agent`, `admin`, `manual`), padrão `site` | todas as reservas atuais viram `site`. O código de hoje não informa a coluna e continua funcionando |
+| `contato_id`, `observacoes`, `atendente` | opcionais |
+| gatilho `reservas_historico_trg` | grava o histórico de status de **qualquer** caminho (site, webhook atual, painel) sem mexer no código deles. É o único ponto em que o banco faz uma escrita extra a cada reserva; testado |
+| `edicoes`, `mesas`, `site_config` | **não são alteradas** |
+
+Nenhuma consulta atual usa `select *` em `reservas` (todas listam colunas), então colunas novas não afetam o código existente. Adicionar colunas com valor padrão constante não reescreve a tabela; ainda assim, **aplicar longe do horário do evento** (não numa quinta à noite).
+
+**Disponibilidade: uma única fonte de verdade.** O estoque é `mesas` + `reservas` + o índice único parcial `(edicao_id, mesa_id)` para reservas `aguardando`/`confirmada`. Site, WhatsApp e painel consultam **as mesmas tabelas** e disputam **a mesma trava**. `edicoes_mesas` só decide **quem pode oferecer** a mesa:
+
+| Situação da mesa na edição | Site | WhatsApp | Painel |
+|---|---|---|---|
+| sem linha em `edicoes_mesas` (comportamento de hoje) | oferece | **não** oferece (liberação explícita) | oferece |
+| `disponivel_site` / `disponivel_whatsapp` / `disponivel_admin` | por canal | por canal | por canal |
+| os três desligados | **indisponível** | | |
+
+Se uma mesa não é oferecida ao WhatsApp mas o site a reserva, ela some da lista do WhatsApp: é o mesmo estoque (testado, seção 9 do apêndice). **Ainda não alterei o site** para respeitar `disponivel_site`; hoje o site continua oferecendo todas as mesas ativas. Alinhar isso é uma alteração de código do fluxo atual e depende de sua autorização.
+
+### 21.4 Regras por edição: onde cada item fica
+
+| Item | Onde |
+|---|---|
+| Data, local, horário do evento | `edicoes.data`, `edicoes.local`, `edicoes.horario` (já existem) |
+| Horário de abertura | `edicoes_regras.abertura` |
+| Prazo final para reservar | `edicoes_regras.reservas_ate` |
+| Tolerância | `edicoes_regras.tolerancia_min` |
+| Prazo para cancelamento | `edicoes_regras.cancelamento_ate_horas` |
+| Capacidade máxima | `edicoes_regras.capacidade_maxima` |
+| Tipos de mesa, lugares e quantidade | `mesas` (`area`, `lugares`) + `edicoes_mesas` (canais e ajuste opcional de lugares) |
+| Consumação mínima, preço, sinal | `consumacao_minima_centavos`, `preco_centavos`, `sinal_centavos` (informativos: pagamento segue desligado) |
+| Instruções de chegada | `edicoes_regras.instrucoes_chegada` |
+| Status das reservas | `reservas.status` (já existe) + interruptor por edição `atendimento_automatico` |
+
+**Prontidão da edição** é calculada no código (não em view SQL, por segurança) e o painel mostra "faltam: …". Campos obrigatórios propostos para liberar o agente: edição futura e não cancelada; `horario` e `local`; `abertura`, `reservas_ate`, `tolerancia_min`, `cancelamento_ate_horas`, `capacidade_maxima`, `consumacao_minima_centavos` (0 = sem consumação; nulo = indefinido) e `instrucoes_chegada`; pelo menos uma mesa com `disponivel_whatsapp`; e `atendimento_automatico = true`. Falhando qualquer um: sem disponibilidade, sem confirmação, **repasse para humano**, e o painel mostra que a edição **não está pronta para reservas automáticas**. A lista é proposta; nenhum valor foi criado.
+
+### 21.5 Rollback
+
+1. **Interruptores:** desligar `WHATSAPP_AGENT_ENABLED`/`WHATSAPP_SEND_ENABLED` ou usar a pausa de emergência do painel: volta ao fluxo atual sem mexer no banco.
+2. **Banco:** `reverter-2026-09-21-agente-whatsapp.sql` remove o gatilho, a função, as 4 colunas e as 12 tabelas novas, nessa ordem. **Recusa rodar** se existir reserva com origem diferente de `site`; para homologação, apague as reservas de teste antes. Não toca em `edicoes`, `mesas`, `site_config` nem nos dados de `reservas`.
+3. **Perde-se** o conteúdo das tabelas novas: exporte antes de reverter em banco com uso real.
+
+### 21.6 Testes da migração (21/09/2026)
+
+**101 verificações, 0 falhas**, num PostgreSQL 17 em memória (PGlite). Rodar: `cd SITE/supabase/testes && npm install && npm test`. A primeira rodada tinha 75; o conjunto cresceu para 101 com as correções do responsável (canais, corrida entre canais, retenção, script de verificação). O resultado item a item está no **Apêndice A**.
+
+| Grupo | Verificações | O que garante |
+|---|---|---|
+| 1. Base | 1 | ponto de partida: reserva do fluxo atual gravada |
+| 2. Migração | 18 | 12 tabelas criadas; idempotente (3 execuções); reserva antiga preservada e marcada `site`; `wa_config` nasce desligada; política de retenção com os valores do responsável; limpeza desligada |
+| 3. Fluxo atual `QH-NNNNNN` | 7 | mesa e código repetidos continuam barrados; busca do webhook pelo código; confirmação sem duplicar; expiração e reconfirmação (23505 se a mesa foi pega) |
+| 4. Corrida entre canais | 8 | site × WhatsApp × painel × manual na mesma mesa: só o primeiro vale; corrida de 12 tentativas: 1 aceita e 11 recusadas; cancelamento devolve a mesa a qualquer canal |
+| 5. Conversas e idempotência | 13 | uma conversa aberta por contato; uma transferência aberta por conversa; `wamid`, evento e chave de envio únicos; destino de evento restrito |
+| 6. Canais por mesa | 4 | padrão (site e painel sim, WhatsApp não); "indisponível"; tabela sem estoque |
+| 7. Segurança | 15 | RLS nas 12 tabelas; sem permissão para `anon`/`authenticated`; sem policy; sem view |
+| 8. Seed | 6 | travas (recusa em `producao` e com reserva real); idempotente; 5 mesas no WhatsApp e 6 no site |
+| 9. Estoque único | 4 | reserva do site some da lista do WhatsApp; WhatsApp barrado pelo banco; mesa fora do WhatsApp reservada pelo painel |
+| 10. Verificação | 3 | 51 checagens aprovam; reprovam se `anon` ganhar acesso ou se o envio for ligado |
+| 11. Reversão | 22 | recusa com reserva do agente; remove tudo o que criou; preserva tabelas e índice originais; reaplica limpo |
+
+**Limites, ditos com clareza:** (1) o PGlite atende **uma conexão por vez**, então a "corrida" é enfileirada por ele: prova o que o **banco decide** (o índice único), não paralelismo real de conexões. A corrida com conexões paralelas é teste **obrigatório no projeto de homologação**. (2) PGlite **não é o Supabase real** (não exercita PostgREST, papéis e extensões do Supabase): a aplicação e a verificação no projeto de homologação continuam obrigatórias. (3) O teste do **código** (endpoint, máquina de estados, rotina de limpeza) ainda não existe, pois esse código ainda não foi escrito.
+
+### 21.7 Política de retenção de dados (LGPD)
+
+Valores iniciais definidos pelo responsável, **configuráveis** em `wa_config`. **PENDENTE de validação administrativa e jurídica antes da produção** (`politica_retencao_validada_em` fica nulo até lá).
+
+| Dado | Prazo inicial | O que acontece | Coluna de configuração |
+|---|---|---|---|
+| Conteúdo integral das mensagens (e o `payload` da fila de envio, que também contém texto) | 90 dias | texto apagado; a linha fica só com metadados | `retencao_conteudo_mensagens_dias` |
+| Metadados técnicos e status de entrega | 12 meses | linha apagada | `retencao_metadados_meses` |
+| Logs de erro (`erro_detalhe`) | 90 dias | detalhe zerado; o código do erro fica com os metadados | `retencao_logs_erro_dias` |
+| Eventos de webhook (idempotência) | 30 dias | linha apagada | `retencao_eventos_webhook_dias` |
+| Conversas encerradas | 12 meses | anonimiza: nome, telefone e observações do contato apagados, `wa_id` vira `anon-…`, contexto da conversa zerado | `anonimizar_conversas_encerradas_meses` |
+| Reservas | 24 meses | anonimiza nome e WhatsApp; mantém edição, mesa, pessoas e status para estatística. Exceção: obrigação legal ou solicitação válida de exclusão (a definir com o jurídico) | `retencao_reservas_meses` |
+| Tokens, PINs e segredos | **nunca** | não existem nessas tabelas | — |
+
+**Rotina de limpeza — requisitos (ainda NÃO escrita; o banco já tem os campos):**
+
+- **Desligada por padrão** (`limpeza_ativa = false`) e desativada em desenvolvimento.
+- **Execução simulada** (`dry-run`): só conta o que seria afetado.
+- Registra **apenas quantidades** em `auditoria`; **nunca** o conteúdo apagado.
+- **Respeita reservas abertas:** não anonimiza contato, conversa ou reserva ligados a reserva `aguardando`/`confirmada` de edição de hoje ou futura.
+- Em produção só roda com `politica_retencao_validada_em` preenchido.
+- Terá testes automatizados e será documentada quando escrita.
+- Pedido de exclusão de um titular é um caminho **separado** (anonimização imediata), a especificar.
+
+## 22. Webhook atual: código, inspeção do CRM e checklist da Meta
+
+### 22.1 Mapa do webhook atual (lado do código — auditado em 21/09/2026)
+
+| Pergunta | Resposta | Onde |
+|---|---|---|
+| Rotas relacionadas ao WhatsApp | Uma só rota de webhook: `/api/whatsapp/webhook` (GET e POST). Indiretas: `POST /api/reservas` (gera o link `wa.me` com o código), `GET /api/reservas/[id]` (status), telas `ReservaMesa` e `ConfirmacaoWhatsapp` | `src/app/api/whatsapp/`, `src/app/api/reservas/`, `src/components/` |
+| Verificação GET | compara `hub.verify_token` com `WHATSAPP_VERIFY_TOKEN`; sem a variável, 403 | `webhook/route.ts:13-20` |
+| Assinatura | HMAC-SHA256 do corpo bruto com `WHATSAPP_APP_SECRET`, comparação em tempo constante; **sem o segredo, recusa tudo** | `src/lib/whatsapp.ts:26-36` |
+| Tratamento do código atual | procura `QH-NNNNNN` (`CODIGO_RE`), busca a reserva mais recente com o código, confere `mesmoWhatsapp`, confirma só de `aguardando`/`expirada` no prazo e responde. Sem código: resposta padrão "Este WhatsApp confirma reservas…" | `webhook/route.ts:47-124`, `src/lib/reserva.ts` |
+| Números e Phone Number IDs no código | **nenhum fixo**; só variáveis: `WHATSAPP_NUMERO_CASA` e `WHATSAPP_PHONE_NUMBER_ID` (este só para **enviar**). O webhook **ignora** `metadata.phone_number_id` das mensagens que recebe | `whatsapp.ts:39-52, 58-74` |
+| Proteção do middleware | a rota não está no `matcher`: é pública, como a Meta exige | `src/middleware.ts` |
+| URL esperada hoje | `https://quinta-hits-eight.vercel.app/api/whatsapp/webhook` (sem domínio próprio) | — |
+| Dependências de produção | na Vercel **não há nenhuma variável `WHATSAPP_*`**. Testado em 21/09: GET com token errado → 403; POST sem assinatura e com assinatura falsa → 401. Pelo código, `POST /api/reservas` responde 503 quando o "não sou robô" passa e `WHATSAPP_*` está incompleto (não testado ao vivo). **Conclusão: a Meta não consegue ter verificado este endpoint, então nenhum evento da Meta chega aqui hoje** | Vercel env / testes |
+
+**Riscos do código atual que a ampliação corrige:** (1) responde a **qualquer número** do app, inclusive o final 0200, se algum dia os eventos dele chegarem aqui; (2) ignora atualizações de status; (3) processa antes de responder à Meta; (4) `enviarTexto` envia sempre que há token, sem respeitar `WHATSAPP_SEND_ENABLED`; (5) não deduplica por `wamid` (só o status da reserva protege).
+
+### 22.2 Relatório da inspeção do CRM da Gibson (somente leitura — 21/09/2026)
+
+**Escopo autorizado e respeitado:** só nomes de variáveis, arquitetura e identificadores técnicos. **Não** exibi nem copiei valores ou tokens, **não** modifiquei nada, **não** chamei o site do CRM nem a API da Meta, **não** acessei conversas ou dados pessoais, **não** alterei webhook, registrei número ou fiz deploy. Comandos usados, todos de leitura na API da Vercel do time `agenciagibson-1820`: `project inspect`, `env ls` (a listagem já vem sem valores), `inspect` do deploy de produção e `domains ls` (lista de domínios da conta, sem utilidade aqui). Uma chamada `vercel api` ao projeto não retornou dados.
+
+| Item | Resultado |
+|---|---|
+| Projeto | `crm.gibsonpromocoes.com.br` (`prj_wk977AT59pQADpcOCnE7mkfcq8OK`), criado em 31/07/2026, Node 24.x |
+| Configuração | Framework Preset **"Other"**, Root Directory `.`, saída `public` ou `.` |
+| Variáveis de ambiente | **nenhuma**, em nenhum ambiente (a listagem voltou vazia). Nenhum token da Meta, verify token, app secret ou chave de servidor está configurado neste projeto |
+| Deploy de produção | `dpl_49U9myyUykcD4Fmo66e9SL25btcx`, de 14/09/2026, status Ready |
+| Aliases | `crm.gibsonpromocoes.com.br`, `gibsongestaoartista-tcc2.vercel.app`, `crmgibsonpromocoescombr-agenciagibson-1820.vercel.app` |
+| Build | um único item (`.`), **sem nenhuma função serverless** listada |
+
+**Conclusão:** o CRM hospedado na Vercel é um **site estático**, sem backend, sem endpoint HTTP no servidor e sem credenciais da Meta. **Ele não pode estar recebendo webhooks da Meta.** Portanto, **se** o número final 0200 tem um webhook ativo, o destino dele está **fora deste projeto**: outro projeto Vercel, outra hospedagem, uma função em outro serviço (por exemplo, funções do Supabase) ou **nenhum** (número usado só na caixa de entrada do Gerenciador do WhatsApp).
+
+**Não verificado (fora da autorização ou do alcance):** o código-fonte do CRM; os demais projetos da conta Vercel (existem outros, como `gibson-ai-cloud` e `dino.gibsonpromocoes.com.br`, que **não** inspecionei); serviços fora da Vercel. A resposta definitiva sobre o 0200 só vem do painel da Meta (checklist 22.3).
+
+### 22.3 Checklist do painel da Meta (preenchimento manual, pelo responsável)
+
+**Não peça nem registre aqui:** Access Token, App Secret, Verify Token, PIN, código de autenticação ou chaves privadas. Para o Verify Token, anote só "configurado: sim/não" e onde ele está guardado. Nomes de menu da Meta podem variar; o caminho é indicativo.
+
+| # | Dado a anotar | Onde procurar | Valor |
+|---|---|---|---|
+| 1 | App ID | developers.facebook.com → app "Gibson Atendimento" → Configurações → Básico | (esperado 1618887669882753) |
+| 2 | Nome do aplicativo | mesma tela | |
+| 3 | WABA ID | Gerenciador do WhatsApp ou WhatsApp → Configuração da API | (esperado 2225871044650782) |
+| 4 | Business ID | Configurações da empresa → Informações | (esperado 729986122385000) |
+| 5 | **Callback URL atual** | app → WhatsApp → Configuração → Webhook | |
+| 6 | Verify Token configurado? | mesma tela (não copie o valor) | sim / não |
+| 7 | **Campos assinados** (ex.: `messages`) | mesma tela → campos do webhook | |
+| 8 | **Aplicativos inscritos na WABA** | Configurações da empresa → Contas → Contas do WhatsApp → a WABA → Aplicativos | |
+| 9 | **Phone Number IDs vinculados**, cada um com o número exibido | WhatsApp → Configuração da API / Gerenciador | 7064 → (esperado 1352142871312651); 0200 → ? |
+| 10 | **Sistema que recebe hoje o número 0200** (caixa de entrada da Meta, CRM, outro software ou nenhum) | você / equipe | |
+| 11 | **Ambiente onde o webhook atual está hospedado** (Vercel, outro provedor, outro domínio) — deduzido da Callback URL do item 5 | — | |
+| 12 | **Status da assinatura da WABA no app** (inscrita ou não) | Aplicativos da WABA (item 8) | |
+| 13 | Existe **configuração independente por número** no painel? Se sim, **capture a tela** e anote o caminho exato; **não altere nada** | painel do número | sim / não |
+
+Referência oficial para conferência: documentação de webhooks da WhatsApp Cloud API (`developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks/`).
+
+## 23. Roteamento por `phone_number_id` (arquitetura oficial)
+
+**Modelo:** callback **único** do aplicativo; o aplicativo está inscrito na WABA; eventos dos números vinculados chegam ao **mesmo** callback; a separação é **obrigatória no backend**, pelo `phone_number_id`. Não se considera URL exclusiva por número, salvo evidência explícita no painel (seção 12). **Nenhuma URL é salva ou substituída na Meta** até se conhecer o destino do 0200.
+
+O endpoint existente (`/api/whatsapp/webhook`) é **ampliado**; não haverá segunda rota concorrente. Só o ID `1352142871312651` chega ao agente. Em **produção** ele é conferido em duas fontes (constante no código e `WHATSAPP_PHONE_NUMBER_ID`); se divergirem, o agente fica desligado. Em **homologação** o ID esperado vem só do ambiente (o número de teste da Meta) e o checklist exige confirmar que **não** é o de produção.
+
+```
+        Meta Cloud API  ·  app "Gibson Atendimento"  ·  WABA 2225871044650782
+                                     │  POST (callback único do app)
+                                     ▼
+                     /api/whatsapp/webhook   (endpoint existente, ampliado)
+                                     │
+              1. valida X-Hub-Signature-256 ── inválida ──► 401 (nada é processado)
+                                     │ válida
+              2. responde 200 rápido; o resto roda depois da resposta
+                                     │
+              3. para cada entry → changes → value.metadata.phone_number_id
+                                     │
+      ┌──────────────────────────────┼──────────────────────────────────┐
+      ▼                              ▼                                  ▼
+ 1352142871312651              QUALQUER OUTRO ID                    ID AUSENTE
+ (Quinta Hits · 7064)          (ex.: Gibson · 0200)                      │
+      │                              │                                  ▼
+      │                 ┌────────────┴────────────┐          registra 'ignorado_sem_numero'
+      │                 ▼                         ▼            + ACK, sem resposta
+      │      existe manipulador seguro?      não existe (hoje)
+      │      sim → fluxo existente ou             │
+      │            encaminhamento seguro          ▼
+      │            (só após autorização)   registra 'ignorado_outro_numero'
+      │                                    (sem conteúdo, sem telefone)
+      │                                    + ACK 200 · NUNCA responde
+      ▼
+ 4. tratador Quinta Hits
+      deduplica por wamid  →  ignora se já visto
+        ├─ mensagem com código QH-NNNNNN ─► fluxo ATUAL (site)     ← prioridade sempre
+        ├─ agente ligado (env E banco) e contato liberado (modo teste) ─► agente (máquina de estados)
+        └─ senão ─► comportamento atual (resposta padrão)
+      envios só se WHATSAPP_SEND_ENABLED (env E banco) e sem pausa de emergência
+```
+
+**Regra dura, com teste automatizado obrigatório:** mensagem de qualquer outro `phone_number_id` **nunca** aciona o agente e **nunca** gera resposta.
+
+**Onde ficam os eventos do 0200 — decidir só depois do checklist 22.3:**
+
+| O que o painel mostrar | Consequência | Caminho |
+|---|---|---|
+| **Nenhum sistema** recebe o 0200 hoje | nosso endpoint pode ser o callback; o 0200 é recebido e ignorado | mais simples |
+| **Há outro destino** para o 0200 (outro software/host) | trocar o callback do app cortaria esse destino | opções: (a) nosso endpoint **encaminha** os eventos do 0200 ao destino atual, preservando corpo e assinatura originais, com autorização e teste; (b) o destino atual encaminha os do 7064 para nós; (c) usar outro aplicativo para o número da Quinta Hits (viabilidade a verificar na documentação da Meta) |
+| O painel mostrar **configuração por número** | só com evidência e captura; **sem executar** | reavaliar |
+
+Se a Meta enviar ao mesmo callback os eventos de **outro** aplicativo inscrito na WABA, isso será mapeado no item 8 do checklist antes de qualquer mudança.
+
+## 24. Checklist do projeto Supabase de homologação
+
+Somente o que você precisa fazer. **Não aplico a migração** enquanto você não disser que o projeto foi criado e autorizar expressamente.
+
+| Etapa | O que fazer |
+|---|---|
+| **Nome recomendado** | `quinta-hits-homologacao` |
+| **Região recomendada** | América do Sul (São Paulo, `sa-east-1`). Confira a região do projeto de produção (Settings → General) e use a **mesma** |
+| **Variáveis a copiar** | só duas, de Settings → API: **Project URL** e a chave **service_role**. Guarde em `.env.development.local` (não vai para o git; no `npm run dev` ele vence o `.env.local`, então o dev usa homologação e o build de produção segue com o `.env.local`). **Não cole no chat.** Não precisa da chave anon, da senha do banco nem do JWT secret |
+| **Autenticação** | Authentication → Sign In / Providers: e-mail habilitado e **"Allow new users to sign up" desligado**. Authentication → Users → Add user → Create new user, com um e-mail próprio da homologação e **Auto Confirm User**. Esse e-mail vai em `ADMIN_EMAILS` da homologação |
+| **Aplicação das migrações** | SQL Editor, **um arquivo por vez, nesta ordem**: 1) `schema.sql`; 2) `migracao-2026-09-21-agente-whatsapp.sql`; 3) `update wa_config set ambiente = 'homologacao' where id = 1;`. Cada um deve terminar em "Success". Se der erro, pare e me mande a mensagem |
+| **Seed fictício** | `homologacao/seed-ficticio.sql` (recusa rodar se o passo 3 foi esquecido ou se houver reserva real) |
+| **Teste de RLS** | 1) rodar `homologacao/verificar-homologacao.sql`. 2) em consultas separadas: `set role anon; select count(*) from wa_contatos;` → esperado **ERROR: permission denied**; `reset role;` `set role authenticated; select count(*) from wa_conversas;` → esperado **permission denied**; `reset role;` |
+| **Teste de reversão** | rodar `reverter-2026-09-21-agente-whatsapp.sql` → conferir no Table Editor que as 12 tabelas sumiram e que `edicoes`, `mesas`, `reservas` continuam; rodar a migração de novo, o passo 3 e o seed; rodar a verificação outra vez |
+| **Critério de aprovação** | (1) todos os scripts terminam sem erro; (2) `verificar-homologacao.sql` mostra **RESULTADO GERAL = APROVADO** e nenhuma linha FALHA (51 checagens); (3) os dois testes de RLS dão **permission denied**; (4) a reversão e a reaplicação funcionam; (5) o endereço do projeto é **diferente** do de produção; (6) nenhum dado pessoal real no banco |
+
+## 25. Endpoint público de homologação: comparação e recomendação
+
+**Nada foi configurado.** A homologação precisa de uma URL HTTPS pública, estável e **sem login na rota do webhook**, com o restante do sistema protegido, assinatura válida no POST, Verify Token no GET, `WHATSAPP_AGENT_ENABLED=false` e `WHATSAPP_SEND_ENABLED=false`.
+
+| Critério | 1. Projeto Vercel **separado** de homologação | 2. Domínio de homologação **dentro do projeto atual** | 3. **Túnel** temporário (só dev local) |
+|---|---|---|---|
+| Isolamento de dados e segredos | **total**: variáveis e Supabase próprios | fraco: mesmo projeto, variáveis por ambiente; erro de configuração mistura produção e teste | depende do computador; usa o `.env.development.local` |
+| Risco de afetar a produção | **mínimo** (outro projeto, outro domínio) | **alto**: um deploy ou promoção errados atingem a produção | nenhum sobre a produção, se o `.env` estiver certo |
+| Estabilidade da URL | **estável** (`quinta-hits-hml.vercel.app`) | estável só com recursos que dependem do plano | **instável**: muda ou cai quando o computador desliga |
+| Serve como callback contínuo | **sim** | sim, com ressalvas | **não** (a URL é temporária) |
+| Restante do sistema protegido | sim, por código: com `APP_AMBIENTE=homologacao` tudo exige login de admin **exceto** o webhook, e `noindex` | idem, mas em cima do site de produção | quem tiver o link acessa o que estiver rodando |
+| Custo e esforço | baixo: mais um projeto na conta | baixo, mas com risco de plano | baixo |
+| Adequação à regra "sem preview temporário como callback" | **atende** | atende só com domínio fixo | **não atende** (dev apenas) |
+
+**Recomendação (a mais segura): opção 1.** Projeto Vercel separado, com o Supabase de homologação e domínio estável. A opção 3 serve só para depurar localmente, sem virar callback permanente. A opção 2 é a de maior risco de misturar ambientes.
+
+**Ponto crítico:** como o callback é **por aplicativo**, cadastrar a URL de homologação no app "Gibson Atendimento" mudaria o destino dos eventos reais, inclusive os do 0200. Por isso, recomendo que a homologação com a Meta use um **aplicativo de teste separado**, com o **número de teste** que a própria Meta oferece para apps em modo de desenvolvimento (só envia a um pequeno número de destinatários previamente verificados, todos autorizados; conferir o limite atual na documentação da Meta). Assim o app de produção, o número 7064 e o número 0200 **não são tocados**. A criação desse app é decisão e ação sua, e **não foi feita**.
+
+## 26. Autorizações necessárias (nada disto foi ou será feito sem elas)
+
+| # | Ação | Quando pedirei | Depende de |
+|---|---|---|---|
+| 1 | Aplicar **migração e seed** no Supabase de **homologação** | depois de você criar o projeto e avisar | checklist da seção 24 |
+| 2 | Iniciar a **implementação do código** (endpoint ampliado com roteador, serviço de envio, máquina de estados, painel, rotina de limpeza), com `AGENT` e `SEND` desligados, só em commits locais | após a aprovação desta entrega | — |
+| 3 | Inspeção **somente leitura** de **outros projetos Vercel** (nomes de variáveis) para achar o destino do 0200 | se o checklist da Meta não bastar | itens 10 e 11 do checklist |
+| 4 | Criar o **projeto Vercel de homologação** e cadastrar as variáveis dele | depois do item 1 | Supabase de homologação |
+| 5 | Cadastrar a URL de homologação no **app de teste da Meta** (você cria o app) | depois do item 4 | app de teste e número de teste |
+| 6 | **Leituras somente-leitura na Graph API** (conferir token, WABA e número) | antes do registro | token cadastrado direto na Vercel |
+| 7 | Alterar o **fluxo atual do site** para respeitar `disponivel_site` (hoje o site oferece todas as mesas ativas) | se você quiser alinhar os canais | — |
+| 8 | **Push**, **deploy** e **merge** de cada etapa | a cada etapa | — |
+| 9 | **Registro do número** (`/register`, com PIN digitado por você no terminal) | só depois de: banco pronto, webhook preparado, testes locais aprovados e variáveis configuradas | autorização expressa |
+| 10 | **Salvar ou substituir a URL no app de produção** da Meta | só após decidir o destino do 0200 (seção 23) | checklist 22.3 preenchido |
+| 11 | **Migração em produção** | após homologação aprovada e política de retenção validada por escrito | itens 1 a 9 |
+| 12 | Ligar **envio** para números de teste, depois liberação gradual e app "Ao vivo" | etapas finais | tudo acima |
+
+Local oficial: **Florindos Bar — Uberlândia/MG**. Nunca mencionar Tatu Bola.
+
+## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
+
+```
+1) Base (schema.sql) e fluxo ATUAL antes da migração
+  ✓ reserva do fluxo atual gravada antes da migração
+2) Migração (1ª vez) e idempotência (2ª e 3ª vezes)
+  ✓ tabela wa_config existe
+  ✓ tabela edicoes_regras existe
+  ✓ tabela edicoes_mesas existe
+  ✓ tabela wa_contatos existe
+  ✓ tabela wa_conversas existe
+  ✓ tabela wa_transferencias existe
+  ✓ tabela wa_mensagens existe
+  ✓ tabela wa_webhook_eventos existe
+  ✓ tabela wa_fila_saida existe
+  ✓ tabela wa_fila_tentativas existe
+  ✓ tabela auditoria existe
+  ✓ tabela reservas_historico existe
+  ✓ reserva antiga ganhou origem_reserva = 'site'
+  ✓ reserva antiga intacta (nome, código, status)
+  ✓ wa_config nasce desligada, restrita a testes, sem números, ambiente 'producao'
+  ✓ retenção nasce com a política do responsável (90 d / 12 m / 90 d / 30 d / 12 m / 24 m)
+  ✓ limpeza de retenção nasce DESLIGADA e política NÃO validada
+  ✓ retenção com valor zero é recusada
+3) Fluxo do site (código QH-NNNNNN) continua igual depois da migração
+  ✓ mesma mesa na mesma edição continua barrada (23505)
+  ✓ código QH-NNNNNN repetido entre pedidos aguardando continua barrado
+  ✓ busca do webhook pelo código (mais recente) encontra o pedido
+  ✓ confirmação do webhook: 1ª vez confirma, mensagem repetida NÃO confirma de novo
+  ✓ gatilho gravou histórico (nova→aguardando, aguardando→confirmada)
+  ✓ pedido vencido vira 'expirada' (expirarPedidosVencidos)
+  ✓ reconfirmar pedido expirado cuja mesa foi pega por outro dá 23505 (o webhook responde 'mesa liberada')
+4) Novo fluxo e CORRIDA ENTRE CANAIS sobre o mesmo estoque
+  ✓ WhatsApp NÃO consegue mesa já confirmada pelo site (23505)
+  ✓ SITE NÃO consegue mesa já reservada pelo WhatsApp (23505)
+  ✓ PAINEL (admin) NÃO consegue mesa já reservada pelo WhatsApp (23505)
+  ✓ origem 'manual' também NÃO consegue a mesma mesa (23505)
+  ✓ origem inválida é recusada (check)
+  ✓ corrida de 12 tentativas de 4 canais: exatamente 1 aceita e 11 recusadas (23505)
+  ✓ a reserva aceita é a da PRIMEIRA tentativa (canal 'site')
+  ✓ após cancelar, a mesa volta ao estoque e outro canal reserva
+5) Conversas, transferência humana, mensagens, idempotência
+  ✓ segunda conversa aberta do mesmo contato é barrada
+  ✓ estado fora da lista é recusado
+  ✓ só uma transferência aberta por conversa
+  ✓ após devolver ao agente, nova transferência pode abrir
+  ✓ mesmo wamid duas vezes é barrado (idempotência)
+  ✓ várias saídas ainda sem wamid são permitidas
+  ✓ mensagem tem coluna de retenção do conteúdo (conteudo_removido_em) e não tem expurgar_em
+  ✓ evento de webhook repetido é barrado
+  ✓ evento de outro número é registrado só como 'ignorado_outro_numero'
+  ✓ destino de evento fora da lista (ex.: 'respondido') é recusado
+  ✓ mesma chave de envio duas vezes é barrada (sem disparo duplicado)
+  ✓ wa_id inválido é recusado
+  ✓ marcador de contato anonimizado ('anon-<32 hex>') é aceito
+6) Mesas por canal (uma única fonte de estoque)
+  ✓ padrão do canal: site e painel oferecem, WhatsApp NÃO (liberação explícita)
+  ✓ 'indisponível' = os três canais desligados é aceito
+  ✓ ajuste de lugares fora de 1–50 é recusado
+  ✓ tabela de canais não guarda estoque nem status de reserva
+7) Segurança: RLS ligado e sem acesso de anon/authenticated
+  ✓ RLS ligado em wa_config
+  ✓ RLS ligado em edicoes_regras
+  ✓ RLS ligado em edicoes_mesas
+  ✓ RLS ligado em wa_contatos
+  ✓ RLS ligado em wa_conversas
+  ✓ RLS ligado em wa_transferencias
+  ✓ RLS ligado em wa_mensagens
+  ✓ RLS ligado em wa_webhook_eventos
+  ✓ RLS ligado em wa_fila_saida
+  ✓ RLS ligado em wa_fila_tentativas
+  ✓ RLS ligado em auditoria
+  ✓ RLS ligado em reservas_historico
+  ✓ anon/authenticated sem nenhuma permissão nas tabelas novas
+  ✓ nenhuma policy criada nas tabelas novas
+  ✓ nenhuma view criada
+8) Seed fictício: travas e conteúdo
+  ✓ seed recusado em banco marcado 'producao'
+  ✓ seed recusado se existem reservas reais
+  ✓ seed aplicado (idempotente): 3 edições fictícias, 6 mesas T01–T06
+  ✓ regras: 07/01 liberada, 14/01 não
+  ✓ 07/01: 6 mesas configuradas; WhatsApp oferece 5 (T06 só site e painel); 14/01 nenhuma
+  ✓ horário de abertura inválido é recusado
+9) Estoque ÚNICO entre canais (mesas oferecidas pelo WhatsApp × site)
+  ✓ antes de reservar: WhatsApp vê T01–T05; site vê T01–T06
+  ✓ depois do SITE reservar T05: some da lista do WhatsApp E do site (mesmo estoque)
+  ✓ WhatsApp tentando T05 mesmo assim é barrado pelo banco (23505)
+  ✓ T06 (não oferecida ao WhatsApp) reservada pelo painel: continua no mesmo estoque
+10) Script de verificação da homologação (verificar-homologacao.sql)
+  ✓ verificação aprova o banco de teste (51 verificações)
+  ✓ verificação REPROVA se anon ganhar acesso a uma tabela nova
+  ✓ verificação REPROVA se o envio for ligado por engano
+11) Reversão
+  ✓ reversão RECUSADA enquanto há reserva do agente
+  ✓ ...e nada foi removido na tentativa recusada
+  ✓ tabela wa_config removida
+  ✓ tabela edicoes_regras removida
+  ✓ tabela edicoes_mesas removida
+  ✓ tabela wa_contatos removida
+  ✓ tabela wa_conversas removida
+  ✓ tabela wa_transferencias removida
+  ✓ tabela wa_mensagens removida
+  ✓ tabela wa_webhook_eventos removida
+  ✓ tabela wa_fila_saida removida
+  ✓ tabela wa_fila_tentativas removida
+  ✓ tabela auditoria removida
+  ✓ tabela reservas_historico removida
+  ✓ coluna reservas.origem_reserva removida
+  ✓ coluna reservas.contato_id removida
+  ✓ coluna reservas.observacoes removida
+  ✓ coluna reservas.atendente removida
+  ✓ tabelas originais preservadas (edicoes, mesas, reservas, site_config)
+  ✓ gatilho e função removidos
+  ✓ índice único original de reservas preservado
+  ✓ migração reaplica limpa depois da reversão
+RESULTADO: 101 verificações ok, 0 falhas
+```
