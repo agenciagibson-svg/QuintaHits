@@ -20,6 +20,9 @@ export type MesaDoEstoque = {
   numero: string;
   /** Lugares efetivos: o ajuste da edição (`lugares_override`), se houver; senão o da mesa. */
   lugares: number;
+  /** Lugares cadastrados na mesa e o ajuste desta edição (null = sem ajuste), para o painel mostrar os dois. */
+  lugaresDaMesa: number;
+  lugaresAjuste: number | null;
   area: string;
   x: number;
   y: number;
@@ -82,6 +85,8 @@ export async function estoqueDaEdicao(edicaoId: string): Promise<Estoque> {
       id: m.id,
       numero: m.numero,
       lugares: c?.lugares_override ?? m.lugares,
+      lugaresDaMesa: m.lugares,
+      lugaresAjuste: c?.lugares_override ?? null,
       area: m.area,
       x: Number(m.x),
       y: Number(m.y),

@@ -686,6 +686,22 @@ Funções: `estoqueDaEdicao` (expira pedidos vencidos, lê mesas, ocupação e c
 
 **Ainda não feito:** as telas do painel para configurar os canais (commit de regras por edição). Ainda **não há** a reserva feita pelo agente; a corrida site × WhatsApp na mesma mesa será testada com ela.
 
+### 27.4 Regras de reserva por edição e canais das mesas (API e painel)
+
+**Princípio:** nenhum valor é inventado. Campo vazio = "ainda não definido"; nada tem valor padrão operacional. O agente **só atende uma edição pronta**; em qualquer outra, não informa disponibilidade, não confirma nada e repassa para uma pessoa.
+
+**Prontidão da edição** (`avaliarProntidao`, função pura): pronta somente se **todos** os itens existem: edição futura, aberta e não cancelada; horário do evento e local; horário de abertura; prazo final para reservar (e ainda não vencido); tolerância; prazo de cancelamento; capacidade máxima; consumação mínima (0 = sem consumação; vazio = indefinido); instruções de chegada; ao menos uma mesa liberada para o WhatsApp; e a liberação explícita da edição. Preço e sinal são opcionais e só informativos. A lista de obrigatórios é uma proposta e fica em um único lugar do código (`lib/regrasEdicao.ts`), fácil de ajustar.
+
+**Arquivos novos:** `lib/regrasEdicao.ts` (tipos, validação e prontidão, sem banco), `lib/regras.ts` (leitura/gravação, lista de edições prontas), `lib/auditoria.ts`, `app/api/admin/edicoes/[id]/regras/route.ts` (GET e PUT, sob sessão de admin) e `app/admin/RegrasEdicaoPainel.tsx`. **Alterados:** `AdminDashboard.tsx` (nova seção) e `lib/disponibilidade.ts` (expõe lugares da mesa e ajuste).
+
+**Painel:** seção "Regras da edição & canais das mesas". Mostra em destaque **"NÃO está pronta para reservas automáticas… Faltam: …"** ou "Pronta…"; formulário das regras; tabela de mesas com as caixas Site, WhatsApp e Painel, o ajuste de lugares e o botão "Indisponível". Sem a migração aplicada, mostra um aviso e não altera nada.
+
+**Segurança e auditoria:** as rotas exigem sessão de admin (além do middleware). Cada gravação registra em `auditoria` **apenas nomes de campos e contagens**, nunca os valores. Pedido inválido é recusado por inteiro (nada é salvo pela metade). **Limite conhecido:** o cookie de sessão do painel não carrega a identidade de quem entrou, então o ator da auditoria é "admin"; para o atendimento humano o atendente informa o próprio nome na tela (ver seção de atendimento).
+
+**Testes (28 novos, 94 no total):** validação (normalização, vazio = não definido, valores inválidos); prontidão item a item (cada item faltando reprova sozinho; consumação 0 conta como definida; edição passada, cancelada e prazo vencido); a API completa contra o banco em memória (sem sessão 401, id inválido 400, edição sem regras mostra NÃO pronta, PUT completo deixa PRONTA, PUT parcial preserva o resto, inválido não salva nada, edição/mesa inexistente 404, auditoria sem valores, canais valem no estoque único); lista de edições prontas para o agente; e o banco **sem a migração** (`{ migrado: false }` e 503, sem quebrar).
+
+**Não coberto por teste automatizado:** o componente de tela (`RegrasEdicaoPainel.tsx`), que não tem teste de interface neste projeto; passa em lint e verificação de tipos e será conferido visualmente na homologação.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

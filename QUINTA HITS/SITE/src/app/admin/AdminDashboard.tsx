@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { s } from "./estilos";
 import MesasEditor from "./MesasEditor";
+import RegrasEdicaoPainel from "./RegrasEdicaoPainel";
 import ReservasPainel from "./ReservasPainel";
 import { GENERO_VALORES, STATUS_VALORES, type Edicao } from "@/lib/edicao";
 
@@ -205,6 +206,13 @@ export default function AdminDashboard() {
         <h2 style={s.h2}>Mapa de mesas</h2>
         <p style={s.legenda}>As mesas que o cliente vê e escolhe em /reservar. Mesa desativada some do site.</p>
         <MesasEditor />
+      </section>
+
+      {/* REGRAS POR EDIÇÃO E CANAIS DAS MESAS */}
+      <section style={s.secao}>
+        <h2 style={s.h2}>Regras da edição &amp; canais das mesas</h2>
+        <p style={s.legenda}>Regras de reserva de cada edição e onde cada mesa pode ser oferecida. O atendimento automático só funciona em edição com tudo preenchido e liberada.</p>
+        <RegrasEdicaoPainel edicoes={edicoes} />
       </section>
 
       {/* NOVA EDIÇÃO */}
