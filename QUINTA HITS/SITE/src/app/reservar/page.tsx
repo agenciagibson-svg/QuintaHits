@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { site, instagramUrl } from "@/config/site";
 import { edicoesReservaveis } from "@/lib/reservas";
+import { whatsappConfigurado } from "@/lib/whatsapp";
 import ReservaMesa from "@/components/ReservaMesa";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Reservar() {
-  const edicoes = await edicoesReservaveis();
+  // Sem a integração do WhatsApp o pedido nunca seria confirmado (a API recusa com 503): não mostra o formulário à toa.
+  const reservaAberta = whatsappConfigurado();
+  const edicoes = reservaAberta ? await edicoesReservaveis() : [];
 
   return (
     <section className="secao secao--creme">
@@ -25,7 +28,11 @@ export default async function Reservar() {
         </div>
         {edicoes.length === 0 ? (
           <div className="vazio">
-            <p>Ainda não abrimos reservas para as próximas quintas.</p>
+            <p>
+              {reservaAberta
+                ? "Ainda não abrimos reservas para as próximas quintas."
+                : "As reservas pelo site abrem em breve. Por enquanto, fale com a gente no Instagram."}
+            </p>
             <a className="btn btn--terracota" href={instagramUrl(site.instagram)} target="_blank" rel="noopener noreferrer">
               Fale com a gente no Instagram
             </a>
