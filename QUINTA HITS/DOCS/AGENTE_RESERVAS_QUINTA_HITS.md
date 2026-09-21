@@ -736,6 +736,24 @@ Funções: `estoqueDaEdicao` (expira pedidos vencidos, lê mesas, ocupação e c
 
 **Defeitos achados pelos próprios testes e corrigidos:** a normalização do texto não limpava a pontuação quando havia espaço depois dela, e "preciso de uma pessoa" não era reconhecido como pedido de atendente.
 
+### 27.7 Fila de saída (envio real desativado) e reservas do agente
+
+**Arquivos:** `lib/agente/graph.ts` (payload da Cloud API, política de reenvio, sanitização de erro, janela de 24 h; puro), `lib/agente/fila.ts` (fila e envio) e `lib/agente/reservas.ts` (reservas do agente).
+
+**Fila (outbox no Postgres):** toda resposta do agente é gravada em `wa_fila_saida` **antes** de qualquer envio, com chave de idempotência (a mesma chave nunca gera dois envios).
+
+- **O envio só acontece quando TUDO permite:** variável `WHATSAPP_SEND_ENABLED=true` **e** `wa_config.envio_ativo` **e** sem pausa de emergência **e** ambiente igual **e** (no modo teste) destinatário na lista de testes. Com o padrão de fábrica, **nenhum item sai**: fica `pendente` e a rede nem é tocada. Destinatário fora da lista de testes é `cancelada` sem envio.
+- **Número de envio:** o envio real recusa por conta própria se `WHATSAPP_PHONE_NUMBER_ID` não for exatamente o número da QUINTA HITS do ambiente (por exemplo, se apontar para o final 0200) ou se faltar o token: o item permanece pendente.
+- **Reenvio:** 429, 5xx e falha de rede tentam de novo com espera de 30 s, 60 s, 2 min… (teto de 1 h) e respeitam o `retry-after` da Meta; erro definitivo (4xx) não repete; ao esgotar as tentativas o item vai para **dead-letter** (`morta`). Cada tentativa fica em `wa_fila_tentativas` (HTTP, código e detalhe sanitizado, duração).
+- **Janela de 24 h:** fora dela não se envia texto livre (só template aprovado, ainda não cadastrado): o item falha com `fora_da_janela_24h`.
+- **Proteções:** limite de saídas por contato na hora (o excedente é adiado, não descartado); trava por compare-and-set (dois processadores nunca enviam o mesmo item); trava vencida devolve o item à fila; depois de enviado, o texto some do `payload` da fila.
+- **Sanitização:** o detalhe de erro guardado nunca leva token nem telefone.
+- `appsecret_proof` só entra quando `META_APP_SECRET_PROOF_ENABLED=true`.
+
+**Reservas do agente** escrevem na **mesma tabela do site** e disputam a **mesma trava do banco**: nascem `confirmada`, com `origem_reserva = 'whatsapp_agent'`, código `QH-NNNNNN` e vínculo ao contato. Antes de gravar: edição aberta e pronta, mesa oferecida ao WhatsApp e livre com lugares suficientes, limite de reservas ativas por WhatsApp (o mesmo do site). Falha do índice único = "mesa indisponível". Cancelamento respeita `cancelamento_ate_horas` (prazo não cadastrado ou vencido vira transferência); só o dono do número cancela ou altera a própria reserva; alterar nome e observações não mexe no estoque. A auditoria guarda apenas ação e campos, nunca valores.
+
+**Testes (41 novos, 207 no total):** payload e limites da Cloud API; política de reenvio; sanitização; janela de 24 h; fila com envio desligado por variável, por banco, por pausa e por modo teste; envio simulado, 429 com `retry-after`, 5xx até o dead-letter, erro definitivo, fora da janela, limite por hora, trava vencida e **dois processadores simultâneos (enviado uma só vez)**; chamada real à Graph API com `fetch` simulado (versão, Bearer, `appsecret_proof`, **sem rede quando o número de envio está errado**); reservas do agente; e a **corrida entre site e WhatsApp pela mesma mesa**: seis rodadas alternando quem chega primeiro (só uma operação aceita), seis tentativas simultâneas dos dois canais (exatamente uma reserva existe) e a devolução da mesa ao cancelar.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
