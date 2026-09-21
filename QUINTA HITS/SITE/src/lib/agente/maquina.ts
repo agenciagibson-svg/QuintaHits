@@ -41,6 +41,7 @@ const RE_PAGAMENTO = /\b(pix|pagamento|pagar|estorno|estornar|reembolso|devoluca
 const RE_CANCELAR_RESERVA = /(cancel\w*.*reserva|reserva.*cancel\w*)/;
 const RE_ALTERAR_RESERVA = /((alter\w*|mud\w*|troc\w*|modific\w*).*reserva|reserva.*(alter\w*|mud\w*|troc\w*))/;
 const RE_MENU = /^(menu|inicio|recomecar|reiniciar|comecar de novo|voltar)$/;
+const RE_SAUDACAO = /^(oi+|ola+|opa|e ai|eae|hey|hello|bom dia|boa tarde|boa noite|tudo bem|bom dia!?|oi tudo bem|ola tudo bem)$/;
 const RE_ABORTAR = /^(cancelar|desistir|deixa|deixa pra la|nao quero mais)$/;
 const RE_MINHAS = /\b(minhas? reservas?|consultar reserva|ver reserva)\b/;
 const RE_RESERVAR = /\b(reservar|reserva|mesa)\b/;
@@ -245,6 +246,8 @@ export async function avancar(conversa: ConversaParaMaquina, entrada: EntradaCli
     case "CONFIRMED":
     case "CHECKING_AVAILABILITY":
       if (id === "reservar" || RE_RESERVAR.test(t)) return iniciarReserva(portas, false);
+      // Uma saudação (por exemplo, quando a conversa volta de um atendente) só reabre o menu, sem "não entendi".
+      if (RE_SAUDACAO.test(t)) return passo("WELCOME", {}, [T.boasVindas()]);
       if (entrada.forma === "nao_suportado") return naoEntendido("WELCOME", {}, tent, [T.menu()], T.soTexto());
       return naoEntendido("WELCOME", {}, tent, [T.menu()]);
 

@@ -798,6 +798,105 @@ Funções: `estoqueDaEdicao` (expira pedidos vencidos, lê mesas, ocupação e c
 
 **Limites:** o filtro `payload <> '{}'` sobre a coluna `jsonb` e as atualizações em lote só foram exercitados no banco em memória; precisam ser conferidos no Supabase de homologação. O agendamento periódico (Vercel Cron ou `pg_cron`) **não foi configurado**: a rotina é chamada pelo script ou pelo painel.
 
+### 27.10 Fechamento da etapa 3 (implementação local)
+
+**Estado:** implementado e testado **localmente**. `WHATSAPP_AGENT_ENABLED=false` e `WHATSAPP_SEND_ENABLED=false` (e ausentes = desligados). Nenhum SQL foi aplicado em qualquer Supabase, nada foi configurado na Meta, o `/register` não foi executado, nenhuma mensagem real foi enviada, sem push e sem deploy. O número final 0200 não é tratado, respondido nem alterado por nenhum código novo.
+
+**Commits (10, todos locais, em português):** `656ad1c` infraestrutura de lint e testes · `0d76183` roteamento por `phone_number_id` · `29aaeba` disponibilidade única por canal · `2ff4f5d` regras por edição e canais no painel · `8da1e06` contatos, conversas e idempotência · `d3fc7c5` máquina de estados · `058d509` fila de saída e reservas do agente · `7641bb2` orquestrador e atendimento humano · `df53d5a` retenção em simulação · e o commit final desta seção (demonstração simulada, cobertura e correção da saudação).
+
+**Testes finais:** **253 testes em 13 arquivos, todos passando**; lint com `--max-warnings=0` e verificação de tipos limpos. **Cobertura de código** dos módulos do agente, das rotas do WhatsApp e da API do painel: **94,8% das linhas**, 90,6% das instruções, 93,7% das funções e 81,3% dos ramos (`npm run test:cobertura`). Fora da medição e sem teste automatizado: os componentes de tela (`RegrasEdicaoPainel.tsx`, `AtendimentoPainel.tsx`), que passam em lint e tipos; `depois.ts` (fino, apenas embrulha `after()` e é substituído nos testes).
+
+**Cobertura dos fluxos:**
+
+| Fluxo | Onde é provado |
+|---|---|
+| Roteamento por `phone_number_id`; outro número = 200 sem resposta | `webhook`, `roteador`, `agenteFluxo` |
+| Fluxo atual `QH-NNNNNN` preservado e com prioridade | `webhook`, `agenteFluxo` |
+| Disponibilidade única entre site, WhatsApp e painel; corrida entre canais | `disponibilidade`, `agenteReservas` |
+| Regras por edição, prontidão e painel (API) | `regras` |
+| Contatos, conversas, trava otimista e idempotência | `agenteBase`, `agenteFluxo` |
+| Máquina de estados (reserva, cancelar, alterar, transferir, expirar) | `maquina`, `agenteFluxo`, `demonstracao` |
+| Fila de saída (envio desligado, reenvio, dead-letter, janela de 24 h) | `fila` |
+| Atendimento humano (fila, assumir, devolver, silêncio do agente) | `atendimentoApi`, `agenteFluxo`, `demonstracao` |
+| Retenção em simulação e execução bloqueada | `retencao` |
+| Banco **sem** a migração (produção hoje) | `disponibilidade`, `regras`, `agenteBase`, `fila`, `agenteFluxo`, `retencao` |
+
+**O fluxo atual `QH-NNNNNN` continua funcionando — evidências:** (1) o corpo do tratador movido para `lib/whatsappLegado.ts` é **idêntico linha a linha** ao original do commit `820e334` (78 linhas, 0 diferenças); (2) `lib/reserva.ts` (regras de código e telefone) não foi alterado; (3) 15 testes cobrem o fluxo (confirma, minúsculas, repetição, número diferente, código inexistente, pedido vencido, mesa pega) e o **código tem prioridade sobre o agente**; (4) o banco sem a migração se comporta como antes.
+
+**Duas mudanças no comportamento do que já existia, ambas documentadas e testadas:** (a) a **resposta** do fluxo atual ao cliente agora exige `WHATSAPP_SEND_ENABLED=true` (a confirmação no banco é a mesma); hoje a produção não tem nenhuma variável `WHATSAPP_*`, então nada muda agora; (b) o mapa e o `POST /api/reservas` do site usam a **disponibilidade única**, idêntica à de sempre enquanto não houver configuração de canais ou a migração.
+
+**Alterações em arquivos existentes** (10): documento mestre; `package.json` e `package-lock.json` (só ferramentas de desenvolvimento); `AdminDashboard.tsx` (duas seções novas e o contador); `MesasEditor.tsx` e `ReservasPainel.tsx` (só comentário de lint); `api/reservas/route.ts`; `api/whatsapp/webhook/route.ts`; `lib/reservas.ts`; `lib/whatsapp.ts`.
+
+**Diagrama do webhook (final):**
+
+```
+        Meta · app "Gibson Atendimento" · WABA 2225871044650782
+                        │ POST (callback único)
+                        ▼
+              /api/whatsapp/webhook   (endpoint existente, ampliado)
+   1. valida X-Hub-Signature-256 ── inválida ──► 401
+   2. lê value.metadata.phone_number_id
+        │
+  ┌─────┴───────────────────────────┬───────────────────────┐
+  ▼                                 ▼                       ▼
+1352142871312651              OUTRO ID (ex.: 0200)        ID ausente
+QUINTA HITS                   200 · sem processar          200 · ignorado
+  │                           · sem resposta
+  │                           · registro sem conteúdo
+  ▼
+  status de entrega ─► atualiza a mensagem (idempotente)
+  mensagem:
+   ├─ contém QH-NNNNNN ────────► FLUXO ATUAL (prioridade sempre)
+   ├─ agente ligado (env E banco), sem pausa, contato de teste
+   │     ├─ conversa com humano ─► registra e NÃO responde
+   │     └─ senão ─► máquina de estados ─► reserva / cancelar / alterar
+   │                    ─► fila de saída ─► (depois da resposta) envio
+   │                                        └─ bloqueado por padrão
+   └─ senão ─► resposta padrão do fluxo atual
+   200 à Meta em todos os casos
+```
+
+**Tabelas (12 novas + colunas em `reservas`):** `wa_config`, `edicoes_regras`, `edicoes_mesas`, `wa_contatos`, `wa_conversas`, `wa_transferencias`, `wa_mensagens`, `wa_webhook_eventos`, `wa_fila_saida`, `wa_fila_tentativas`, `auditoria`, `reservas_historico`; e em `reservas`: `origem_reserva`, `contato_id`, `observacoes`, `atendente`. Tabelas reaproveitadas: `edicoes`, `mesas`, `reservas`, `site_config`. Nenhuma tabela nova além do que a migração aprovada criava.
+
+**Demonstração 1 — reserva em modo simulado** (pipeline real, envio desligado; dados fictícios):
+
+```
+  Cliente  › oi
+  Agente   › Olá! Aqui é o atendimento de reservas da *QUINTA HITS*. Toda quinta, no Florindos Bar, em Uberlândia. Como posso ajudar?
+             [Reservar mesa | Minhas reservas | Falar com a equipe]
+  Cliente  › Reservar mesa
+  Agente   › Quinta-feira, 8 de janeiro, no Florindos Bar, em Uberlândia (evento às 20h). Quantas pessoas vão?
+  Cliente  › 4
+  Agente   › Estas mesas estão livres para 4 pessoas. Qual você prefere?   [Mesa T2 | Mesa T3]
+  Cliente  › Mesa T3
+  Agente   › Em nome de quem fica a reserva?
+  Cliente  › Ana Souza
+  Agente   › Alguma observação para a equipe? … [Sem observações]
+  Cliente  › Aniversário de uma amiga
+  Agente   › Confira sua reserva:
+             • Quinta-feira, 8 de janeiro, no Florindos Bar, em Uberlândia
+             • Mesa T3 (6 lugares) • 4 pessoas • Em nome de: Ana Souza
+             • Observações: Aniversário de uma amiga
+             A casa abre às 19h; o evento começa às 20h. Tolerância de 15 minutos.
+             Consumação mínima: R$ 50,00. Cancelamento até 24 horas antes.   [Confirmar | Alterar | Cancelar]
+  Cliente  › Confirmar
+  Agente   › Reserva confirmada! Seu código é *QH-…*. Mesa T3 para 4 pessoas … Se é quinta, tem Hits.
+  Banco    › reserva confirmada · origem = whatsapp_agent · 4 pessoas
+  Fila     › 7 mensagens, todas "pendente": nenhuma saiu para a Meta (envio desligado)
+```
+
+**Demonstração 2 — transferência para humano:** o cliente escreve "quero falar com um atendente" → o agente responde "Vou chamar alguém da equipe…" → o painel mostra **1 aguardando** (motivo: pedido do cliente) → o cliente escreve "alguém aí?" e **nenhuma resposta automática** é enfileirada → o atendente "Marcos" assume e responde pelo painel (a mensagem vai para a fila) → devolve ao agente → o cliente escreve "oi" e o agente reabre o menu; a fila de atendimento fica vazia. Para ver as duas conversas impressas: `DEMO_AGENTE=1 npx vitest run tests/demonstracao.test.ts`.
+
+**Defeito achado pela demonstração e corrigido:** depois de o atendente devolver a conversa, "oi" recebia "Não consegui entender." antes do menu; agora uma saudação só reabre o menu (teste novo).
+
+**Pendências para criar o Supabase de homologação** (seção 24): o responsável cria o projeto `quinta-hits-homologacao` (região São Paulo), copia só a URL e a chave `service_role` para `.env.development.local`, cria o usuário admin de teste (com o cadastro público desligado), e **avisa**. Depois, sob autorização: `schema.sql` → migração → `update wa_config set ambiente = 'homologacao'` → seed → `verificar-homologacao.sql` (51 checagens) → teste de RLS por papel → teste de reversão. O que só a homologação real prova: PostgREST e papéis reais, o filtro `payload <> '{}'` da retenção, a **corrida com conexões paralelas** e o `next build`.
+
+**Pontos abertos que dependem de decisão ou de terceiros:** dados do painel da Meta (checklist 22.3) e o destino do número 0200 antes de qualquer URL de webhook; política de retenção validada pelo administrativo e jurídico; texto e página da política de privacidade; valores reais das regras de cada edição (cadastrados pelo responsável no painel); token permanente da Cloud API (direto na Vercel); e o plano da Vercel (agendamento da fila e da retenção). Pendência técnica anterior: 2 vulnerabilidades do `npm audit` em `next`/`postcss` (produção), já existentes e não tratadas aqui.
+
+**Limites conhecidos desta etapa:** o `next build` **não foi rodado** (ele carregaria as credenciais reais do `.env.local`); os componentes de tela não têm teste de interface; a corrida entre conexões reais só será provada na homologação; o cookie de sessão do painel não guarda identidade (o atendente informa o nome); alterar mesa, pessoas ou data de uma reserva fica com a equipe; o envio de template (fora da janela de 24 h) não está implementado.
+
+**Próxima autorização necessária:** você criar o projeto Supabase de homologação e me avisar; em seguida, **autorizar expressamente** a aplicação da migração e do seed **somente nesse projeto**. Sem isso, nada avança para banco algum.
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

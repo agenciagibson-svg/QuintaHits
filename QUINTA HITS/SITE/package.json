@@ -10,7 +10,8 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:cobertura": "vitest run --coverage"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
@@ -25,6 +26,7 @@
     "@types/node": "22.15.0",
     "@types/react": "19.1.10",
     "@types/react-dom": "19.1.7",
+    "@vitest/coverage-v8": "5.0.1",
     "eslint": "9.39.5",
     "eslint-config-next": "15.5.25",
     "typescript": "5.8.3",

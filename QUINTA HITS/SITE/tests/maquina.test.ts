@@ -97,6 +97,19 @@ describe("primeiro contato e menu", () => {
     }
   });
 
+  it("saudação depois do menu (ou de a conversa voltar de um atendente) reabre o menu SEM 'não consegui entender'", async () => {
+    for (const saudacao of ["oi", "Olá!", "bom dia", "Boa noite", "opa", "tudo bem"]) {
+      const { portas } = portasFake();
+      const { passos } = await conversar(portas, ["oi"], {});
+      const p = await avancar({ estado: passos[0].estado, contexto: {}, tentativasSemEntender: 0, atualizadoEm: AGORA.toISOString() }, { forma: "texto", texto: saudacao }, portas);
+      expect(p.estado, saudacao).toBe("WELCOME");
+      expect(p.tentativasSemEntender).toBe(0);
+      expect(p.mensagens).toHaveLength(1);
+      expect(corpo(p.mensagens[0])).not.toContain("Não consegui entender");
+      expect(p.mensagens[0].tipo).toBe("botoes");
+    }
+  });
+
   it("menu, voltar e recomeçar levam ao menu de qualquer etapa", async () => {
     for (const palavra of ["menu", "voltar", "recomeçar"]) {
       const { portas } = portasFake();
