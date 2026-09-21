@@ -1067,6 +1067,48 @@ Nenhum bloqueio. Ajustes feitos por causa da revisão: **(1)** o número final *
 
 Pontos registrados e mantidos de propósito: em **homologação** a limpeza real não exige a política validada (só em produção; nasce desligada e travada pelo ambiente); **responder como atendente exige o envio real** (agente **e** envio ligados; com eles desligados o painel opera em modo simulado); rate limit é **por instância** do servidor; **sem CSP** (melhoria futura). Razão social, endereço e e-mail vieram das suas instruções; só o CNPJ estava malformado (seção 31.11).
 
+### 31.14 Deploy final: "pronto aguardando Meta" (não é "produção ativa")
+
+- **URL:** https://quinta-hits-eight.vercel.app · **deployment:** `dpl_HaJJuR87UFAsbX4MqSdMGHKbezBx` (`quinta-hits-h5b0owous-agenciagibson-1820.vercel.app`), 21/09/2026.
+- **Estado:** `WHATSAPP_AGENT_ENABLED`, `WHATSAPP_SEND_ENABLED`, `WHATSAPP_REGISTRATION_ENABLED` e `RESERVAS_SITE_ENABLED` criadas na Vercel com valor `false`; nenhuma variável `WHATSAPP_*` de credencial, `CRON_SECRET`, `RETENCAO_ENABLED` nem `APP_AMBIENTE`; agente e envio desligados também no banco (`wa_config`).
+- **Validado no ar, só com leituras e chamadas que não criam nada:** `/`, `/programacao`, `/reservar` ("abrem em breve"), `/privacidade` (razão social, endereço, e-mail e "sem encarregado"), `/sitemap.xml` (com `/privacidade`), `/robots.txt`, `/admin` (307 para o login), `/api/admin/*` (401), `/api/reservas/mapa` (503), `POST /api/reservas` (503, nada criado), webhook GET (403) e POST sem assinatura (401), `/api/cron/retencao` (503), cabeçalhos (`Permissions-Policy`, `nosniff`, `X-Frame-Options`, `no-store` no admin). **Nenhuma reserva criada, nenhuma mensagem enviada, nenhuma chamada à Meta.**
+- **Push:** os commits estão só locais; o `git push` exige credencial do GitHub que a sessão não tem. Rodar na pasta `QuintaHits`: `git push origin main`.
+
+### 31.15 Ativação futura (só depois da aprovação da Meta), na ordem
+
+1. **Parte 2 do banco** (seção 31.12) e conferência do "antes e depois". Sem ela o site continua fechado.
+2. **No /admin**: cadastrar as mesas reais; preencher **todas** as regras de cada edição (o painel diz exatamente o que falta); escolher em quais canais cada mesa é oferecida; marcar a liberação para o **site** e/ou para o **atendimento automático** (WhatsApp) de cada edição.
+3. **Checklist da Meta (seção 22.3)**: decidir o destino do número final 0200 antes de mexer no webhook. O webhook é **único por aplicativo**; o isolamento é feito aqui dentro (Phone Number ID \`1352142871312651\` e barreira pelo número exibido). Política de privacidade para a Meta: \`https://quinta-hits-eight.vercel.app/privacidade\`.
+4. **Credenciais na Vercel, digitadas por você direto na Vercel, nunca no chat**: \`WHATSAPP_NUMERO_CASA=5534991167064\`, \`WHATSAPP_PHONE_NUMBER_ID=1352142871312651\`, \`WHATSAPP_TOKEN\`, \`WHATSAPP_APP_SECRET\`, \`WHATSAPP_VERIFY_TOKEN\` (e, se quiser a limpeza agendada, \`CRON_SECRET\`). Isso **não liga nada**.
+5. **Registro do número (uma vez, só após a aprovação)**: você mesmo roda \`scripts/registrar-numero.mjs\` (seção 31.9), com \`WHATSAPP_REGISTRATION_ENABLED=true\` só naquele comando, e digita o PIN sem eco. Não altere o PIN nem a verificação em duas etapas por outro caminho.
+6. **Cadastrar o webhook no painel da Meta** (URL \`https://quinta-hits-eight.vercel.app/api/whatsapp/webhook\`, com o mesmo \`WHATSAPP_VERIFY_TOKEN\`), sem substituir o que o 0200 usa.
+7. **Piloto com o seu número**: no banco, \`update wa_config set agente_ativo = true, envio_ativo = true, restringir_a_numeros_teste = true, numeros_teste = '{55SEUNUMERO}' where id = 1;\`. Na Vercel: \`WHATSAPP_AGENT_ENABLED=true\` e \`WHATSAPP_SEND_ENABLED=true\` (as **duas**) e novo deploy. Enquanto \`ambiente\` for \`homologacao\` no banco e o deploy não tiver \`APP_AMBIENTE=homologacao\`, o agente fica travado de propósito: alinhe os dois (para o piloto ao vivo: \`update wa_config set ambiente = 'producao'\`, que é o que o deploy já assume).
+8. **Site**: só depois do piloto, \`RESERVAS_SITE_ENABLED=true\` + novo deploy. O painel de Integrações mostra o motivo se o site continuar fechado.
+9. **Lançamento**: limpar dados de teste (contatos, conversas, mensagens, fila, reservas \`[TESTE]\`), \`numeros_teste = '{}'\`, \`restringir_a_numeros_teste = false\`, validar a política de retenção (\`politica_retencao_validada_em\`) e, se quiser a limpeza automática, definir \`CRON_SECRET\`, \`RETENCAO_ENABLED=true\`, \`limpeza_ativa = true\` e criar o agendamento (\`vercel.json\` com \`crons\` apontando para \`/api/cron/retencao\`).
+
+Para mudar uma variável: \`printf true | vercel env add NOME production --scope agenciagibson-1820 --force\` (na pasta \`SITE\`) e depois \`vercel deploy --prod --scope agenciagibson-1820\`. Para **desligar tudo de imediato**: pausa de emergência no painel (para o agente e todo envio sem deploy) ou variáveis de volta para \`false\` + deploy.
+
+### 31.16 Rollback
+
+- **Site**: \`vercel rollback https://quinta-hits-oc1u4tqrp-agenciagibson-1820.vercel.app --scope agenciagibson-1820\` volta ao deploy anterior a este (e2ba56e). Mais atrás: \`https://quinta-hits-ddm499rgu-agenciagibson-1820.vercel.app\`. Depois de qualquer rollback o painel volta ao cookie antigo e será preciso entrar de novo.
+- **Banco**: as migrações são aditivas e o código publicado funciona com ou sem elas, então **não é preciso reverter o banco para reverter o site**. Se mesmo assim for necessário: \`reverter-2026-09-21-parte2-site-e-atendimento.sql\` (só a parte 2) e, depois, \`reverter-2026-09-21-agente-whatsapp.sql\` (a parte 1; recusa se existir reserva feita pelo agente). Perda de dados: restaurar do backup lógico (procedimento no cabeçalho de \`scripts/backup-logico.mjs\`).
+
+### 31.17 Checklist manual do painel (para você conferir logado)
+
+Entrar em https://quinta-hits-eight.vercel.app/admin com o e-mail de administrador (só você tem a senha; o restante já foi validado sem login).
+
+1. **Login**: entra; sair e entrar de novo; e-mail fora de \`ADMIN_EMAILS\` não entra.
+2. **Integrações e chaves de segurança**: as 4 chaves aparecem **desligadas**; "Envio real: BLOQUEADO"; "Reserva pelo site: fechada (RESERVAS_SITE_ENABLED desligada)"; credenciais WHATSAPP_* como **ausentes**; nenhum valor secreto na tela; "parte 2: não aplicada" enquanto o SQL não for rodado.
+3. **Programação (edições)**: as 13 edições aparecem; editar horário e local de uma (o horário é exigido para abrir reservas).
+4. **Mesas**: as 6 mesas aparecem; criar/editar/desativar uma de teste.
+5. **Regras por edição**: escolher uma edição; conferir os dois avisos ("NÃO está pronta para reservas automáticas" e "NÃO está pronta para reservas pelo site") listando exatamente o que falta; preencher os campos e ver a lista diminuir; a caixa do site fica desabilitada e o aviso da parte 2 aparece até o SQL ser aplicado.
+6. **Reservas**: lista vazia (0 reservas); nada aparece do WhatsApp.
+7. **Atendimento humano**: fila vazia; o aviso **MODO SIMULADO** aparece; o filtro tem as 6 opções; nada de campo "seu nome" (a identidade é o seu e-mail).
+8. **Auditoria**: aparecem o seu login e as ações que você acabou de fazer, com o seu e-mail como autor.
+9. **Configurações da casa**: editar o Instagram/endereço e ver a mudança; conferir na auditoria.
+10. **Estado das chaves depois de conferir**: na Vercel (Project → Settings → Environment Variables), abrir as 4 variáveis e confirmar visualmente o valor \`false\`.
+11. **Público (sem login)**: `/programacao` normal; `/reservar` com "As reservas pelo site abrem em breve" e o botão do Instagram; `/privacidade` com os dados oficiais (o CNPJ ainda não aparece: pendente de confirmação, seção 31.11).
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
