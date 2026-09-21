@@ -754,6 +754,26 @@ Funções: `estoqueDaEdicao` (expira pedidos vencidos, lê mesas, ocupação e c
 
 **Testes (41 novos, 207 no total):** payload e limites da Cloud API; política de reenvio; sanitização; janela de 24 h; fila com envio desligado por variável, por banco, por pausa e por modo teste; envio simulado, 429 com `retry-after`, 5xx até o dead-letter, erro definitivo, fora da janela, limite por hora, trava vencida e **dois processadores simultâneos (enviado uma só vez)**; chamada real à Graph API com `fetch` simulado (versão, Bearer, `appsecret_proof`, **sem rede quando o número de envio está errado**); reservas do agente; e a **corrida entre site e WhatsApp pela mesma mesa**: seis rodadas alternando quem chega primeiro (só uma operação aceita), seis tentativas simultâneas dos dois canais (exatamente uma reserva existe) e a devolução da mesa ao cancelar.
 
+### 27.8 Orquestrador, atendimento humano e painel
+
+**Orquestrador** (`lib/agente/orquestrador.ts`), na ordem: interruptores → **idempotência** (`wamid`) → contato → conversa → registro da mensagem → limite por hora → **máquina de estados** → gravação do novo estado com **trava otimista** → **fila de saída** → transferência para humano. Só as respostas são **enfileiradas** aqui; o envio real é outro passo (a fila) e segue desligado por padrão. Em caso de conflito de gravação relê a conversa e refaz (sem enfileirar nada antes de gravar), com as respostas protegidas por chave de idempotência.
+
+**Roteamento final do webhook para a QUINTA HITS:** (1) mensagem com código `QH-NNNNNN` → **fluxo atual, sempre com prioridade**; (2) senão, agente ligado (variável **e** banco), fora da pausa e contato na lista de testes → agente; (3) senão → resposta padrão do fluxo atual. Sem a migração no banco, ou com o agente desligado, o comportamento é o de sempre. O processamento da fila roda **depois** da resposta à Meta (`after()` do Next; fora de requisição executa direto). O status de entrega das mensagens do agente é aplicado com idempotência.
+
+**Situações tratadas:** contato bloqueado (ignorado); número não brasileiro (equipe); excesso de mensagens por hora (sem respostas); repasse humano desligado por variável ou pelo banco (avisa que não consegue continuar e encerra, sem prometer atendimento).
+
+**Atendimento humano** (`lib/agente/atendimento.ts`, rotas `api/admin/whatsapp/atendimento`, tela `AtendimentoPainel.tsx`):
+
+- A transferência abre um registro em `wa_transferencias` (uma aberta por conversa), muda a conversa para "aguardando humano" e **o agente para de responder**. Mensagens do cliente nesse período só atualizam a atividade.
+- **Painel:** seção no topo, **em destaque** (borda e selo em terracota) quando há alguém aguardando, com **contador** também no título do painel; motivo da transferência; última mensagem; histórico da conversa; **Assumir** (só o primeiro assume), **Enviar** resposta, **Devolver ao agente** (recomeça do menu, histórico preservado) e **Encerrar** (uma nova mensagem do cliente abre outra conversa). Atualiza sozinho a cada 15 s.
+- Como o número é exclusivo da API, **a resposta do atendente é enviada pelo painel** e passa pela **mesma fila** (respeita a janela de 24 h, o modo teste, a pausa e o envio desligado).
+- O cookie de sessão do painel não guarda identidade: o atendente informa o próprio nome (lembrado no navegador) e ele vai para a auditoria, **sem o texto das mensagens**.
+- **Pausa de emergência** no painel (`api/admin/whatsapp/config`): derruba agente e envio na hora, sem redeploy. Ligar agente e envio **não** é feito pelo painel nesta fase.
+- Sem a migração aplicada, o painel só mostra um aviso.
+- **Notificações externas** (e-mail ou WhatsApp para a equipe): **não implementadas**, conforme a decisão; a fila do painel é o único aviso. A arquitetura comporta um disparo futuro no ponto em que a transferência é aberta.
+
+**Testes (27 novos, 234 no total):** 15 de integração pelo webhook (agente desligado por variável, por banco, por lista de testes e por pausa; base sem a migração; conversa completa até a reserva com `origem_reserva = whatsapp_agent`, todas as respostas enfileiradas e **nada enviado**; entrega repetida processada uma vez; **código `QH-NNNNNN` com prioridade**; envio ligado com tudo liberado; número 0200 sem nenhum efeito; edição sem regras vai para a equipe; bloqueado, não brasileiro e limite por hora; status de entrega; transferência com o agente em silêncio, assumir, devolver e reencerrar; pagamento e reclamação; repasse desligado) e 12 da API do painel (sessão, listagem, histórico, ações, validações, **dois atendentes assumindo ao mesmo tempo**, auditoria sem conteúdo, sem migração, pausa de emergência).
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { s } from "./estilos";
 import MesasEditor from "./MesasEditor";
+import AtendimentoPainel from "./AtendimentoPainel";
 import RegrasEdicaoPainel from "./RegrasEdicaoPainel";
 import ReservasPainel from "./ReservasPainel";
 import { GENERO_VALORES, STATUS_VALORES, type Edicao } from "@/lib/edicao";
@@ -41,6 +42,7 @@ export default function AdminDashboard() {
   const [novaEdicao, setNovaEdicao] = useState({ ...EDICAO_VAZIA });
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState<Record<string, string>>({});
+  const [aguardandoHumano, setAguardandoHumano] = useState(0);
 
   /** Sessão expirada: volta para o login em vez de mostrar erro genérico. */
   function sessaoExpirou(res: Response): boolean {
@@ -158,12 +160,26 @@ export default function AdminDashboard() {
   return (
     <div style={s.pagina}>
       <header style={s.topo}>
-        <h1 style={s.h1}>QUINTA HITS — Painel</h1>
+        <h1 style={s.h1}>
+          QUINTA HITS — Painel
+          {aguardandoHumano > 0 && (
+            <span role="status" style={{ ...s.selo, background: "#B84A32", color: "#fff", marginLeft: 12, fontSize: 13 }}>
+              {aguardandoHumano} aguardando atendimento
+            </span>
+          )}
+        </h1>
         <button onClick={sair} style={s.botaoSair}>Sair</button>
       </header>
 
       {msg && <div style={s.aviso}>{msg}</div>}
       {erro && <div style={s.avisoErro}>{erro}</div>}
+
+      {/* ATENDIMENTO HUMANO */}
+      <section style={{ ...s.secao, ...(aguardandoHumano > 0 ? { border: "2px solid #B84A32" } : {}) }}>
+        <h2 style={s.h2}>Aguardando atendimento humano{aguardandoHumano > 0 ? ` (${aguardandoHumano})` : ""}</h2>
+        <p style={s.legenda}>Conversas que o agente de reservas do WhatsApp passou para a equipe. Enquanto uma pessoa cuida, o agente não responde.</p>
+        <AtendimentoPainel onContagem={setAguardandoHumano} />
+      </section>
 
       {/* CONFIG DA CASA */}
       <section style={s.secao}>
