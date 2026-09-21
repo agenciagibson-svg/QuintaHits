@@ -62,6 +62,8 @@ export default function ReservasPainel({ edicoes }: { edicoes: Edicao[] }) {
 
   useEffect(() => {
     carregar(edicaoId);
+    // `carregar` só depende da edição escolhida; recriá-la a cada render dispararia carga em loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edicaoId]);
 
   async function mudarStatus(r: Reserva, status: "confirmada" | "cancelada") {

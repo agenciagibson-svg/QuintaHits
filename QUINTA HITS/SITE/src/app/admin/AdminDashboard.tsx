@@ -68,6 +68,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     carregarTudo();
+    // Carga inicial: roda uma vez ao montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function avisar(texto: string) {

@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { site } from "@/config/site";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { expirarPedidosVencidos } from "@/lib/reservas";

@@ -624,6 +624,22 @@ Somente o que você precisa fazer. **Não aplico a migração** enquanto você n
 
 Local oficial: **Florindos Bar — Uberlândia/MG**. Nunca mencionar Tatu Bola.
 
+## 27. Diário da implementação local (etapa 3 — iniciada em 21/09/2026)
+
+Autorizado: implementar e testar **localmente**. Continua proibido: SQL em qualquer Supabase, configurar a Meta, `/register`, enviar mensagem real, push, deploy, acessar ou exibir segredos. `WHATSAPP_AGENT_ENABLED` e `WHATSAPP_SEND_ENABLED` seguem `false` (e nascem `false` quando ausentes). Antes de cada commit rodam: lint, verificação de tipos e testes.
+
+**Comandos** (na pasta `SITE`): `npm run lint` · `npm run typecheck` · `npm test` · `npm run test:watch`.
+
+### 27.1 Infraestrutura de testes e lint
+
+- **Dependências de desenvolvimento** (versões exatas): `vitest`, `@electric-sql/pglite`, `eslint`, `eslint-config-next`, `@eslint/eslintrc`. Nenhuma dependência de produção foi adicionada. A auditoria do npm mostra 2 vulnerabilidades **já existentes** em `next`/`postcss` (produção), não introduzidas aqui; ficam como pendência.
+- **Lint:** `eslint . --max-warnings=0` (configuração oficial do Next). O ponto de partida tinha 5 avisos no código antigo, todos corrigidos (importação sem uso no webhook e 3 efeitos de carga inicial documentados).
+- **Testes:** `tests/`. O banco dos testes é um PostgreSQL 17 em memória (PGlite) com o `schema.sql` e a migração **reais**, mais um adaptador mínimo com a interface do `supabase-js` (`tests/helpers/bancoTeste.ts`). O código de produção roda contra as restrições reais (índices únicos, checks) sem rede e sem credencial.
+- **Rede e ambiente bloqueados por padrão** (`tests/setup.ts`): todas as variáveis sensíveis são zeradas antes de cada teste e qualquer `fetch` não simulado lança erro, então nenhum teste pode falar com a Meta nem com um Supabase.
+- **Limite:** o adaptador não é o Supabase real (não exercita PostgREST nem os papéis reais); a homologação continua obrigatória.
+
+<!-- FIM DO DIARIO -->
+
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
 
 ```

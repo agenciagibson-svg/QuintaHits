@@ -50,6 +50,8 @@ export default function MesasEditor() {
 
   useEffect(() => {
     carregar();
+    // Carga inicial: roda uma vez ao montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function selecionar(m: Mesa) {
