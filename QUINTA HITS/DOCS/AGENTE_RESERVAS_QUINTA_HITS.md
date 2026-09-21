@@ -702,6 +702,20 @@ Funções: `estoqueDaEdicao` (expira pedidos vencidos, lê mesas, ocupação e c
 
 **Não coberto por teste automatizado:** o componente de tela (`RegrasEdicaoPainel.tsx`), que não tem teste de interface neste projeto; passa em lint e verificação de tipos e será conferido visualmente na homologação.
 
+### 27.5 Base do agente: contatos, conversas, mensagens e idempotência
+
+**Arquivos novos** (`src/lib/agente/`): `telefone.ts` (telefone do cliente a partir do `wa_id`), `ativacao.ts` (quando o agente responde e quando o envio é permitido), `tipos.ts` (estados, contexto, mensagens e as "portas" da máquina de estados), `repositorio.ts` (dados). Já existia `eventos.ts` (idempotência dos eventos).
+
+- **Telefone:** celular brasileiro de 11 dígitos, completando o 9 que a Meta às vezes omite; número não brasileiro fica com telefone nulo e o agente **repassa para uma pessoa** (não reserva).
+- **Ativação — vale o mais restritivo** entre a variável de ambiente (interruptor mestre) e a configuração do banco (botões do painel): agente e envio são interruptores **independentes**; a **pausa de emergência** derruba os dois na hora; no **modo teste** só números da lista recebem resposta (lista vazia = ninguém); se `APP_AMBIENTE` diferir de `wa_config.ambiente`, tudo fica desligado.
+- **Contatos:** criados quando o cliente escreve (é o consentimento para o atendimento); nome do perfil só preenche se estava vazio; eventos simultâneos criam **um só** contato.
+- **Conversas:** no máximo uma aberta por contato (garantido pelo banco); depois de encerrada, abre outra. **Trava otimista** por `versao`: duas gravações concorrentes com a mesma versão lida, só uma vence e a outra recebe "conflito" (quem chama relê e refaz); nada é sobrescrito.
+- **Mensagens:** `wamid` único; a repetição vira "já vista". Status de entrega só avança (enviada → entregue → lida) e "falhou" sempre vale, com o código do erro (sem detalhe).
+- **Idempotência:** `wa_webhook_eventos` (uma entrega "nova" entre dez simultâneas); status usam a chave `wamid:status`.
+- **Limite por contato:** contagem de mensagens do cliente na última hora (o limite vem de `wa_config`).
+
+**Testes (24 novos, 118 no total):** telefone; as regras de ativação (todas as combinações relevantes); contatos, conversas, mensagens e idempotência contra o banco em memória, incluindo **corrida de gravação de conversa** e **dez entregas simultâneas do mesmo evento**; e o banco **sem a migração** (configuração nula, registro "indisponível", sem lançar).
+
 <!-- FIM DO DIARIO -->
 
 ## Apêndice A — Resultado detalhado das 101 verificações (execução de 21/09/2026)
