@@ -1,0 +1,3 @@
+# Nunca vai no upload do deploy (o backup lógico pode conter dados pessoais)
+supabase/backups/
+.env*.local
