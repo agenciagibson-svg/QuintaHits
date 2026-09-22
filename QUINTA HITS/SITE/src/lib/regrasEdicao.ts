@@ -127,7 +127,7 @@ export function avaliarProntidao(entrada: { edicao: Edicao | null; regras: Regra
 
 /**
  * A edição está pronta para reservas pelo SITE? Mesmas exigências de dados do agente, mais a liberação EXPLÍCITA
- * para o site (\`reservas_site\`) e ao menos uma mesa oferecida ao site. Um só item faltando = o site NÃO aceita reserva.
+ * para o site (`reservas_site`) e ao menos uma mesa oferecida ao site. Um só item faltando = o site NÃO aceita reserva.
  */
 export function avaliarProntidaoDoSite(entrada: { edicao: Edicao | null; regras: RegrasEdicao | null; mesasSite: number; agora?: Date }): Prontidao {
   const { edicao, regras, mesasSite } = entrada;

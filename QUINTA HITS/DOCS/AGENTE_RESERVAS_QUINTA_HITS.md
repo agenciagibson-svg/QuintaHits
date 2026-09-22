@@ -1046,20 +1046,20 @@ Cabeçalho `Permissions-Policy`; `Cache-Control: no-store` em `/admin` e `/api/a
 
 `/privacidade` traz: controlador (**GIBSON PROMOÇÕES**, razão social **K. L & F PRODUÇÕES E PROMOÇÕES ARTÍSTICAS LTDA**), endereço (Av. dos Vinhedos, 70, Sala 109 – Uberlândia/MG – CEP 38411-217), contato de privacidade **agenciagibson@gmail.com**, finalidades, dados coletados, reservas, atendimento por WhatsApp e registros de conversa, compartilhamentos necessários (Meta, Supabase, Vercel, Cloudflare, Google Fonts, Spotify), retenção, segurança, direitos (acesso, correção, exclusão) e data da última atualização. **Não há encarregado de dados designado** e a página não inventa um. Está no `sitemap.xml`, linkada no rodapé e no formulário de reserva (com caixa de consentimento) e pode ser informada no painel da Meta como URL da política (`https://quinta-hits-eight.vercel.app/privacidade`).
 
-**CNPJ pendente de confirmação.** O número informado ("58.820.970/0013-7") tem **13 dígitos** e não passa na validação dos dígitos verificadores. O **único** ajuste de um dígito que valida é **58.820.970/0013-57** (faltaria o "5"), mas é um dado legal deduzido e por isso **não foi publicado**: o campo \`site.privacidade.cnpj\` está vazio e a página o omite. Depois de confirmar, basta preencher em \`SITE/src/config/site.ts\` (a página só exibe CNPJ com 14 dígitos válidos; \`tests/privacidade.test.ts\` barra qualquer valor malformado).
+**CNPJ pendente de confirmação.** O número informado ("58.820.970/0013-7") tem **13 dígitos** e não passa na validação dos dígitos verificadores. O **único** ajuste de um dígito que valida é **58.820.970/0013-57** (faltaria o "5"), mas é um dado legal deduzido e por isso **não foi publicado**: o campo `site.privacidade.cnpj` está vazio e a página o omite. Depois de confirmar, basta preencher em `SITE/src/config/site.ts` (a página só exibe CNPJ com 14 dígitos válidos; `tests/privacidade.test.ts` barra qualquer valor malformado).
 
 ### 31.12 Backup lógico e aplicação da parte 2 (única etapa que exige o SQL Editor)
 
-Backup feito **antes de qualquer alteração** com \`node scripts/backup-logico.mjs\` (somente leitura; grava em \`SITE/supabase/backups/\`, fora do Git; sem imprimir chaves). Estado encontrado: **13 edições, 6 mesas, 1 linha de site_config, 0 reservas, 0 regras por edição**, \`wa_config\` presente (ambiente \`homologacao\`, agente e envio desligados) e a parte 2 **ausente**. Procedimento de restauração no cabeçalho do próprio script (a migração é aditiva: o normal é não precisar restaurar nada).
+Backup feito **antes de qualquer alteração** com `node scripts/backup-logico.mjs` (somente leitura; grava em `SITE/supabase/backups/`, fora do Git; sem imprimir chaves). Estado encontrado: **13 edições, 6 mesas, 1 linha de site_config, 0 reservas, 0 regras por edição**, `wa_config` presente (ambiente `homologacao`, agente e envio desligados) e a parte 2 **ausente**. Procedimento de restauração no cabeçalho do próprio script (a migração é aditiva: o normal é não precisar restaurar nada).
 
 **Como o SQL só pode ser aplicado com acesso de administração ao banco (que esta sessão não tem), a parte 2 fica para o responsável**, sem pressa e sem risco (o código publicado funciona com ou sem ela; sem ela o site fica fechado para todas as edições e o painel avisa):
 
-1. SQL Editor do Supabase → rodar \`SITE/supabase/banco-atual/1-antes-e-depois.sql\` (somente leitura) e guardar o resultado;
-2. rodar **inteiro** \`SITE/supabase/migracao-2026-09-21-parte2-site-e-atendimento.sql\` (esperado: "Success. No rows returned"; o aviso de operação destrutiva, se aparecer, refere-se a \`drop\` que **não existe** neste arquivo: se aparecer, pare e me avise);
-3. rodar de novo \`1-antes-e-depois.sql\`: contagens e as 4 impressões digitais **iguais** às do passo 1;
-4. rodar \`SITE/supabase/banco-atual/4-verificar-parte2.sql\`: **RESULTADO GERAL = APROVADO**;
-5. teste de acesso por papel, em consultas separadas: \`set role anon; select count(*) from wa_notas_internas;\` (esperado **permission denied**), depois \`reset role; set role authenticated; select count(*) from wa_notas_internas;\` (**permission denied**) e \`reset role;\`;
-6. reversão, se necessário: \`reverter-2026-09-21-parte2-site-e-atendimento.sql\`.
+1. SQL Editor do Supabase → rodar `SITE/supabase/banco-atual/1-antes-e-depois.sql` (somente leitura) e guardar o resultado;
+2. rodar **inteiro** `SITE/supabase/migracao-2026-09-21-parte2-site-e-atendimento.sql` (esperado: "Success. No rows returned"; o aviso de operação destrutiva, se aparecer, refere-se a `drop` que **não existe** neste arquivo: se aparecer, pare e me avise);
+3. rodar de novo `1-antes-e-depois.sql`: contagens e as 4 impressões digitais **iguais** às do passo 1;
+4. rodar `SITE/supabase/banco-atual/4-verificar-parte2.sql`: **RESULTADO GERAL = APROVADO**;
+5. teste de acesso por papel, em consultas separadas: `set role anon; select count(*) from wa_notas_internas;` (esperado **permission denied**), depois `reset role; set role authenticated; select count(*) from wa_notas_internas;` (**permission denied**) e `reset role;`;
+6. reversão, se necessário: `reverter-2026-09-21-parte2-site-e-atendimento.sql`.
 
 ### 31.13 Revisão final antes do deploy (deploy-checker + code-reviewer)
 
@@ -1078,26 +1078,26 @@ Pontos registrados e mantidos de propósito: em **homologação** a limpeza real
 
 1. **Parte 2 do banco** (seção 31.12) e conferência do "antes e depois". Sem ela o site continua fechado.
 2. **No /admin**: cadastrar as mesas reais; preencher **todas** as regras de cada edição (o painel diz exatamente o que falta); escolher em quais canais cada mesa é oferecida; marcar a liberação para o **site** e/ou para o **atendimento automático** (WhatsApp) de cada edição.
-3. **Checklist da Meta (seção 22.3)**: decidir o destino do número final 0200 antes de mexer no webhook. O webhook é **único por aplicativo**; o isolamento é feito aqui dentro (Phone Number ID \`1352142871312651\` e barreira pelo número exibido). Política de privacidade para a Meta: \`https://quinta-hits-eight.vercel.app/privacidade\`.
-4. **Credenciais na Vercel, digitadas por você direto na Vercel, nunca no chat**: \`WHATSAPP_NUMERO_CASA=5534991167064\`, \`WHATSAPP_PHONE_NUMBER_ID=1352142871312651\`, \`WHATSAPP_TOKEN\`, \`WHATSAPP_APP_SECRET\`, \`WHATSAPP_VERIFY_TOKEN\` (e, se quiser a limpeza agendada, \`CRON_SECRET\`). Isso **não liga nada**.
-5. **Registro do número (uma vez, só após a aprovação)**: você mesmo roda \`scripts/registrar-numero.mjs\` (seção 31.9), com \`WHATSAPP_REGISTRATION_ENABLED=true\` só naquele comando, e digita o PIN sem eco. Não altere o PIN nem a verificação em duas etapas por outro caminho.
-6. **Cadastrar o webhook no painel da Meta** (URL \`https://quinta-hits-eight.vercel.app/api/whatsapp/webhook\`, com o mesmo \`WHATSAPP_VERIFY_TOKEN\`), sem substituir o que o 0200 usa.
-7. **Piloto com o seu número**: no banco, \`update wa_config set agente_ativo = true, envio_ativo = true, restringir_a_numeros_teste = true, numeros_teste = '{55SEUNUMERO}' where id = 1;\`. Na Vercel: \`WHATSAPP_AGENT_ENABLED=true\` e \`WHATSAPP_SEND_ENABLED=true\` (as **duas**) e novo deploy. Enquanto \`ambiente\` for \`homologacao\` no banco e o deploy não tiver \`APP_AMBIENTE=homologacao\`, o agente fica travado de propósito: alinhe os dois (para o piloto ao vivo: \`update wa_config set ambiente = 'producao'\`, que é o que o deploy já assume).
-8. **Site**: só depois do piloto, \`RESERVAS_SITE_ENABLED=true\` + novo deploy. O painel de Integrações mostra o motivo se o site continuar fechado.
-9. **Lançamento**: limpar dados de teste (contatos, conversas, mensagens, fila, reservas \`[TESTE]\`), \`numeros_teste = '{}'\`, \`restringir_a_numeros_teste = false\`, validar a política de retenção (\`politica_retencao_validada_em\`) e, se quiser a limpeza automática, definir \`CRON_SECRET\`, \`RETENCAO_ENABLED=true\`, \`limpeza_ativa = true\` e criar o agendamento (\`vercel.json\` com \`crons\` apontando para \`/api/cron/retencao\`).
+3. **Checklist da Meta (seção 22.3)**: decidir o destino do número final 0200 antes de mexer no webhook. O webhook é **único por aplicativo**; o isolamento é feito aqui dentro (Phone Number ID `1352142871312651` e barreira pelo número exibido). Política de privacidade para a Meta: `https://quinta-hits-eight.vercel.app/privacidade`.
+4. **Credenciais na Vercel, digitadas por você direto na Vercel, nunca no chat**: `WHATSAPP_NUMERO_CASA=5534991167064`, `WHATSAPP_PHONE_NUMBER_ID=1352142871312651`, `WHATSAPP_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` (e, se quiser a limpeza agendada, `CRON_SECRET`). Isso **não liga nada**.
+5. **Registro do número (uma vez, só após a aprovação)**: você mesmo roda `scripts/registrar-numero.mjs` (seção 31.9), com `WHATSAPP_REGISTRATION_ENABLED=true` só naquele comando, e digita o PIN sem eco. Não altere o PIN nem a verificação em duas etapas por outro caminho.
+6. **Cadastrar o webhook no painel da Meta** (URL `https://quinta-hits-eight.vercel.app/api/whatsapp/webhook`, com o mesmo `WHATSAPP_VERIFY_TOKEN`), sem substituir o que o 0200 usa.
+7. **Piloto com o seu número**: no banco, `update wa_config set agente_ativo = true, envio_ativo = true, restringir_a_numeros_teste = true, numeros_teste = '{55SEUNUMERO}' where id = 1;`. Na Vercel: `WHATSAPP_AGENT_ENABLED=true` e `WHATSAPP_SEND_ENABLED=true` (as **duas**) e novo deploy. Enquanto `ambiente` for `homologacao` no banco e o deploy não tiver `APP_AMBIENTE=homologacao`, o agente fica travado de propósito: alinhe os dois (para o piloto ao vivo: `update wa_config set ambiente = 'producao'`, que é o que o deploy já assume).
+8. **Site**: só depois do piloto, `RESERVAS_SITE_ENABLED=true` + novo deploy. O painel de Integrações mostra o motivo se o site continuar fechado.
+9. **Lançamento**: limpar dados de teste (contatos, conversas, mensagens, fila, reservas `[TESTE]`), `numeros_teste = '{}'`, `restringir_a_numeros_teste = false`, validar a política de retenção (`politica_retencao_validada_em`) e, se quiser a limpeza automática, definir `CRON_SECRET`, `RETENCAO_ENABLED=true`, `limpeza_ativa = true` e criar o agendamento (`vercel.json` com `crons` apontando para `/api/cron/retencao`).
 
-Para mudar uma variável: \`printf true | vercel env add NOME production --scope agenciagibson-1820 --force\` (na pasta \`SITE\`) e depois \`vercel deploy --prod --scope agenciagibson-1820\`. Para **desligar tudo de imediato**: pausa de emergência no painel (para o agente e todo envio sem deploy) ou variáveis de volta para \`false\` + deploy.
+Para mudar uma variável: `printf true | vercel env add NOME production --scope agenciagibson-1820 --force` (na pasta `SITE`) e depois `vercel deploy --prod --scope agenciagibson-1820`. Para **desligar tudo de imediato**: pausa de emergência no painel (para o agente e todo envio sem deploy) ou variáveis de volta para `false` + deploy.
 
 ### 31.16 Rollback
 
-- **Site**: \`vercel rollback https://quinta-hits-oc1u4tqrp-agenciagibson-1820.vercel.app --scope agenciagibson-1820\` volta ao deploy anterior a este (e2ba56e). Mais atrás: \`https://quinta-hits-ddm499rgu-agenciagibson-1820.vercel.app\`. Depois de qualquer rollback o painel volta ao cookie antigo e será preciso entrar de novo.
-- **Banco**: as migrações são aditivas e o código publicado funciona com ou sem elas, então **não é preciso reverter o banco para reverter o site**. Se mesmo assim for necessário: \`reverter-2026-09-21-parte2-site-e-atendimento.sql\` (só a parte 2) e, depois, \`reverter-2026-09-21-agente-whatsapp.sql\` (a parte 1; recusa se existir reserva feita pelo agente). Perda de dados: restaurar do backup lógico (procedimento no cabeçalho de \`scripts/backup-logico.mjs\`).
+- **Site**: `vercel rollback https://quinta-hits-oc1u4tqrp-agenciagibson-1820.vercel.app --scope agenciagibson-1820` volta ao deploy anterior a este (e2ba56e). Mais atrás: `https://quinta-hits-ddm499rgu-agenciagibson-1820.vercel.app`. Depois de qualquer rollback o painel volta ao cookie antigo e será preciso entrar de novo.
+- **Banco**: as migrações são aditivas e o código publicado funciona com ou sem elas, então **não é preciso reverter o banco para reverter o site**. Se mesmo assim for necessário: `reverter-2026-09-21-parte2-site-e-atendimento.sql` (só a parte 2) e, depois, `reverter-2026-09-21-agente-whatsapp.sql` (a parte 1; recusa se existir reserva feita pelo agente). Perda de dados: restaurar do backup lógico (procedimento no cabeçalho de `scripts/backup-logico.mjs`).
 
 ### 31.17 Checklist manual do painel (para você conferir logado)
 
 Entrar em https://quinta-hits-eight.vercel.app/admin com o e-mail de administrador (só você tem a senha; o restante já foi validado sem login).
 
-1. **Login**: entra; sair e entrar de novo; e-mail fora de \`ADMIN_EMAILS\` não entra.
+1. **Login**: entra; sair e entrar de novo; e-mail fora de `ADMIN_EMAILS` não entra.
 2. **Integrações e chaves de segurança**: as 4 chaves aparecem **desligadas**; "Envio real: BLOQUEADO"; "Reserva pelo site: fechada (RESERVAS_SITE_ENABLED desligada)"; credenciais WHATSAPP_* como **ausentes**; nenhum valor secreto na tela; "parte 2: não aplicada" enquanto o SQL não for rodado.
 3. **Programação (edições)**: as 13 edições aparecem; editar horário e local de uma (o horário é exigido para abrir reservas).
 4. **Mesas**: as 6 mesas aparecem; criar/editar/desativar uma de teste.
@@ -1106,7 +1106,7 @@ Entrar em https://quinta-hits-eight.vercel.app/admin com o e-mail de administrad
 7. **Atendimento humano**: fila vazia; o aviso **MODO SIMULADO** aparece; o filtro tem as 6 opções; nada de campo "seu nome" (a identidade é o seu e-mail).
 8. **Auditoria**: aparecem o seu login e as ações que você acabou de fazer, com o seu e-mail como autor.
 9. **Configurações da casa**: editar o Instagram/endereço e ver a mudança; conferir na auditoria.
-10. **Estado das chaves depois de conferir**: na Vercel (Project → Settings → Environment Variables), abrir as 4 variáveis e confirmar visualmente o valor \`false\`.
+10. **Estado das chaves depois de conferir**: na Vercel (Project → Settings → Environment Variables), abrir as 4 variáveis e confirmar visualmente o valor `false`.
 11. **Público (sem login)**: `/programacao` normal; `/reservar` com "As reservas pelo site abrem em breve" e o botão do Instagram; `/privacidade` com os dados oficiais (o CNPJ ainda não aparece: pendente de confirmação, seção 31.11).
 
 <!-- FIM DO DIARIO -->

@@ -43,12 +43,9 @@ export const site = {
 
   // Política de privacidade (/privacidade). Campos vazios NÃO aparecem na página.
   privacidade: {
-    atualizadaEm: "21 de setembro de 2026",
+    atualizadaEm: "22 de setembro de 2026",
     razaoSocial: "K. L & F PRODUÇÕES E PROMOÇÕES ARTÍSTICAS LTDA",
-    // PENDENTE DE CONFIRMAÇÃO: o número informado ("58.820.970/0013-7") tem 13 dígitos e não é um CNPJ válido.
-    // O ÚNICO ajuste de um dígito que passa na validação é 58.820.970/0013-57 (faltaria o "5"). Não foi publicado por ser
-    // um dado legal deduzido: confirme e preencha aqui. A página só mostra o CNPJ se ele tiver 14 dígitos válidos.
-    cnpj: "" as string,
+    cnpj: "58.824.097/0001-37", // confirmado pelo responsável em 22/09/2026 (substitui o número anterior, com dígito inválido)
     endereco: "Av. dos Vinhedos, 70, Sala 109 – Uberlândia/MG – CEP 38411-217",
     emailContato: "agenciagibson@gmail.com", // contato de privacidade e exercício de direitos (não há encarregado/DPO designado)
   },

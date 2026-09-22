@@ -93,13 +93,20 @@ describe("dados oficiais na política", () => {
     if (configurado) expect(cnpjValido(configurado)).toBe(true);
     else expect(texto).not.toMatch(/CNPJ \d/);
   });
+
+  it("mostra o CNPJ confirmado pelo responsável", () => {
+    expect(site.privacidade.cnpj).toBe("58.824.097/0001-37");
+    expect(texto).toContain("CNPJ 58.824.097/0001-37");
+  });
 });
 
 describe("cnpjValido", () => {
-  it("recusa o número informado com 13 dígitos e aceita só o que fecha nos dígitos verificadores", () => {
-    expect(cnpjValido("58.820.970/0013-7")).toBe(false); // 13 dígitos
-    expect(cnpjValido("58.820.970/0001-37")).toBe(false);
-    expect(cnpjValido("58.820.970/0013-57")).toBe(true); // único ajuste de um dígito que valida; aguardando confirmação do responsável
+  it("aceita o CNPJ confirmado pelo responsável e recusa o número anterior (13 dígitos, inválido)", () => {
+    expect(cnpjValido("58.824.097/0001-37")).toBe(true);
+    expect(cnpjValido("58.820.970/0013-7")).toBe(false); // 13 dígitos; foi o número informado antes da correção
+  });
+
+  it("recusa CNPJ com todos os dígitos iguais, vazio ou fora do padrão de 14 dígitos", () => {
     expect(cnpjValido("11.111.111/1111-11")).toBe(false);
     expect(cnpjValido("")).toBe(false);
     expect(cnpjValido("11.222.333/0001-81")).toBe(true); // CNPJ de exemplo válido
