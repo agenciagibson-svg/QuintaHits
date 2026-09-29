@@ -367,6 +367,6 @@ button { font: inherit; cursor: pointer; }
 .reserva__regras { margin: 10px 0 14px; font-size: 14px; }
 .reserva__regras ul { margin: 6px 0 6px 1.1em; padding: 0; }
 .reserva__regras li { margin-bottom: 2px; }
-.reserva__consentimento { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4; }
-.reserva__consentimento input { width: auto; margin-top: 3px; flex: none; }
+.reserva__form .reserva__consentimento { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.4; cursor: pointer; }
+.reserva__form .reserva__consentimento input { width: 20px; height: 20px; padding: 0; margin: 0; flex: none; accent-color: var(--terracota); cursor: pointer; }
 .reserva__consentimento a { text-decoration: underline; text-underline-offset: 2px; }
