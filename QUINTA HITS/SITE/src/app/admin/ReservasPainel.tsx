@@ -6,6 +6,8 @@ import { formatData, hojeISO, type Edicao } from "@/lib/edicao";
 import { formatarWhatsapp, type Mesa, type Reserva, type StatusReserva } from "@/lib/reserva";
 import { cor, s, selo, type Tom } from "./estilos";
 import type { PedidoPendente } from "./AdminDashboard";
+import MapaMesas, { LegendaMapa, type EstadoMesa } from "@/components/MapaMesas";
+import type { ElementoSalao } from "@/lib/planta";
 
 const ROTULO_STATUS: Record<StatusReserva, string> = {
   aguardando: "Para confirmar",
@@ -36,6 +38,7 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { e
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [planta, setPlanta] = useState<ElementoSalao[]>([]);
   const [erro, setErro] = useState("");
 
   // Troca rápida de edição: só a resposta da última escolhida preenche a tabela
@@ -64,6 +67,10 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { e
       if (ultimoPedido.current === id) setCarregando(false);
     }
   }
+
+  useEffect(() => {
+    fetch("/api/admin/planta").then((r) => (r.ok ? r.json() : null)).then((p) => p && setPlanta(p.elementos ?? [])).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     carregar(edicaoId);
@@ -119,6 +126,17 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { e
     return `https://wa.me/55${r.whatsapp}?text=${encodeURIComponent(texto)}`;
   }
 
+  /** No mapa do painel: confirmada = vermelho (reservada), pedido esperando a equipe = amarelo. */
+  function estadoNoMapa(mesaId: string): EstadoMesa {
+    const m = mesas.find((x) => x.id === mesaId);
+    if (m && !m.ativa) return "inativa";
+    const doMesa = reservas.filter((r) => r.mesa_id === mesaId);
+    if (doMesa.some((r) => r.status === "confirmada")) return "ocupada";
+    if (doMesa.some((r) => r.status === "aguardando")) return "pendente";
+    return "livre";
+  }
+  const clienteDaMesa = (mesaId: string) => reservas.find((r) => r.mesa_id === mesaId && (r.status === "confirmada" || r.status === "aguardando"));
+
   const ativas = reservas.filter((r) => r.status === "aguardando" || r.status === "confirmada");
   const aguardando = reservas.filter((r) => r.status === "aguardando").length;
   const pessoasConfirmadas = reservas.filter((r) => r.status === "confirmada").reduce((t, r) => t + r.pessoas, 0);
@@ -160,6 +178,21 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { e
         <div className="qh-kpi"><span className="qh-kpi-rotulo">Mesas ocupadas</span><span className="qh-kpi-valor">{ativas.length}</span></div>
         <div className="qh-kpi"><span className="qh-kpi-rotulo">Pessoas confirmadas</span><span className="qh-kpi-valor">{pessoasConfirmadas}</span></div>
       </div>
+
+      {mesas.length > 0 && (
+        <section style={{ ...s.secao, background: "#f1e7d2", padding: 16, maxWidth: 780 }}>
+          <MapaMesas
+            mesas={mesas.map((m) => {
+              const c = clienteDaMesa(m.id);
+              return { ...m, area: c ? `${c.nome} · ${c.pessoas} pessoa(s)` : m.area };
+            })}
+            elementos={planta}
+            desativarOcupadas={false}
+            estado={(m) => estadoNoMapa(m.id)}
+          />
+          <div style={{ color: "#171717" }}><LegendaMapa painel /></div>
+        </section>
+      )}
 
       {carregando ? (
         <p style={s.legenda}>Carregando…</p>

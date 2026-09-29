@@ -373,10 +373,11 @@ button { font: inherit; cursor: pointer; }
 .mapa__mesa--livre:hover { transform: translate(-50%, -50%) scale(1.08); }
 .mapa__mesa--livre:hover .mapa__tampo { --tampo: var(--verde); --texto: var(--creme); }
 .mapa__mesa--livre:hover .mapa__cadeiras i { --cadeira: var(--mostarda); }
-.mapa__mesa--selecionada { --tampo: var(--terracota); --texto: #fff; --cadeira: var(--mostarda); transform: translate(-50%, -50%) scale(1.1); z-index: 3; }
-.mapa__mesa--selecionada .mapa__tampo { box-shadow: 0 0 0 4px rgba(213, 166, 42, 0.55), 0 6px 14px rgba(184, 74, 50, 0.35); }
-.mapa__mesa--ocupada { --tampo: #e4dbc6; --texto: rgba(23, 23, 23, 0.4); --cadeira: #efe8d8; --contorno: rgba(23, 23, 23, 0.25); cursor: not-allowed; }
-.mapa__mesa--ocupada .mapa__tampo { box-shadow: none; background-image: repeating-linear-gradient(45deg, transparent 0 4px, rgba(23, 23, 23, 0.07) 4px 8px); }
+.mapa__mesa--selecionada { --tampo: var(--verde); --texto: var(--creme); --cadeira: var(--mostarda); transform: translate(-50%, -50%) scale(1.1); z-index: 3; }
+.mapa__mesa--selecionada .mapa__tampo { box-shadow: 0 0 0 4px rgba(213, 166, 42, 0.6), 0 6px 14px rgba(23, 53, 43, 0.35); }
+/* reservada: vermelho da marca, bem visível */
+.mapa__mesa--ocupada { --tampo: var(--terracota); --texto: #fff; --cadeira: #e9a896; --contorno: #7d2f1f; cursor: not-allowed; }
+.mapa__mesa--pendente { --tampo: var(--mostarda); --texto: var(--preto); --cadeira: #f0d58c; --contorno: #7a5c0c; }
 .mapa__mesa--inativa { --tampo: transparent; --texto: rgba(23, 23, 23, 0.4); --cadeira: transparent; --contorno: rgba(23, 23, 23, 0.3); }
 .mapa__mesa--inativa .mapa__tampo, .mapa__mesa--inativa .mapa__cadeiras i { border-style: dashed; box-shadow: none; }
 .mapa__mesa:focus-visible { outline: none; }
@@ -387,8 +388,9 @@ button { font: inherit; cursor: pointer; }
 .mapa__legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-top: 14px; font-size: 14px; font-weight: 500; }
 .mapa__legenda span { display: inline-flex; align-items: center; gap: 8px; }
 .mapa__legenda-mesa { width: 18px; height: 18px; border-radius: 50%; display: inline-block; border: 2px solid var(--preto); background: #fffdf7; }
-.mapa__legenda-mesa--selecionada { background: var(--terracota); box-shadow: 0 0 0 3px rgba(213, 166, 42, 0.6); }
-.mapa__legenda-mesa--ocupada { background: #e4dbc6; border-color: rgba(23, 23, 23, 0.3); }
+.mapa__legenda-mesa--selecionada { background: var(--verde); box-shadow: 0 0 0 3px rgba(213, 166, 42, 0.6); }
+.mapa__legenda-mesa--ocupada { background: var(--terracota); border-color: #7d2f1f; }
+.mapa__legenda-mesa--pendente { background: var(--mostarda); border-color: #7a5c0c; }
 .mapa__legenda-dica { margin-left: auto; font-size: 13px; opacity: 0.6; font-weight: 400; }
 @media (max-width: 640px) { .mapa__legenda-dica { display: none; } }
 @media (prefers-reduced-motion: reduce) { .mapa__mesa, .mapa__tampo, .mapa__cadeiras i { transition: none; } }

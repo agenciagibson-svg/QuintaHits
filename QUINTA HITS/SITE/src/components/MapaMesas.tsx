@@ -4,7 +4,8 @@ import type { PointerEvent, Ref } from "react";
 import type { MesaPublica } from "@/lib/reserva";
 import { TIPOS_ELEMENTO, type ElementoSalao } from "@/lib/planta";
 
-export type EstadoMesa = "livre" | "ocupada" | "selecionada" | "inativa";
+/** `pendente`: só no painel, pedido esperando a equipe confirmar. */
+export type EstadoMesa = "livre" | "ocupada" | "selecionada" | "inativa" | "pendente";
 
 /** Tamanho da mesa (tampo + cadeiras) em % da largura do mapa, conforme os lugares. */
 function tamanho(lugares: number): number {
@@ -16,9 +17,10 @@ function tamanho(lugares: number): number {
 
 const ROTULO: Record<EstadoMesa, string> = {
   livre: "livre",
-  ocupada: "ocupada",
+  ocupada: "reservada",
   selecionada: "sua escolha",
   inativa: "desativada",
+  pendente: "pedido para confirmar",
 };
 
 /**
@@ -98,12 +100,18 @@ export default function MapaMesas({
 }
 
 /** Legenda com as mesmas mesinhas do mapa. */
-export function LegendaMapa() {
-  const itens: { est: EstadoMesa; texto: string }[] = [
+export function LegendaMapa({ painel = false }: { painel?: boolean }) {
+  const itens: { est: EstadoMesa; texto: string }[] = painel
+    ? [
+        { est: "livre", texto: "Livre" },
+        { est: "pendente", texto: "Para confirmar" },
+        { est: "ocupada", texto: "Reservada" },
+      ]
+    : [
     { est: "livre", texto: "Livre" },
     { est: "selecionada", texto: "Sua escolha" },
-    { est: "ocupada", texto: "Ocupada" },
-  ];
+    { est: "ocupada", texto: "Reservada" },
+      ];
   return (
     <div className="mapa__legenda" aria-hidden="true">
       {itens.map((i) => (
@@ -112,7 +120,7 @@ export function LegendaMapa() {
           {i.texto}
         </span>
       ))}
-      <span className="mapa__legenda-dica">Toque numa mesa livre para escolher</span>
+      {!painel && <span className="mapa__legenda-dica">Toque numa mesa livre para escolher</span>}
     </div>
   );
 }
