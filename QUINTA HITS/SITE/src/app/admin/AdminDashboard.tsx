@@ -1,363 +1,159 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { s } from "./estilos";
-import MesasEditor from "./MesasEditor";
+import { cssAdmin, s } from "./estilos";
 import AtendimentoPainel from "./AtendimentoPainel";
 import AuditoriaPainel from "./AuditoriaPainel";
+import CasaPainel from "./CasaPainel";
 import IntegracoesPainel from "./IntegracoesPainel";
+import MesasEditor from "./MesasEditor";
+import ProgramacaoPainel from "./ProgramacaoPainel";
 import RegrasEdicaoPainel from "./RegrasEdicaoPainel";
 import ReservasPainel from "./ReservasPainel";
-import { GENERO_VALORES, STATUS_VALORES, type Edicao } from "@/lib/edicao";
+import VisaoGeral from "./VisaoGeral";
+import {
+  IconeCalendario, IconeCasa, IconeConversa, IconeExterno, IconeInicio, IconeMesas, IconeRegras, IconeReserva, IconeSair, IconeSistema,
+} from "./Icones";
+import type { Edicao } from "@/lib/edicao";
 
-type Config = {
-  casa_endereco?: string;
-  casa_bairro?: string;
-  casa_instagram?: string;
-  reserva_url?: string;
-  horario_padrao?: string;
-};
+export type Aba = "inicio" | "atendimento" | "reservas" | "programacao" | "regras" | "mesas" | "casa" | "sistema";
 
-const STATUS_OPCOES = STATUS_VALORES;
-const GENERO_OPCOES = GENERO_VALORES;
+type ItemMenu = { aba: Aba; rotulo: string; icone: ReactNode; titulo: string; descricao: string; grupo: "Operação" | "Configuração" };
 
-const EDICAO_VAZIA = {
-  data: "",
-  artista: "",
-  instagram: "",
-  tema: "",
-  genero: "",
-  horario: "",
-  local: "",
-  status: "a_confirmar" as Edicao["status"],
-  destaque: "",
-};
+const MENU: ItemMenu[] = [
+  { aba: "inicio", rotulo: "Início", icone: <IconeInicio />, grupo: "Operação", titulo: "Visão geral", descricao: "O que importa para a próxima quinta, num relance." },
+  { aba: "atendimento", rotulo: "Atendimento", icone: <IconeConversa />, grupo: "Operação", titulo: "Atendimento", descricao: "Conversas do WhatsApp que o agente passou para a equipe. Enquanto uma pessoa cuida, o agente não responde." },
+  { aba: "reservas", rotulo: "Reservas", icone: <IconeReserva />, grupo: "Operação", titulo: "Reservas", descricao: "Pedidos de mesa de cada noite. Confirme à mão só se o cliente não conseguir enviar o código pelo WhatsApp." },
+  { aba: "programacao", rotulo: "Programação", icone: <IconeCalendario />, grupo: "Operação", titulo: "Programação", descricao: "As quintas da agenda: atração, horário, local e status. É o que aparece em /programacao." },
+  { aba: "regras", rotulo: "Regras da noite", icone: <IconeRegras />, grupo: "Configuração", titulo: "Regras da noite", descricao: "Prazos, valores e canais de cada edição. A reserva só abre quando tudo está preenchido e liberado." },
+  { aba: "mesas", rotulo: "Mesas", icone: <IconeMesas />, grupo: "Configuração", titulo: "Mesas", descricao: "O mapa que o cliente vê em /reservar. Mesa desativada some do site." },
+  { aba: "casa", rotulo: "Casa", icone: <IconeCasa />, grupo: "Configuração", titulo: "Dados da casa", descricao: "Endereço, Instagram e link de reserva usados em todo o site." },
+  { aba: "sistema", rotulo: "Sistema", icone: <IconeSistema />, grupo: "Configuração", titulo: "Sistema", descricao: "Estado das integrações (WhatsApp, banco, site) e histórico de ações da equipe." },
+];
+
+const ABAS = MENU.map((m) => m.aba);
+const ehAba = (v: string): v is Aba => (ABAS as string[]).includes(v);
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [aba, setAba] = useState<Aba>("inicio");
+  const [visitadas, setVisitadas] = useState<Set<Aba>>(() => new Set<Aba>(["inicio"]));
   const [edicoes, setEdicoes] = useState<Edicao[]>([]);
-  const [config, setConfig] = useState<Config>({});
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
-  const [msg, setMsg] = useState("");
-  const [novaEdicao, setNovaEdicao] = useState({ ...EDICAO_VAZIA });
-  const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [rascunho, setRascunho] = useState<Record<string, string>>({});
-  const [aguardandoHumano, setAguardandoHumano] = useState(0);
+  const [aguardando, setAguardando] = useState(0);
+  const [visitaInicio, setVisitaInicio] = useState(0);
 
-  /** Sessão expirada: volta para o login em vez de mostrar erro genérico. */
-  function sessaoExpirou(res: Response): boolean {
-    if (res.status !== 401) return false;
-    router.replace("/admin/login");
-    return true;
-  }
-
-  async function carregarTudo() {
-    setCarregando(true);
+  const carregarEdicoes = useCallback(async () => {
     setErro("");
     try {
-      const [resEd, resCfg] = await Promise.all([fetch("/api/admin/edicoes"), fetch("/api/admin/config")]);
-      if (sessaoExpirou(resEd) || sessaoExpirou(resCfg)) return;
-      if (!resEd.ok || !resCfg.ok) throw new Error("Falha ao carregar dados.");
-      const jEd = await resEd.json();
-      const jCfg = await resCfg.json();
-      setEdicoes(jEd.edicoes ?? []);
-      setConfig(jCfg.config ?? {});
+      const res = await fetch("/api/admin/edicoes");
+      if (res.status === 401) return router.replace("/admin/login");
+      if (!res.ok) throw new Error();
+      setEdicoes((await res.json()).edicoes ?? []);
     } catch {
       setErro("Não foi possível carregar os dados. Tente recarregar a página.");
     } finally {
       setCarregando(false);
     }
-  }
+  }, [router]);
 
-  useEffect(() => {
-    carregarTudo();
-    // Carga inicial: roda uma vez ao montar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { carregarEdicoes(); }, [carregarEdicoes]);
+
+  const irPara = useCallback((nova: Aba) => {
+    setAba(nova);
+    setVisitadas((v) => (v.has(nova) ? v : new Set(v).add(nova)));
+    if (nova === "inicio") setVisitaInicio((n) => n + 1);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", nova === "inicio" ? "/admin" : `/admin#${nova}`);
+      window.scrollTo({ top: 0 });
+    }
   }, []);
 
-  function avisar(texto: string) {
-    setMsg(texto);
-    setTimeout(() => setMsg(""), 3000);
-  }
+  // Abre direto na seção do endereço (/admin#reservas) e acompanha o botão voltar do navegador.
+  useEffect(() => {
+    const doHash = () => {
+      const h = window.location.hash.replace("#", "");
+      if (ehAba(h)) {
+        setAba(h);
+        setVisitadas((v) => (v.has(h) ? v : new Set(v).add(h)));
+      }
+    };
+    doHash();
+    window.addEventListener("hashchange", doHash);
+    return () => window.removeEventListener("hashchange", doHash);
+  }, []);
 
   async function sair() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
   }
 
-  async function criarEdicao(e: React.FormEvent) {
-    e.preventDefault();
-    if (!novaEdicao.data) return;
-    const res = await fetch("/api/admin/edicoes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(novaEdicao),
-    });
-    if (!res.ok) {
-      if (sessaoExpirou(res)) return;
-      const j = await res.json().catch(() => ({}));
-      setErro(j.erro || "Não foi possível criar a edição.");
-      return;
-    }
-    setNovaEdicao({ ...EDICAO_VAZIA });
-    avisar("Edição criada.");
-    carregarTudo();
-  }
+  const atual = MENU.find((m) => m.aba === aba)!;
+  const grupos = ["Operação", "Configuração"] as const;
 
-  function iniciarEdicao(ed: Edicao) {
-    setEditandoId(ed.id);
-    setRascunho({ ...ed });
-  }
-
-  async function salvarEdicao(id: string) {
-    const res = await fetch(`/api/admin/edicoes/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(rascunho),
-    });
-    if (!res.ok) {
-      if (sessaoExpirou(res)) return;
-      const j = await res.json().catch(() => ({}));
-      setErro(j.erro || "Não foi possível salvar.");
-      return;
-    }
-    setEditandoId(null);
-    avisar("Edição salva.");
-    carregarTudo();
-  }
-
-  async function excluirEdicao(id: string) {
-    if (!confirm(`Excluir a edição de ${id}? Essa ação não pode ser desfeita.`)) return;
-    const res = await fetch(`/api/admin/edicoes/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      if (sessaoExpirou(res)) return;
-      const j = await res.json().catch(() => ({}));
-      setErro(j.erro || "Não foi possível excluir.");
-      return;
-    }
-    avisar("Edição excluída.");
-    carregarTudo();
-  }
-
-  async function salvarConfig(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await fetch("/api/admin/config", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(config),
-    });
-    if (!res.ok) {
-      if (sessaoExpirou(res)) return;
-      const j = await res.json().catch(() => ({}));
-      setErro(j.erro || "Não foi possível salvar a configuração.");
-      return;
-    }
-    avisar("Configuração da casa salva.");
-  }
-
-  if (carregando) return <div style={s.pagina}>Carregando…</div>;
+  /** Seções já abertas continuam montadas (não perdem o que foi digitado); só a atual aparece. */
+  const painel = (qual: Aba, conteudo: ReactNode) => (visitadas.has(qual) ? <div hidden={aba !== qual}>{conteudo}</div> : null);
 
   return (
     <div style={s.pagina}>
-      <header style={s.topo}>
-        <h1 style={s.h1}>
-          QUINTA HITS — Painel
-          {aguardandoHumano > 0 && (
-            <span role="status" style={{ ...s.selo, background: "#B84A32", color: "#fff", marginLeft: 12, fontSize: 13 }}>
-              {aguardandoHumano} aguardando atendimento
-            </span>
-          )}
-        </h1>
-        <button onClick={sair} style={s.botaoSair}>Sair</button>
-      </header>
-
-      {msg && <div style={s.aviso}>{msg}</div>}
-      {erro && <div style={s.avisoErro}>{erro}</div>}
-
-      {/* ATENDIMENTO HUMANO */}
-      <section style={{ ...s.secao, ...(aguardandoHumano > 0 ? { border: "2px solid #B84A32" } : {}) }}>
-        <h2 style={s.h2}>Aguardando atendimento humano{aguardandoHumano > 0 ? ` (${aguardandoHumano})` : ""}</h2>
-        <p style={s.legenda}>Conversas que o agente de reservas do WhatsApp passou para a equipe. Enquanto uma pessoa cuida, o agente não responde.</p>
-        <AtendimentoPainel onContagem={setAguardandoHumano} />
-      </section>
-
-      {/* INTEGRAÇÕES E CHAVES */}
-      <section style={s.secao}>
-        <h2 style={s.h2}>Integrações e chaves de segurança</h2>
-        <IntegracoesPainel />
-      </section>
-
-      {/* CONFIG DA CASA */}
-      <section style={s.secao}>
-        <h2 style={s.h2}>Casa &amp; reserva</h2>
-        <p style={s.legenda}>Endereço, bairro, Instagram e link de reserva — usados em todo o site.</p>
-        <form onSubmit={salvarConfig} style={s.gridConfig}>
-          <label style={s.campo}>
-            <span>Endereço</span>
-            <input style={s.input} value={config.casa_endereco ?? ""} onChange={(e) => setConfig({ ...config, casa_endereco: e.target.value })} placeholder="Rua Exemplo, 123" />
-          </label>
-          <label style={s.campo}>
-            <span>Bairro</span>
-            <input style={s.input} value={config.casa_bairro ?? ""} onChange={(e) => setConfig({ ...config, casa_bairro: e.target.value })} placeholder="Centro" />
-          </label>
-          <label style={s.campo}>
-            <span>Instagram da casa</span>
-            <input style={s.input} value={config.casa_instagram ?? ""} onChange={(e) => setConfig({ ...config, casa_instagram: e.target.value })} placeholder="florindosbar (sem @)" />
-          </label>
-          <label style={s.campo}>
-            <span>Link de reserva</span>
-            <input style={s.input} value={config.reserva_url ?? ""} onChange={(e) => setConfig({ ...config, reserva_url: e.target.value })} placeholder="https://..." />
-          </label>
-          <label style={s.campo}>
-            <span>Horário padrão</span>
-            <input style={s.input} value={config.horario_padrao ?? ""} onChange={(e) => setConfig({ ...config, horario_padrao: e.target.value })} placeholder="20h" />
-          </label>
-          <button type="submit" style={s.botaoSalvar}>Salvar configuração</button>
-        </form>
-      </section>
-
-      {/* RESERVAS */}
-      <section style={s.secao}>
-        <h2 style={s.h2}>Reservas de mesa</h2>
-        <p style={s.legenda}>Pedidos feitos pelo site. O cliente confirma sozinho mandando o código pelo WhatsApp em até 15 min; sem mensagem, a mesa volta a ficar livre. Confirme à mão só se o cliente não conseguir enviar.</p>
-        <ReservasPainel edicoes={edicoes} />
-      </section>
-
-      {/* MAPA DE MESAS */}
-      <section style={s.secao}>
-        <h2 style={s.h2}>Mapa de mesas</h2>
-        <p style={s.legenda}>As mesas que o cliente vê e escolhe em /reservar. Mesa desativada some do site.</p>
-        <MesasEditor />
-      </section>
-
-      {/* REGRAS POR EDIÇÃO E CANAIS DAS MESAS */}
-      <section style={s.secao}>
-        <h2 style={s.h2}>Regras da edição &amp; canais das mesas</h2>
-        <p style={s.legenda}>Regras de reserva de cada edição e onde cada mesa pode ser oferecida. O atendimento automático só funciona em edição com tudo preenchido e liberada.</p>
-        <RegrasEdicaoPainel edicoes={edicoes} />
-      </section>
-
-      {/* NOVA EDIÇÃO */}
-      <section style={s.secao}>
-        <h2 style={s.h2}>Nova edição</h2>
-        <form onSubmit={criarEdicao} style={s.gridNova}>
-          <label style={s.campo}>
-            <span>Data</span>
-            <input style={s.input} type="date" value={novaEdicao.data} onChange={(e) => setNovaEdicao({ ...novaEdicao, data: e.target.value })} required />
-          </label>
-          <label style={s.campo}>
-            <span>Artista</span>
-            <input style={s.input} value={novaEdicao.artista} onChange={(e) => setNovaEdicao({ ...novaEdicao, artista: e.target.value })} />
-          </label>
-          <label style={s.campo}>
-            <span>Instagram do artista</span>
-            <input style={s.input} value={novaEdicao.instagram} onChange={(e) => setNovaEdicao({ ...novaEdicao, instagram: e.target.value })} />
-          </label>
-          <label style={s.campo}>
-            <span>Tema</span>
-            <input style={s.input} value={novaEdicao.tema} onChange={(e) => setNovaEdicao({ ...novaEdicao, tema: e.target.value })} />
-          </label>
-          <label style={s.campo}>
-            <span>Gênero</span>
-            <select style={s.input} value={novaEdicao.genero} onChange={(e) => setNovaEdicao({ ...novaEdicao, genero: e.target.value })}>
-              {GENERO_OPCOES.map((g) => <option key={g} value={g}>{g || "—"}</option>)}
-            </select>
-          </label>
-          <label style={s.campo}>
-            <span>Horário</span>
-            <input style={s.input} value={novaEdicao.horario} onChange={(e) => setNovaEdicao({ ...novaEdicao, horario: e.target.value })} placeholder="20h" />
-          </label>
-          <label style={s.campo}>
-            <span>Local</span>
-            <input style={s.input} value={novaEdicao.local} onChange={(e) => setNovaEdicao({ ...novaEdicao, local: e.target.value })} placeholder="Florindos Bar" />
-          </label>
-          <label style={s.campo}>
-            <span>Status</span>
-            <select style={s.input} value={novaEdicao.status} onChange={(e) => setNovaEdicao({ ...novaEdicao, status: e.target.value as Edicao["status"] })}>
-              {STATUS_OPCOES.map((st) => <option key={st} value={st}>{st}</option>)}
-            </select>
-          </label>
-          <label style={{ ...s.campo, gridColumn: "1 / -1" }}>
-            <span>Destaque (ex: &quot;primeira quinta no Florindos Bar&quot;)</span>
-            <input style={s.input} value={novaEdicao.destaque} onChange={(e) => setNovaEdicao({ ...novaEdicao, destaque: e.target.value })} />
-          </label>
-          <button type="submit" style={s.botaoSalvar}>Criar edição</button>
-        </form>
-      </section>
-
-      {/* LISTA DE EDIÇÕES */}
-      <section style={s.secao}>
-        <h2 style={s.h2}>Edições cadastradas ({edicoes.length})</h2>
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.tabela}>
-            <thead>
-              <tr>
-                {["Data", "Artista", "Tema", "Gênero", "Local", "Status", "Destaque", ""].map((c) => (
-                  <th key={c} style={s.th}>{c}</th>
+      <style>{cssAdmin}</style>
+      <div className="qh-shell">
+        <aside className="qh-lateral">
+          <div className="qh-marca">
+            QUINTA HITS
+            <small>Painel da casa</small>
+          </div>
+          <nav className="qh-nav" aria-label="Seções do painel">
+            {grupos.map((g) => (
+              <div key={g} style={{ display: "contents" }}>
+                <div className="qh-nav-grupo">{g}</div>
+                {MENU.filter((m) => m.grupo === g).map((m) => (
+                  <button key={m.aba} type="button" className="qh-item" aria-current={aba === m.aba ? "page" : undefined} onClick={() => irPara(m.aba)}>
+                    {m.icone}
+                    {m.rotulo}
+                    {m.aba === "atendimento" && aguardando > 0 && <span className="qh-badge" aria-label={`${aguardando} aguardando`}>{aguardando}</span>}
+                  </button>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {edicoes.map((ed) => {
-                const editando = editandoId === ed.id;
-                return (
-                  <tr key={ed.id}>
-                    <td style={s.td}>{ed.data}</td>
-                    <td style={s.td}>
-                      {editando ? <input style={s.inputCelula} value={rascunho.artista ?? ""} onChange={(e) => setRascunho({ ...rascunho, artista: e.target.value })} /> : ed.artista || "—"}
-                    </td>
-                    <td style={s.td}>
-                      {editando ? <input style={s.inputCelula} value={rascunho.tema ?? ""} onChange={(e) => setRascunho({ ...rascunho, tema: e.target.value })} /> : ed.tema || "—"}
-                    </td>
-                    <td style={s.td}>
-                      {editando ? (
-                        <select style={s.inputCelula} value={rascunho.genero ?? ""} onChange={(e) => setRascunho({ ...rascunho, genero: e.target.value })}>
-                          {GENERO_OPCOES.map((g) => <option key={g} value={g}>{g || "—"}</option>)}
-                        </select>
-                      ) : ed.genero || "—"}
-                    </td>
-                    <td style={s.td}>
-                      {editando ? <input style={s.inputCelula} value={rascunho.local ?? ""} onChange={(e) => setRascunho({ ...rascunho, local: e.target.value })} /> : ed.local || "—"}
-                    </td>
-                    <td style={s.td}>
-                      {editando ? (
-                        <select style={s.inputCelula} value={rascunho.status ?? ""} onChange={(e) => setRascunho({ ...rascunho, status: e.target.value })}>
-                          {STATUS_OPCOES.map((st) => <option key={st} value={st}>{st}</option>)}
-                        </select>
-                      ) : ed.status}
-                    </td>
-                    <td style={s.td}>
-                      {editando ? <input style={s.inputCelula} value={rascunho.destaque ?? ""} onChange={(e) => setRascunho({ ...rascunho, destaque: e.target.value })} /> : ed.destaque || "—"}
-                    </td>
-                    <td style={{ ...s.td, whiteSpace: "nowrap" }}>
-                      {editando ? (
-                        <>
-                          <button style={s.botaoMini} onClick={() => salvarEdicao(ed.id)}>Salvar</button>
-                          <button style={s.botaoMiniOutline} onClick={() => setEditandoId(null)}>Cancelar</button>
-                        </>
-                      ) : (
-                        <>
-                          <button style={s.botaoMiniOutline} onClick={() => iniciarEdicao(ed)}>Editar</button>
-                          <button style={s.botaoMiniPerigo} onClick={() => excluirEdicao(ed.id)}>Excluir</button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </div>
+            ))}
+          </nav>
+          <div className="qh-rodape">
+            <a className="qh-item qh-site" href="/" target="_blank" rel="noopener noreferrer"><IconeExterno /> Ver o site</a>
+            <button type="button" className="qh-item" onClick={sair}><IconeSair /> Sair</button>
+          </div>
+        </aside>
 
-      {/* AUDITORIA */}
-      <section style={s.secao}>
-        <h2 style={s.h2}>Auditoria</h2>
-        <p style={s.legenda}>Quem fez o quê no painel e no atendimento (últimas 100 ações).</p>
-        <AuditoriaPainel />
-      </section>
+        <main className="qh-main">
+          <div className="qh-conteudo">
+            <header className="qh-cabecalho">
+              <div>
+                <h1>{atual.titulo}</h1>
+                <p>{atual.descricao}</p>
+              </div>
+            </header>
+
+            {erro && <div style={s.avisoErro}>{erro}</div>}
+
+            {carregando ? (
+              <p style={s.legenda}>Carregando…</p>
+            ) : (
+              <>
+                {aba === "inicio" && <VisaoGeral key={visitaInicio} edicoes={edicoes} aguardando={aguardando} irPara={irPara} />}
+                {/* Sempre montado: mantém o contador de atendimento do menu atualizado. */}
+                <div hidden={aba !== "atendimento"}><AtendimentoPainel onContagem={setAguardando} /></div>
+                {painel("reservas", <ReservasPainel edicoes={edicoes} />)}
+                {painel("programacao", <ProgramacaoPainel edicoes={edicoes} recarregar={carregarEdicoes} />)}
+                {painel("regras", <RegrasEdicaoPainel edicoes={edicoes} />)}
+                {painel("mesas", <MesasEditor />)}
+                {painel("casa", <CasaPainel />)}
+                {painel("sistema", <><IntegracoesPainel /><AuditoriaPainel /></>)}
+              </>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

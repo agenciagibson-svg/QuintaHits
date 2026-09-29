@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatData, hojeISO, type Edicao } from "@/lib/edicao";
 import { formatarWhatsapp, type Mesa, type Reserva, type StatusReserva } from "@/lib/reserva";
-import { s } from "./estilos";
+import { cor, s, selo, type Tom } from "./estilos";
 
 const ROTULO_STATUS: Record<StatusReserva, string> = {
   aguardando: "aguardando WhatsApp",
@@ -13,11 +13,11 @@ const ROTULO_STATUS: Record<StatusReserva, string> = {
   cancelada: "cancelada",
 };
 
-const COR_STATUS: Record<StatusReserva, { background: string; color: string }> = {
-  aguardando: { background: "#D5A62A", color: "#171717" },
-  confirmada: { background: "#17352B", color: "#F1E7D2" },
-  expirada: { background: "#333", color: "#bbb" },
-  cancelada: { background: "#333", color: "#bbb" },
+const TOM_STATUS: Record<StatusReserva, Tom> = {
+  aguardando: "alerta",
+  confirmada: "ok",
+  expirada: "neutro",
+  cancelada: "neutro",
 };
 
 /** Próxima edição (de hoje em diante); se não houver, a mais recente. `edicoes` vem em ordem decrescente de data. */
@@ -115,17 +115,22 @@ export default function ReservasPainel({ edicoes }: { edicoes: Edicao[] }) {
 
       {erro && <div style={{ ...s.avisoErro, marginTop: 12 }}>{erro}</div>}
 
-      <p style={{ ...s.legenda, marginTop: 12 }}>
-        {aguardando} aguardando WhatsApp · {ativas.length} mesa(s) ocupada(s) · {pessoasConfirmadas} pessoa(s) confirmada(s)
-      </p>
+      <div className="qh-kpis qh-compacto" style={{ marginTop: 16 }}>
+        <div className="qh-kpi"><span className="qh-kpi-rotulo">Mesas ocupadas</span><span className="qh-kpi-valor">{ativas.length}</span></div>
+        <div className="qh-kpi"><span className="qh-kpi-rotulo">Aguardando WhatsApp</span><span className="qh-kpi-valor" style={aguardando ? { color: cor.mostarda } : undefined}>{aguardando}</span></div>
+        <div className="qh-kpi"><span className="qh-kpi-rotulo">Pessoas confirmadas</span><span className="qh-kpi-valor">{pessoasConfirmadas}</span></div>
+      </div>
 
       {carregando ? (
         <p style={s.legenda}>Carregando…</p>
       ) : reservas.length === 0 ? (
-        <p style={s.legenda}>Nenhum pedido de reserva para esta edição.</p>
+        <div style={{ ...s.secao, textAlign: "center", padding: "40px 22px" }}>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Nenhum pedido para esta noite</div>
+          <div style={{ fontSize: 13, color: cor.suave }}>Os pedidos feitos pelo site e pelo WhatsApp aparecem aqui na hora.</div>
+        </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.tabela}>
+        <div style={{ overflowX: "auto", background: cor.cartao, border: `1px solid ${cor.linha}`, borderRadius: 14 }}>
+          <table style={s.tabela} className="qh-tabela">
             <thead>
               <tr>
                 {["Mesa", "Nome", "WhatsApp", "Pessoas", "Código", "Pedido em", "Status", ""].map((c) => (
@@ -139,7 +144,7 @@ export default function ReservasPainel({ edicoes }: { edicoes: Edicao[] }) {
                   <td style={s.td}><strong>{numeroMesa(r.mesa_id)}</strong></td>
                   <td style={s.td}>{r.nome}</td>
                   <td style={s.td}>
-                    <a href={linkWhatsapp(r)} target="_blank" rel="noopener noreferrer" style={{ color: "#D5A62A" }}>
+                    <a href={linkWhatsapp(r)} target="_blank" rel="noopener noreferrer" style={{ color: cor.mostarda }}>
                       {formatarWhatsapp(r.whatsapp)}
                     </a>
                   </td>
@@ -149,7 +154,7 @@ export default function ReservasPainel({ edicoes }: { edicoes: Edicao[] }) {
                     {new Date(r.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </td>
                   <td style={s.td}>
-                    <span style={{ ...s.selo, ...COR_STATUS[r.status] }}>{ROTULO_STATUS[r.status]}</span>
+                    <span style={selo(TOM_STATUS[r.status])}>{ROTULO_STATUS[r.status]}</span>
                   </td>
                   <td style={{ ...s.td, whiteSpace: "nowrap" }}>
                     {/* Confirmar à mão: cliente que não conseguiu mandar o código (ou pedido que expirou). */}

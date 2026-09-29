@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FiltroAtendimento, ItemAtendimento, MensagemDoHistorico, NotaInterna } from "@/lib/agente/atendimento";
-import { s } from "./estilos";
+import { cor, s, selo } from "./estilos";
 
 const ROTULO_MOTIVO: Record<string, string> = {
   pedido_do_cliente: "O cliente pediu uma pessoa",
@@ -150,15 +150,16 @@ export default function AtendimentoPainel({ onContagem }: { onContagem?: (n: num
   return (
     <div>
       {!envioReal && (
-        <div style={{ ...s.aviso, marginInline: 0, background: "#3a3320" }} role="note">
-          <strong>MODO SIMULADO.</strong> O envio real pelo WhatsApp está desligado: as respostas escritas aqui ficam na fila e não saem para o cliente, e a Meta não é chamada.
+        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: cor.suave, marginBottom: 14 }} role="note">
+          <span style={selo("alerta")}>Modo simulado</span>
+          <span>O WhatsApp ainda não está conectado: respostas escritas aqui ficam na fila e não saem para o cliente.</span>
         </div>
       )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 12 }}>
-        <span role="status" style={{ ...s.selo, background: destaque ? "#B84A32" : "#17352B", color: "#fff", fontSize: 14, padding: "4px 14px" }}>
+        <span role="status" style={{ ...selo(destaque ? "perigo" : "ok"), fontSize: 13, padding: "5px 14px" }}>
           {destaque ? `${pendentes} aguardando atendimento humano` : "Nenhum cliente aguardando"}
         </span>
-        {naoLidas > 0 && <span style={{ ...s.selo, background: "#D5A62A", color: "#171717", fontSize: 14, padding: "4px 14px" }}>{naoLidas} mensagem(ns) não lida(s)</span>}
+        {naoLidas > 0 && <span style={{ ...selo("alerta"), fontSize: 13, padding: "5px 14px" }}>{naoLidas} mensagem(ns) não lida(s)</span>}
         <label style={{ ...s.campo, flexDirection: "row", alignItems: "center", gap: 8 }}>
           <span>Filtro:</span>
           <select style={s.input} value={filtro} onChange={(e) => mudarFiltro(e.target.value as FiltroAtendimento)}>
@@ -175,16 +176,19 @@ export default function AtendimentoPainel({ onContagem }: { onContagem?: (n: num
       {msg && <div style={{ ...s.aviso, marginInline: 0 }}>{msg}</div>}
 
       {itens.length === 0 ? (
-        <p style={s.legenda}>Nada neste filtro. Quando o agente passar uma conversa para a equipe, ela aparece aqui; enquanto uma pessoa cuida, o agente não responde.</p>
+        <div style={{ ...s.secao, textAlign: "center", padding: "40px 22px" }}>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Nenhuma conversa aqui</div>
+          <div style={{ fontSize: 13, color: cor.suave }}>Quando o agente passar uma conversa para a equipe, ela aparece nesta lista.</div>
+        </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.tabela}>
+        <div style={{ overflowX: "auto", background: cor.cartao, border: `1px solid ${cor.linha}`, borderRadius: 14 }}>
+          <table style={s.tabela} className="qh-tabela">
             <thead>
               <tr><th style={s.th}>Cliente</th><th style={s.th}>Motivo</th><th style={s.th}>Edição / reserva</th><th style={s.th}>Última mensagem</th><th style={s.th}>Desde</th><th style={s.th}>Situação</th><th style={s.th} /></tr>
             </thead>
             <tbody>
               {itens.map((i) => (
-                <tr key={i.transferencia_id} style={i.status === "aguardando" ? { background: "#2b1712" } : undefined}>
+                <tr key={i.transferencia_id} style={i.status === "aguardando" ? { background: "rgba(184,74,50,0.08)" } : undefined}>
                   <td style={s.td}>{i.contato.nome || "sem nome"}<br /><small>{i.contato.telefone}</small></td>
                   <td style={s.td}>{ROTULO_MOTIVO[i.motivo] ?? i.motivo}</td>
                   <td style={s.td}>
@@ -197,9 +201,9 @@ export default function AtendimentoPainel({ onContagem }: { onContagem?: (n: num
                   </td>
                   <td style={s.td}>{quando(i.criada_em)}</td>
                   <td style={s.td}>
-                    {i.status === "aguardando" ? <span style={{ ...s.selo, background: "#B84A32", color: "#fff" }}>aguardando</span>
-                      : i.status === "assumida" ? <span style={{ ...s.selo, background: "#17352B", color: "#F1E7D2" }}>com {i.atendente}</span>
-                      : <span style={{ ...s.selo, background: "#333", color: "#F1E7D2" }}>{i.status}</span>}
+                    {i.status === "aguardando" ? <span style={selo("perigo")}>aguardando</span>
+                      : i.status === "assumida" ? <span style={selo("ok")}>com {i.atendente}</span>
+                      : <span style={selo("neutro")}>{i.status}</span>}
                   </td>
                   <td style={{ ...s.td, whiteSpace: "nowrap" }}><button type="button" style={s.botaoMiniOutline} onClick={() => abrir(i.transferencia_id)}>Abrir</button></td>
                 </tr>
@@ -210,7 +214,7 @@ export default function AtendimentoPainel({ onContagem }: { onContagem?: (n: num
       )}
 
       {selecionado && (
-        <div style={{ ...s.cartao, marginTop: 16, maxWidth: 760 }}>
+        <div style={{ ...s.secao, marginTop: 16, maxWidth: 820 }}>
           <strong>{selecionado.contato.nome || "Cliente"}</strong> · {selecionado.contato.telefone}
           <p style={s.legenda}>
             Motivo: {ROTULO_MOTIVO[selecionado.motivo] ?? selecionado.motivo}{selecionado.detalhe ? ` — ${selecionado.detalhe}` : ""}

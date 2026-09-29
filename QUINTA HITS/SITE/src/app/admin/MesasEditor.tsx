@@ -134,6 +134,9 @@ export default function MesasEditor() {
       {msg && <div style={s.aviso}>{msg}</div>}
       {erro && <div style={s.avisoErro}>{erro}</div>}
 
+      <section style={s.secao}>
+      <h2 style={s.h2}>Adicionar mesa</h2>
+      <p style={s.legenda}>A mesa nova aparece no centro do mapa. Depois é só arrastar até o lugar certo.</p>
       <form onSubmit={criar} style={s.gridNova}>
         <label style={s.campo}>
           <span>Número da mesa</span>
@@ -149,8 +152,11 @@ export default function MesasEditor() {
         </label>
         <button type="submit" style={s.botaoSalvar}>Adicionar mesa</button>
       </form>
+      </section>
 
-      <div style={s.gridMapa}>
+      <section style={s.secao}>
+      <h2 style={s.h2}>Mapa do salão</h2>
+      <div style={{ ...s.gridMapa, marginTop: 8 }}>
         <div style={s.colunaMapa}>
           {mesas.length === 0 ? (
             <p style={s.legenda}>Nenhuma mesa ainda. Adicione a primeira acima.</p>
@@ -168,7 +174,7 @@ export default function MesasEditor() {
           <p style={s.legenda}>Arraste as mesas para a posição real no salão. Clique numa mesa para editar.</p>
         </div>
 
-        <div style={s.cartao}>
+        <div style={{ ...s.cartao, position: "sticky", top: 20 }}>
           {!selecionada ? (
             <p style={s.legenda}>Selecione uma mesa no mapa.</p>
           ) : (
@@ -213,6 +219,7 @@ export default function MesasEditor() {
           )}
         </div>
       </div>
+      </section>
     </>
   );
 }

@@ -3,6 +3,7 @@ import "./globals.css";
 import { site } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 import { datasCanceladas } from "@/lib/programacao";
+import ForaDoAdmin from "@/components/ForaDoAdmin";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HojeBanner from "@/components/HojeBanner";
@@ -63,10 +64,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-        <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasCanceladas={canceladas} />
-        <Header />
+        <ForaDoAdmin>
+          <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasCanceladas={canceladas} />
+          <Header />
+        </ForaDoAdmin>
         <main>{children}</main>
-        <Footer />
+        <ForaDoAdmin>
+          <Footer />
+        </ForaDoAdmin>
       </body>
     </html>
   );

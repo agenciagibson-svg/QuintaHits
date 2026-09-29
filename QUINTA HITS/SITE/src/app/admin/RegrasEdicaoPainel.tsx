@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatData, hojeISO, type Edicao } from "@/lib/edicao";
 import type { CanalDaMesa } from "@/lib/regras";
 import type { Prontidao, RegrasEdicao } from "@/lib/regrasEdicao";
-import { s } from "./estilos";
+import { cor, s, selo } from "./estilos";
 
 type Painel = { migrado: false } | { migrado: true; parte2: boolean; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; prontidaoSite: Prontidao; mesas: CanalDaMesa[] };
 
@@ -179,39 +179,43 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
       {msg && <div style={{ ...s.aviso, marginInline: 0 }}>{msg}</div>}
 
       {painel && !painel.migrado && (
-        <div style={{ ...s.aviso, marginInline: 0, background: "#333" }}>
+        <div style={{ ...s.aviso, background: cor.alerta }}>
           Este recurso ainda não está ativo neste banco: a migração do agente de reservas não foi aplicada. Nada aqui altera as reservas atuais do site.
         </div>
       )}
 
       {painel?.migrado && form && (
         <form onSubmit={salvar}>
-          <div
-            role="status"
-            style={{ ...s.aviso, marginInline: 0, background: painel.prontidao.pronta ? "#17352B" : "#B84A32", fontWeight: 600 }}
-          >
-            {painel.prontidao.pronta
-              ? "Pronta para reservas automáticas pelo WhatsApp."
-              : `NÃO está pronta para reservas automáticas. O agente não confirma nada e passa o cliente para a equipe. Faltam: ${painel.prontidao.faltando.join("; ")}.`}
-          </div>
-          <div
-            role="status"
-            style={{ ...s.aviso, marginInline: 0, background: painel.prontidaoSite.pronta ? "#17352B" : "#B84A32", fontWeight: 600 }}
-          >
-            {painel.prontidaoSite.pronta
-              ? "Pronta para reservas pelo SITE (quando RESERVAS_SITE_ENABLED estiver ligada na Vercel)."
-              : `NÃO está pronta para reservas pelo site. Faltam: ${painel.prontidaoSite.faltando.join("; ")}.`}
+          <div className="qh-kpis" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+            {[
+              { titulo: "Reservas pelo site", p: painel.prontidaoSite, ok: "Pronta (abre quando a chave do site for ligada na Vercel)." },
+              { titulo: "Reservas pelo WhatsApp", p: painel.prontidao, ok: "Pronta para o atendimento automático." },
+            ].map(({ titulo, p, ok }) => (
+              <div key={titulo} className="qh-kpi" role="status">
+                <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                  <span className="qh-kpi-rotulo">{titulo}</span>
+                  <span style={selo(p.pronta ? "ok" : "alerta")}>{p.pronta ? "Pronta" : `Faltam ${p.faltando.length}`}</span>
+                </span>
+                {p.pronta ? (
+                  <span className="qh-kpi-sub">{ok}</span>
+                ) : (
+                  <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13, color: cor.suave }}>
+                    {p.faltando.map((f) => <li key={f}>{f}</li>)}
+                  </ul>
+                )}
+              </div>
+            ))}
           </div>
           {!painel.parte2 && (
-            <div style={{ ...s.avisoErro, marginInline: 0, background: "#3a3320" }} role="note">
+            <div style={{ ...s.aviso, background: cor.alerta }} role="note">
               A migração parte 2 ainda não foi aplicada neste banco: a liberação para o site não pode ser gravada e o site continua fechado para todas as edições.
               Aplique o arquivo <code>migracao-2026-09-21-parte2-site-e-atendimento.sql</code> no SQL Editor do Supabase.
             </div>
           )}
-          <p style={s.legenda}>
-            Horário do evento e local são editados na tabela de programação. Nada é preenchido por padrão: campo vazio significa &quot;ainda não definido&quot;.
-          </p>
 
+          <section style={s.secao}>
+          <h2 style={s.h2}>Regras da noite</h2>
+          <p style={s.legenda}>Horário do evento e local ficam em Programação. Campo vazio significa &quot;ainda não definido&quot;.</p>
           <div style={s.gridNova}>
             <label style={s.campo}><span>Horário de abertura</span>
               <input style={s.input} value={form.abertura} onChange={(e) => trocar("abertura", e.target.value)} placeholder="19h ou 19h30" /></label>
@@ -243,12 +247,15 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
             </label>
           </div>
 
-          <h3 style={{ ...s.h2, marginTop: 20 }}>Onde cada mesa pode ser oferecida nesta edição</h3>
+          </section>
+
+          <section style={s.secao}>
+          <h2 style={s.h2}>Onde cada mesa pode ser oferecida</h2>
           <p style={s.legenda}>
             O estoque é um só: uma mesa reservada por qualquer canal some de todos. Aqui você só escolhe quem pode <em>oferecer</em> a mesa. Sem marcação, o site e o painel oferecem e o WhatsApp não.
           </p>
           <div style={{ overflowX: "auto" }}>
-            <table style={s.tabela}>
+            <table style={s.tabela} className="qh-tabela">
               <thead>
                 <tr>
                   <th style={s.th}>Mesa</th><th style={s.th}>Lugares</th><th style={s.th}>Site</th><th style={s.th}>WhatsApp</th>
@@ -275,7 +282,7 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
                         />
                       </td>
                       <td style={s.td}>
-                        {m.segurada ? <span style={{ ...s.selo, background: "#D5A62A", color: "#171717" }}>reservada</span> : indisponivel ? <span style={{ ...s.selo, background: "#333", color: "#bbb" }}>indisponível</span> : "livre"}{" "}
+                        {m.segurada ? <span style={selo("alerta")}>reservada</span> : indisponivel ? <span style={selo("neutro")}>indisponível</span> : "livre"}{" "}
                         <button type="button" style={s.botaoMiniOutline} onClick={() => mudarMesa(m.mesa_id, { disponivel_site: false, disponivel_whatsapp: false, disponivel_admin: false })}>
                           Indisponível
                         </button>
@@ -288,9 +295,13 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
             </table>
           </div>
 
-          <button type="submit" style={{ ...s.botaoSalvar, marginTop: 16 }} disabled={salvando}>
-            {salvando ? "Salvando…" : "Salvar regras e canais"}
-          </button>
+          </section>
+
+          <div className="qh-salvar">
+            <button type="submit" style={{ ...s.botaoSalvar, marginTop: 0 }} disabled={salvando}>
+              {salvando ? "Salvando…" : "Salvar regras e canais"}
+            </button>
+          </div>
         </form>
       )}
     </div>
