@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { useRouter } from "next/navigation";
 import MapaMesas from "@/components/MapaMesas";
 import type { Mesa, MesaPublica } from "@/lib/reserva";
+import { TIPOS_ELEMENTO, type ElementoSalao, type TipoElemento } from "@/lib/planta";
 import { s } from "./estilos";
 
 const NOVA_VAZIA = { numero: "", lugares: "4", area: "" };
@@ -21,6 +22,11 @@ export default function MesasEditor() {
   const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState({ numero: "", lugares: "", area: "" });
   const mapaRef = useRef<HTMLDivElement>(null);
+  // Planta do salão (palco, bar, entrada...): salva inteira a cada mudança.
+  const [elementos, setElementos] = useState<ElementoSalao[]>([]);
+  const [plantaMigrada, setPlantaMigrada] = useState(true);
+  const [elSelId, setElSelId] = useState<string | null>(null);
+  const elSel = elementos.find((e) => e.id === elSelId) ?? null;
 
   const selecionada = mesas.find((m) => m.id === selecionadaId) ?? null;
 
@@ -43,9 +49,65 @@ export default function MesasEditor() {
   }
 
   async function carregar() {
-    const res = await fetch("/api/admin/mesas");
+    const [res, resP] = await Promise.all([fetch("/api/admin/mesas"), fetch("/api/admin/planta")]);
     if (!(await falhou(res, "Não foi possível carregar as mesas."))) setMesas((await res.json()).mesas ?? []);
+    if (resP.ok) {
+      const p = await resP.json();
+      setPlantaMigrada(p.migrado !== false);
+      setElementos(p.elementos ?? []);
+    }
     setCarregando(false);
+  }
+
+  async function salvarPlanta(lista: ElementoSalao[], aviso?: string) {
+    setElementos(lista);
+    const res = await fetch("/api/admin/planta", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ elementos: lista }) });
+    if (await falhou(res, "Não foi possível salvar a planta.")) {
+      carregar();
+      return;
+    }
+    if (aviso) avisar(aviso);
+  }
+
+  function adicionarElemento(tipo: TipoElemento) {
+    const base = TIPOS_ELEMENTO[tipo];
+    const novo: ElementoSalao = { id: `${tipo}-${Date.now().toString(36)}`, tipo, rotulo: "", x: 50, y: 50, w: base.w, h: base.h };
+    setSelecionadaId(null);
+    setElSelId(novo.id);
+    salvarPlanta([...elementos, novo], `${base.nome} adicionado no centro do mapa — arraste até o lugar certo.`);
+  }
+
+  function mudarElemento(id: string, mudanca: Partial<ElementoSalao>) {
+    salvarPlanta(elementos.map((e) => (e.id === id ? { ...e, ...mudanca } : e)));
+  }
+
+  /** Arrastar elemento do salão: mesma lógica das mesas, salvando ao soltar. */
+  function arrastarElemento(e: ReactPointerEvent<HTMLDivElement>, el: ElementoSalao) {
+    const mapa = mapaRef.current;
+    if (!mapa || e.button !== 0) return;
+    e.preventDefault();
+    setSelecionadaId(null);
+    setElSelId(el.id);
+    const area = mapa.getBoundingClientRect();
+    const inicio = { x: e.clientX, y: e.clientY };
+    let pos = { x: el.x, y: el.y };
+    let moveu = false;
+    const clamp = (v: number) => Math.min(100, Math.max(0, Math.round(v * 10) / 10));
+    const mover = (ev: PointerEvent) => {
+      if (!moveu && Math.hypot(ev.clientX - inicio.x, ev.clientY - inicio.y) < 4) return;
+      moveu = true;
+      pos = { x: clamp(el.x + ((ev.clientX - inicio.x) / area.width) * 100), y: clamp(el.y + ((ev.clientY - inicio.y) / area.height) * 100) };
+      setElementos((es) => es.map((x) => (x.id === el.id ? { ...x, ...pos } : x)));
+    };
+    const soltar = () => {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+      window.removeEventListener("pointercancel", soltar);
+      if (moveu) setElementos((es) => { const lista = es.map((x) => (x.id === el.id ? { ...x, ...pos } : x)); salvarPlanta(lista); return lista; });
+    };
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+    window.addEventListener("pointercancel", soltar);
   }
 
   useEffect(() => {
@@ -55,6 +117,7 @@ export default function MesasEditor() {
   }, []);
 
   function selecionar(m: Mesa) {
+    setElSelId(null);
     setSelecionadaId(m.id);
     setRascunho({ numero: m.numero, lugares: String(m.lugares), area: m.area });
   }
@@ -158,11 +221,27 @@ export default function MesasEditor() {
       <h2 style={s.h2}>Mapa do salão</h2>
       <div style={{ ...s.gridMapa, marginTop: 8 }}>
         <div style={s.colunaMapa}>
-          {mesas.length === 0 ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 12 }}>
+            <span style={{ fontSize: 12, color: "rgba(241,231,210,0.62)", marginRight: 4 }}>Adicionar ao salão:</span>
+            {(Object.keys(TIPOS_ELEMENTO) as TipoElemento[]).map((tipo) => (
+              <button key={tipo} type="button" style={s.botaoMiniOutline} disabled={!plantaMigrada} onClick={() => adicionarElemento(tipo)}>
+                + {TIPOS_ELEMENTO[tipo].nome}
+              </button>
+            ))}
+          </div>
+          {!plantaMigrada && (
+            <div style={{ ...s.aviso, background: "#3a3320" }}>
+              Para desenhar palco, bar e entrada, aplique no Supabase o arquivo <code>migracao-2026-09-29-planta-do-salao.sql</code>. As mesas continuam funcionando.
+            </div>
+          )}
+          {mesas.length === 0 && elementos.length === 0 ? (
             <p style={s.legenda}>Nenhuma mesa ainda. Adicione a primeira acima.</p>
           ) : (
             <MapaMesas
               refMapa={mapaRef}
+              elementos={elementos}
+              elementoSelecionado={elSelId}
+              onPointerDownElemento={arrastarElemento}
               mesas={mesas}
               desativarOcupadas={false}
               estado={(m) =>
@@ -171,12 +250,32 @@ export default function MesasEditor() {
               onPointerDownMesa={iniciarArrasto}
             />
           )}
-          <p style={s.legenda}>Arraste as mesas para a posição real no salão. Clique numa mesa para editar.</p>
+          <p style={{ ...s.legenda, marginTop: 10 }}>Arraste mesas e elementos para a posição real no salão. Clique em qualquer um para editar.</p>
         </div>
 
         <div style={{ ...s.cartao, position: "sticky", top: 20 }}>
-          {!selecionada ? (
-            <p style={s.legenda}>Selecione uma mesa no mapa.</p>
+          {elSel ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <strong>{TIPOS_ELEMENTO[elSel.tipo].nome}</strong>
+              <label style={s.campo}>
+                <span>Nome no mapa (vazio = “{TIPOS_ELEMENTO[elSel.tipo].nome}”)</span>
+                <input style={s.input} defaultValue={elSel.rotulo} key={elSel.id} maxLength={30} onBlur={(e) => e.target.value !== elSel.rotulo && mudarElemento(elSel.id, { rotulo: e.target.value })} />
+              </label>
+              <label style={s.campo}>
+                <span>Largura ({Math.round(elSel.w)}%)</span>
+                <input type="range" min={2} max={100} step={1} value={elSel.w} onChange={(e) => setElementos((es) => es.map((x) => (x.id === elSel.id ? { ...x, w: Number(e.target.value) } : x)))} onPointerUp={() => salvarPlanta(elementos)} onKeyUp={() => salvarPlanta(elementos)} />
+              </label>
+              <label style={s.campo}>
+                <span>Altura ({Math.round(elSel.h)}%)</span>
+                <input type="range" min={2} max={100} step={1} value={elSel.h} onChange={(e) => setElementos((es) => es.map((x) => (x.id === elSel.id ? { ...x, h: Number(e.target.value) } : x)))} onPointerUp={() => salvarPlanta(elementos)} onKeyUp={() => salvarPlanta(elementos)} />
+              </label>
+              <button type="button" style={s.botaoMiniOutline} onClick={() => setElSelId(null)}>Pronto</button>
+              <button type="button" style={s.botaoMiniPerigo} onClick={() => { setElSelId(null); salvarPlanta(elementos.filter((x) => x.id !== elSel.id), "Elemento removido do mapa."); }}>
+                Remover do mapa
+              </button>
+            </div>
+          ) : !selecionada ? (
+            <p style={s.legenda}>Selecione uma mesa ou um elemento no mapa.</p>
           ) : (
             <form
               style={{ display: "grid", gap: 10 }}

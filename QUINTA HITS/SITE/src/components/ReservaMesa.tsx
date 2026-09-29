@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { instagramUrl } from "@/config/site";
 import { formatData, type Edicao } from "@/lib/edicao";
 import type { MesaPublica } from "@/lib/reserva";
+import type { ElementoSalao } from "@/lib/planta";
 import { formatarReais, type RegrasPublicas } from "@/lib/regrasEdicao";
-import MapaMesas from "./MapaMesas";
+import MapaMesas, { LegendaMapa } from "./MapaMesas";
 import Turnstile, { TURNSTILE_SITE_KEY } from "./Turnstile";
 import ConfirmacaoWhatsapp, { type PedidoEnviado } from "./ConfirmacaoWhatsapp";
 import PedidoRecebido, { type PedidoManual } from "./PedidoRecebido";
 
-type Mapa = { mesas: MesaPublica[]; ocupadas: string[] };
+type Mapa = { mesas: MesaPublica[]; ocupadas: string[]; planta?: ElementoSalao[] };
 
 const dataHoraBR = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
@@ -189,17 +190,14 @@ export default function ReservaMesa({ edicoes, instagram, regras, manual = false
             <>
               <MapaMesas
                 mesas={mapa.mesas}
+                elementos={mapa.planta ?? []}
                 estado={(m) => (m.id === mesa?.id ? "selecionada" : ocupadas.has(m.id) ? "ocupada" : "livre")}
                 onEscolher={(m) => {
                   setMesa(m);
                   setErro("");
                 }}
               />
-              <div className="reserva__legenda" aria-hidden="true">
-                <span><i style={{ background: "var(--verde)" }} /> livre</span>
-                <span><i style={{ background: "var(--terracota)" }} /> sua escolha</span>
-                <span><i style={{ background: "#c4b89f" }} /> ocupada</span>
-              </div>
+              <LegendaMapa />
             </>
           )}
         </div>

@@ -315,29 +315,83 @@ button { font: inherit; cursor: pointer; }
 .reserva__codigo { font-family: var(--display); font-size: clamp(40px, 6vw, 64px); letter-spacing: 0.08em; line-height: 1; padding: 10px 18px 6px; background: var(--preto); color: var(--mostarda); border-radius: 12px 12px 0 12px; }
 .honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
-/* mapa do salão: mesas posicionadas em % do mapa */
+/* mapa do salão: planta em estilo arquitetura. Elementos fixos (palco, bar...) ao fundo e mesas por cima, em % do mapa */
 .mapa {
   position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
-  background-color: var(--creme-escuro);
-  background-image: linear-gradient(var(--linha) 1px, transparent 1px), linear-gradient(90deg, var(--linha) 1px, transparent 1px);
-  background-size: 10% 10%;
+  background-color: #fbf6ea;
+  background-image:
+    linear-gradient(rgba(23, 23, 23, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 23, 23, 0.045) 1px, transparent 1px);
+  background-size: 5% 6.6667%;
   border: 3px solid var(--preto); border-radius: var(--raio-p) var(--raio-p) 0 var(--raio-p);
+  box-shadow: inset 0 0 0 7px #fbf6ea, inset 0 0 0 8px rgba(23, 23, 23, 0.35);
 }
-.mapa--editavel { touch-action: none; } /* só no painel: arrastar mesa sem rolar a página */
+.mapa--editavel { touch-action: none; } /* só no painel: arrastar sem rolar a página */
+
+/* elementos fixos do salão */
+.mapa__el {
+  position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; overflow: hidden;
+  container-type: size; font-family: var(--display); letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; text-align: center;
+  color: var(--creme); border-radius: 6px; user-select: none;
+}
+.mapa__el span { padding: 0 4px; font-size: clamp(7px, min(42cqh, 12cqw), 24px); white-space: nowrap; }
+.mapa__el--vertical span { font-size: clamp(7px, min(42cqw, 12cqh), 24px); }
+.mapa__el--palco { background: var(--verde); border-radius: 6px 6px 40% 40% / 6px 6px 22% 22%; letter-spacing: 0.24em; box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.25); }
+.mapa__el--pista { background: repeating-linear-gradient(45deg, rgba(213, 166, 42, 0.14) 0 8px, rgba(213, 166, 42, 0.05) 8px 16px); border: 2px dashed rgba(213, 166, 42, 0.8); color: #8a6a14; }
+.mapa__el--dj { background: var(--preto); }
+.mapa__el--bar { background: var(--terracota); box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.18); }
+.mapa__el--vertical span { writing-mode: vertical-rl; }
+.mapa__el--caixa { background: transparent; border: 2px solid var(--preto); color: var(--preto); }
+.mapa__el--entrada { background: var(--mostarda); color: var(--preto); border-radius: 999px; }
+.mapa__el--entrada span::before { content: "\2192\00a0"; letter-spacing: 0; }
+.mapa__el--banheiro { background: #e9e0cb; color: rgba(23, 23, 23, 0.7); border: 2px solid rgba(23, 23, 23, 0.35); }
+.mapa__el--parede { background: var(--preto); border-radius: 2px; }
+.mapa__el--texto { background: transparent; color: rgba(23, 23, 23, 0.45); }
+.mapa--editavel .mapa__el { cursor: grab; }
+.mapa__el--sel { outline: 3px solid var(--mostarda); outline-offset: 2px; z-index: 1; }
+
+/* mesas: tampo redondo + cadeiras em volta (quantidade = lugares) */
 .mapa__mesa {
-  position: absolute; transform: translate(-50%, -50%);
-  width: clamp(38px, calc(var(--t) * 1%), 84px); aspect-ratio: 1; border-radius: 50%;
-  display: grid; place-content: center; gap: 0; padding: 0;
-  border: 2px solid var(--preto); background: var(--verde); color: var(--creme);
-  font-family: var(--display); line-height: 0.9; transition: transform 0.12s ease, background 0.12s;
+  --tampo: #fffdf7; --texto: var(--preto); --cadeira: #e9e0cb; --contorno: var(--preto);
+  position: absolute; transform: translate(-50%, -50%); z-index: 2;
+  width: clamp(44px, calc(var(--t) * 1%), 96px); aspect-ratio: 1;
+  container-type: size; padding: 0; border: 0; background: none; cursor: pointer;
+  transition: transform 0.15s ease; -webkit-tap-highlight-color: transparent;
 }
-.mapa__num { font-size: clamp(15px, 2vw, 24px); }
-.mapa__lug { font-family: var(--texto); font-size: 10px; opacity: 0.85; }
-.mapa__mesa--livre:hover { transform: translate(-50%, -50%) scale(1.08); background: var(--verde-escuro); }
-.mapa__mesa--selecionada { background: var(--terracota); box-shadow: 0 0 0 4px var(--mostarda); transform: translate(-50%, -50%) scale(1.08); }
-.mapa__mesa--ocupada { background: repeating-linear-gradient(45deg, #b9ad95 0 5px, #cfc3aa 5px 10px); color: var(--preto); opacity: 0.8; cursor: not-allowed; }
-.mapa__mesa--inativa { background: transparent; color: var(--preto); border-style: dashed; opacity: 0.55; }
-.mapa__mesa:focus-visible { outline: 3px solid var(--mostarda); outline-offset: 2px; }
+.mapa__cadeiras { position: absolute; inset: 0; }
+.mapa__cadeiras i {
+  position: absolute; left: 50%; top: 50%; width: 22cqw; height: 22cqw; margin: -11cqw 0 0 -11cqw; border-radius: 50%;
+  background: var(--cadeira); border: clamp(1px, 3cqw, 2px) solid var(--contorno);
+  transform: rotate(var(--a)) translateY(-37cqw); transition: background 0.15s ease;
+}
+.mapa__tampo {
+  position: absolute; inset: 20%; border-radius: 50%; display: grid; place-items: center;
+  background: var(--tampo); color: var(--texto); border: 2px solid var(--contorno);
+  box-shadow: 0 3px 0 rgba(23, 23, 23, 0.18); transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.mapa__num { font-family: var(--display); font-size: clamp(13px, 30cqw, 30px); line-height: 1; padding-top: 2px; }
+.mapa__mesa--livre:hover { transform: translate(-50%, -50%) scale(1.08); }
+.mapa__mesa--livre:hover .mapa__tampo { --tampo: var(--verde); --texto: var(--creme); }
+.mapa__mesa--livre:hover .mapa__cadeiras i { --cadeira: var(--mostarda); }
+.mapa__mesa--selecionada { --tampo: var(--terracota); --texto: #fff; --cadeira: var(--mostarda); transform: translate(-50%, -50%) scale(1.1); z-index: 3; }
+.mapa__mesa--selecionada .mapa__tampo { box-shadow: 0 0 0 4px rgba(213, 166, 42, 0.55), 0 6px 14px rgba(184, 74, 50, 0.35); }
+.mapa__mesa--ocupada { --tampo: #e4dbc6; --texto: rgba(23, 23, 23, 0.4); --cadeira: #efe8d8; --contorno: rgba(23, 23, 23, 0.25); cursor: not-allowed; }
+.mapa__mesa--ocupada .mapa__tampo { box-shadow: none; background-image: repeating-linear-gradient(45deg, transparent 0 4px, rgba(23, 23, 23, 0.07) 4px 8px); }
+.mapa__mesa--inativa { --tampo: transparent; --texto: rgba(23, 23, 23, 0.4); --cadeira: transparent; --contorno: rgba(23, 23, 23, 0.3); }
+.mapa__mesa--inativa .mapa__tampo, .mapa__mesa--inativa .mapa__cadeiras i { border-style: dashed; box-shadow: none; }
+.mapa__mesa:focus-visible { outline: none; }
+.mapa__mesa:focus-visible .mapa__tampo { box-shadow: 0 0 0 4px var(--mostarda); }
+.mapa--editavel .mapa__mesa { cursor: grab; }
+
+/* legenda */
+.mapa__legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-top: 14px; font-size: 14px; font-weight: 500; }
+.mapa__legenda span { display: inline-flex; align-items: center; gap: 8px; }
+.mapa__legenda-mesa { width: 18px; height: 18px; border-radius: 50%; display: inline-block; border: 2px solid var(--preto); background: #fffdf7; }
+.mapa__legenda-mesa--selecionada { background: var(--terracota); box-shadow: 0 0 0 3px rgba(213, 166, 42, 0.6); }
+.mapa__legenda-mesa--ocupada { background: #e4dbc6; border-color: rgba(23, 23, 23, 0.3); }
+.mapa__legenda-dica { margin-left: auto; font-size: 13px; opacity: 0.6; font-weight: 400; }
+@media (max-width: 640px) { .mapa__legenda-dica { display: none; } }
+@media (prefers-reduced-motion: reduce) { .mapa__mesa, .mapa__tampo, .mapa__cadeiras i { transition: none; } }
 
 /* ---------- 404 ---------- */
 .nao { min-height: 70vh; display: grid; place-items: center; text-align: center; padding: var(--gutter); }
