@@ -85,4 +85,14 @@ describe("as quatro flags independentes", () => {
     vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
     expect(reservasSiteLigadoPorEnv()).toBe(true);
   });
+
+  it("modo formulário: abre o site sem WhatsApp só com as DUAS chaves (site + manual); o WhatsApp conectado tem prioridade", async () => {
+    const { estadoDasReservasDoSite } = await import("@/lib/reservasSite");
+    vi.stubEnv("RESERVAS_SITE_MANUAL", "true");
+    expect(estadoDasReservasDoSite()).toEqual({ aberto: false, motivo: "chave_desligada" });
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    expect(estadoDasReservasDoSite()).toEqual({ aberto: true, motivo: "manual" });
+    vi.stubEnv("RESERVAS_SITE_MANUAL", "TRUE");
+    expect(estadoDasReservasDoSite()).toEqual({ aberto: false, motivo: "whatsapp_nao_configurado" });
+  });
 });

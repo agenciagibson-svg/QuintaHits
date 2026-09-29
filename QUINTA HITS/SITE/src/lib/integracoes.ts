@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { agenteLigadoPorEnv, ambienteAtual, envioLigadoPorEnv, envioRealPermitidoPorEnv, idParaEnvio, registroLigadoPorEnv, repasseHumanoLigadoPorEnv, reservasSiteLigadoPorEnv } from "@/lib/agente/ambiente";
+import { agenteLigadoPorEnv, ambienteAtual, envioLigadoPorEnv, envioRealPermitidoPorEnv, idParaEnvio, registroLigadoPorEnv, repasseHumanoLigadoPorEnv, reservasSiteLigadoPorEnv, reservasSiteManualPorEnv } from "@/lib/agente/ambiente";
 import { envioRealAtivoAgora } from "@/lib/agente/estadoEnvio";
 import { obterConfig } from "@/lib/agente/repositorio";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
@@ -50,6 +50,7 @@ export async function estadoDasIntegracoes(): Promise<EstadoIntegracoes> {
       { nome: "WHATSAPP_SEND_ENABLED", descricao: "Envio de mensagens (o envio real exige também o agente)", ligada: envioLigadoPorEnv() },
       { nome: "WHATSAPP_REGISTRATION_ENABLED", descricao: "Registro do número na Meta (só por script manual)", ligada: registroLigadoPorEnv() },
       { nome: "RESERVAS_SITE_ENABLED", descricao: "Reserva de mesa pelo site", ligada: reservasSiteLigadoPorEnv() },
+      { nome: "RESERVAS_SITE_MANUAL", descricao: "Modo formulário: sem WhatsApp, a equipe confirma os pedidos no painel", ligada: reservasSiteManualPorEnv() },
       { nome: "WHATSAPP_HUMAN_HANDOFF_ENABLED", descricao: "Repasse para atendimento humano (padrão ligado)", ligada: repasseHumanoLigadoPorEnv() },
       { nome: "RETENCAO_ENABLED", descricao: "Limpeza real de dados antigos (sem ela só simula)", ligada: process.env.RETENCAO_ENABLED === "true" },
     ],

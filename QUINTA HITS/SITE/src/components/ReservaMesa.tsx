@@ -8,6 +8,7 @@ import { formatarReais, type RegrasPublicas } from "@/lib/regrasEdicao";
 import MapaMesas from "./MapaMesas";
 import Turnstile, { TURNSTILE_SITE_KEY } from "./Turnstile";
 import ConfirmacaoWhatsapp, { type PedidoEnviado } from "./ConfirmacaoWhatsapp";
+import PedidoRecebido, { type PedidoManual } from "./PedidoRecebido";
 
 type Mapa = { mesas: MesaPublica[]; ocupadas: string[] };
 
@@ -32,7 +33,8 @@ function RegrasDaNoite({ r }: { r: RegrasPublicas }) {
   );
 }
 
-export default function ReservaMesa({ edicoes, instagram, regras }: { edicoes: Edicao[]; instagram: string; regras?: Record<string, RegrasPublicas> }) {
+/** `manual`: WhatsApp ainda não conectado — o pedido vai para o painel e a equipe confirma. */
+export default function ReservaMesa({ edicoes, instagram, regras, manual = false }: { edicoes: Edicao[]; instagram: string; regras?: Record<string, RegrasPublicas>; manual?: boolean }) {
   const [edicaoId, setEdicaoId] = useState(edicoes[0].id);
   const [mapa, setMapa] = useState<Mapa | null>(null);
   const [erroMapa, setErroMapa] = useState("");
@@ -45,6 +47,7 @@ export default function ReservaMesa({ edicoes, instagram, regras }: { edicoes: E
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const [enviada, setEnviada] = useState<PedidoEnviado | null>(null);
+  const [recebido, setRecebido] = useState<PedidoManual | null>(null);
   const [tokenRobo, setTokenRobo] = useState("");
   // Token do Turnstile vale para um envio só: trocar a chave gera um novo depois de cada tentativa.
   const [chaveRobo, setChaveRobo] = useState(0);
@@ -101,6 +104,10 @@ export default function ReservaMesa({ edicoes, instagram, regras }: { edicoes: E
         }
         return;
       }
+      if (j.manual) {
+        setRecebido({ mesa: j.mesa, data: edicao.data, codigo: j.codigo, nome });
+        return;
+      }
       setEnviada({ id: j.id, mesa: j.mesa, data: edicao.data, codigo: j.codigo, expiraEm: j.expiraEm, whatsappLink: j.whatsappLink });
     } catch {
       setErro("Sem conexão. Tente de novo.");
@@ -108,6 +115,20 @@ export default function ReservaMesa({ edicoes, instagram, regras }: { edicoes: E
     } finally {
       setEnviando(false);
     }
+  }
+
+  if (recebido) {
+    return (
+      <PedidoRecebido
+        pedido={recebido}
+        onNovaReserva={() => {
+          setRecebido(null);
+          setMesa(null);
+          setChaveRobo((c) => c + 1);
+          carregarMapa(edicaoId);
+        }}
+      />
+    );
   }
 
   if (enviada) {
@@ -242,7 +263,10 @@ export default function ReservaMesa({ edicoes, instagram, regras }: { edicoes: E
                 {enviando ? "Enviando…" : "Pedir reserva"}
               </button>
               <p className="reserva__aviso">
-                No próximo passo você confirma a reserva mandando um código pelo WhatsApp. Usamos seus dados só para falar sobre esta reserva; veja os detalhes na <a href="/privacidade">Política de Privacidade</a>.
+                {manual
+                  ? "A mesa fica separada e a nossa equipe confirma a reserva pelo seu WhatsApp. "
+                  : "No próximo passo você confirma a reserva mandando um código pelo WhatsApp. "}
+                Usamos seus dados só para falar sobre esta reserva; veja os detalhes na <a href="/privacidade">Política de Privacidade</a>.
               </p>
             </form>
           )}

@@ -15,7 +15,7 @@ type Regras = { migrado: false } | { migrado: true; prontidao: Prontidao; pronti
 type Passo = { titulo: string; feito: boolean; detalhe: string; aba?: Aba; acao?: string };
 
 /** Tela inicial: o que importa hoje, em números, e o caminho até abrir as reservas. */
-export default function VisaoGeral({ edicoes, aguardando, irPara }: { edicoes: Edicao[]; aguardando: number; irPara: (a: Aba) => void }) {
+export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara }: { edicoes: Edicao[]; aguardando: number; pendentes?: number; irPara: (a: Aba) => void }) {
   const router = useRouter();
   const proxima = proximaEdicao(edicoes);
   const [integ, setInteg] = useState<EstadoIntegracoes | null>(null);
@@ -83,15 +83,19 @@ export default function VisaoGeral({ edicoes, aguardando, irPara }: { edicoes: E
       acao: "Preencher",
     },
     {
-      titulo: "WhatsApp conectado",
-      feito: !!integ?.envio_real_liberado_agora,
-      detalhe: integ?.envio_real_liberado_agora ? "Envio real liberado." : "Aguardando aprovação da Meta e credenciais. Hoje o atendimento roda em modo simulado.",
+      titulo: "Reservas abertas no site",
+      feito: !!integ?.reservas_site.aberto,
+      detalhe: integ?.reservas_site.aberto
+        ? integ.reservas_site.motivo === "manual"
+          ? "Abertas no modo formulário: os pedidos chegam em Reservas e a equipe confirma."
+          : "O público já pode reservar em /reservar."
+        : "Fechado: o site mostra “abrem em breve”.",
       aba: "sistema",
     },
     {
-      titulo: "Reservas abertas no site",
-      feito: !!integ?.reservas_site.aberto,
-      detalhe: integ?.reservas_site.aberto ? "O público já pode reservar em /reservar." : "Fechado: o site mostra “abrem em breve”.",
+      titulo: "WhatsApp conectado (automático)",
+      feito: !!integ?.envio_real_liberado_agora,
+      detalhe: integ?.envio_real_liberado_agora ? "Envio real liberado." : "Aguardando a Meta. Enquanto isso, o modo formulário atende sem ele.",
       aba: "sistema",
     },
   ];
@@ -111,10 +115,12 @@ export default function VisaoGeral({ edicoes, aguardando, irPara }: { edicoes: E
             <span className="qh-kpi-sub">Nenhuma edição cadastrada.</span>
           )}
         </button>
-        <button type="button" className="qh-kpi" onClick={() => irPara("reservas")}>
+        <button type="button" className="qh-kpi" onClick={() => irPara("reservas")} style={pendentes > 0 ? { borderColor: cor.mostarda } : undefined}>
           <span className="qh-kpi-rotulo">Reservas da noite</span>
           <span className="qh-kpi-valor">{reservas === null ? "–" : ativas.length}</span>
-          <span className="qh-kpi-sub">{pessoas} pessoa(s) confirmada(s)</span>
+          <span className="qh-kpi-sub" style={pendentes > 0 ? { color: cor.mostarda } : undefined}>
+            {pendentes > 0 ? `${pendentes} pedido(s) para confirmar` : `${pessoas} pessoa(s) confirmada(s)`}
+          </span>
         </button>
         <button type="button" className="qh-kpi" onClick={() => irPara("atendimento")} style={aguardando > 0 ? { borderColor: cor.terracota } : undefined}>
           <span className="qh-kpi-rotulo">Atendimento</span>

@@ -15,7 +15,8 @@ export const metadata: Metadata = {
 
 export default async function Reservar() {
   // Reserva desligada (RESERVAS_SITE_ENABLED) ou sem como confirmar: a API recusa com 503, então não mostra o formulário à toa.
-  const reservaAberta = estadoDasReservasDoSite().aberto;
+  const estado = estadoDasReservasDoSite();
+  const reservaAberta = estado.aberto;
   // Só edições completas e liberadas explicitamente para o site (regras no painel); nenhuma = "em breve".
   const prontas = reservaAberta ? await edicoesProntasParaSite() : [];
   const edicoes = prontas.map((p) => p.edicao);
@@ -41,7 +42,7 @@ export default async function Reservar() {
             </a>
           </div>
         ) : (
-          <ReservaMesa edicoes={edicoes} instagram={site.instagram} regras={Object.fromEntries(prontas.map((p) => [p.edicao.id, regrasPublicas(p.regras)]))} />
+          <ReservaMesa edicoes={edicoes} instagram={site.instagram} manual={estado.motivo === "manual"} regras={Object.fromEntries(prontas.map((p) => [p.edicao.id, regrasPublicas(p.regras)]))} />
         )}
       </div>
     </section>

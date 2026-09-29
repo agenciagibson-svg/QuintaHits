@@ -17,6 +17,8 @@ import {
 } from "./Icones";
 import type { Edicao } from "@/lib/edicao";
 
+export type PedidoPendente = { id: string; edicao_id: string; created_at: string };
+
 export type Aba = "inicio" | "atendimento" | "reservas" | "programacao" | "regras" | "mesas" | "casa" | "sistema";
 
 type ItemMenu = { aba: Aba; rotulo: string; icone: ReactNode; titulo: string; descricao: string; grupo: "Operação" | "Configuração" };
@@ -24,7 +26,7 @@ type ItemMenu = { aba: Aba; rotulo: string; icone: ReactNode; titulo: string; de
 const MENU: ItemMenu[] = [
   { aba: "inicio", rotulo: "Início", icone: <IconeInicio />, grupo: "Operação", titulo: "Visão geral", descricao: "O que importa para a próxima quinta, num relance." },
   { aba: "atendimento", rotulo: "Atendimento", icone: <IconeConversa />, grupo: "Operação", titulo: "Atendimento", descricao: "Conversas do WhatsApp que o agente passou para a equipe. Enquanto uma pessoa cuida, o agente não responde." },
-  { aba: "reservas", rotulo: "Reservas", icone: <IconeReserva />, grupo: "Operação", titulo: "Reservas", descricao: "Pedidos de mesa de cada noite. Confirme à mão só se o cliente não conseguir enviar o código pelo WhatsApp." },
+  { aba: "reservas", rotulo: "Reservas", icone: <IconeReserva />, grupo: "Operação", titulo: "Reservas", descricao: "Pedidos de mesa de cada noite. Confirme ou recuse e avise o cliente pelo WhatsApp com a mensagem pronta." },
   { aba: "programacao", rotulo: "Programação", icone: <IconeCalendario />, grupo: "Operação", titulo: "Programação", descricao: "As quintas da agenda: atração, horário, local e status. É o que aparece em /programacao." },
   { aba: "regras", rotulo: "Regras da noite", icone: <IconeRegras />, grupo: "Configuração", titulo: "Regras da noite", descricao: "Prazos, valores e canais de cada edição. A reserva só abre quando tudo está preenchido e liberado." },
   { aba: "mesas", rotulo: "Mesas", icone: <IconeMesas />, grupo: "Configuração", titulo: "Mesas", descricao: "O mapa que o cliente vê em /reservar. Mesa desativada some do site." },
@@ -44,6 +46,23 @@ export default function AdminDashboard() {
   const [erro, setErro] = useState("");
   const [aguardando, setAguardando] = useState(0);
   const [visitaInicio, setVisitaInicio] = useState(0);
+  const [pendentes, setPendentes] = useState<PedidoPendente[]>([]);
+
+  const carregarPendentes = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/reservas?pendentes=1");
+      if (res.ok) setPendentes((await res.json()).pendentes ?? []);
+    } catch {
+      // sem conexão: tenta de novo no próximo ciclo
+    }
+  }, []);
+
+  // Pedidos novos do site: contador no menu, atualizado a cada 30 s.
+  useEffect(() => {
+    carregarPendentes();
+    const t = setInterval(carregarPendentes, 30_000);
+    return () => clearInterval(t);
+  }, [carregarPendentes]);
 
   const carregarEdicoes = useCallback(async () => {
     setErro("");
@@ -114,6 +133,7 @@ export default function AdminDashboard() {
                     {m.icone}
                     {m.rotulo}
                     {m.aba === "atendimento" && aguardando > 0 && <span className="qh-badge" aria-label={`${aguardando} aguardando`}>{aguardando}</span>}
+                    {m.aba === "reservas" && pendentes.length > 0 && <span className="qh-badge" style={{ background: "#D5A62A", color: "#171717" }} aria-label={`${pendentes.length} para confirmar`}>{pendentes.length}</span>}
                   </button>
                 ))}
               </div>
@@ -140,10 +160,10 @@ export default function AdminDashboard() {
               <p style={s.legenda}>Carregando…</p>
             ) : (
               <>
-                {aba === "inicio" && <VisaoGeral key={visitaInicio} edicoes={edicoes} aguardando={aguardando} irPara={irPara} />}
+                {aba === "inicio" && <VisaoGeral key={visitaInicio} edicoes={edicoes} aguardando={aguardando} pendentes={pendentes.length} irPara={irPara} />}
                 {/* Sempre montado: mantém o contador de atendimento do menu atualizado. */}
                 <div hidden={aba !== "atendimento"}><AtendimentoPainel onContagem={setAguardando} /></div>
-                {painel("reservas", <ReservasPainel edicoes={edicoes} />)}
+                {painel("reservas", <ReservasPainel edicoes={edicoes} pendentes={pendentes} onMudou={carregarPendentes} />)}
                 {painel("programacao", <ProgramacaoPainel edicoes={edicoes} recarregar={carregarEdicoes} />)}
                 {painel("regras", <RegrasEdicaoPainel edicoes={edicoes} />)}
                 {painel("mesas", <MesasEditor />)}

@@ -1228,3 +1228,13 @@ Entrar em https://quinta-hits-eight.vercel.app/admin com o e-mail de administrad
   ✓ migração reaplica limpa depois da reversão
 RESULTADO: 101 verificações ok, 0 falhas
 ```
+
+## 32. Modo formulário: reservas pelo site sem WhatsApp (29/09/2026)
+
+Enquanto a Meta não libera o número, o site pode receber pedidos de mesa e a equipe confirma pelo painel.
+
+- **Liga com duas chaves na Vercel:** `RESERVAS_SITE_ENABLED=true` **e** `RESERVAS_SITE_MANUAL=true`. Sozinha, a chave manual não abre nada. Quando o WhatsApp estiver conectado (credenciais + envio real), o site volta sozinho ao fluxo automático do código `QH-NNNNNN` e a chave manual é ignorada.
+- **Cliente:** escolhe a mesa no mapa, preenche nome, WhatsApp e pessoas, aceita a Política de Privacidade e vê "Pedido recebido". Continua valendo tudo do formulário normal: Turnstile, armadilha de robô, limite por endereço, limite por WhatsApp e só edições completas e liberadas em Regras da noite.
+- **Mesa:** fica segura (status `aguardando`) até a equipe responder; sem resposta, expira sozinha às 23h59 do dia da edição.
+- **Painel → Reservas:** contador de pedidos "para confirmar" no menu e na tela Início (atualiza a cada 30 s). Botões Confirmar / Recusar e, depois, **Avisar no WhatsApp**, que abre o WhatsApp normal da casa com a mensagem pronta. Nada é enviado automaticamente.
+- **Código:** `src/lib/reservasSite.ts` (estado `manual`), `src/app/api/reservas/route.ts`, `src/components/PedidoRecebido.tsx`, `GET /api/admin/reservas?pendentes=1`. Testes em `tests/flags.test.ts` e `tests/edicaoSite.test.ts`.

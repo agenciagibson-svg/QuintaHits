@@ -208,6 +208,47 @@ describe("POST /api/reservas com o site aberto (ambiente de teste, tudo simulado
     expect(await contarReservas()).toBe(0);
   });
 
+  it("modo formulário sozinho NÃO abre o site: exige também RESERVAS_SITE_ENABLED", async () => {
+    await liberarEdicaoParaSite(banco, ed);
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "");
+    vi.stubEnv("RESERVAS_SITE_MANUAL", "true");
+    expect((await post(corpo())).status).toBe(503);
+    expect(await contarReservas()).toBe(0);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("modo formulário (sem WhatsApp): cria o pedido para a equipe, segura a mesa até o fim do dia e não chama a Meta", async () => {
+    await liberarEdicaoParaSite(banco, ed);
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "chave-ficticia");
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    vi.stubEnv("RESERVAS_SITE_MANUAL", "true");
+    expect((await mapa(new Request(`http://localhost/api/reservas/mapa?edicao=${ed}`))).status).toBe(200);
+    const r = await post(corpo());
+    expect(r.status).toBe(201);
+    const j = await r.json();
+    expect(j).toMatchObject({ ok: true, manual: true, mesa: "T1" });
+    expect(j.codigo).toMatch(/^QH-\d{6}$/);
+    expect(j.whatsappLink).toBeUndefined();
+    const [linha] = await banco.sql<{ status: string; origem_reserva: string; expira_em: Date }>("select status, origem_reserva, expira_em from reservas");
+    expect(linha.status).toBe("aguardando");
+    expect(linha.origem_reserva).toBe("site");
+    expect(new Date(linha.expira_em).toISOString()).toBe("2099-01-08T02:59:00.000Z"); // 23h59 de Uberlândia do dia da edição
+    const [auditoria] = await banco.sql<{ detalhe: Record<string, unknown> }>("select detalhe from auditoria where acao = 'reserva_site_criada'");
+    expect(auditoria.detalhe).toMatchObject({ politica_aceita: true, modo: "manual" });
+    // A mesa fica segura: a segunda tentativa na mesma mesa é recusada.
+    expect((await post(corpo({ nome: "Bia Teste", whatsapp: "(34) 98888-7777" }), "10.0.0.2")).status).toBe(409);
+    expect(fetch).toHaveBeenCalledTimes(2); // só o Turnstile simulado (uma vez por pedido); nenhuma chamada à Meta
+  });
+
+  it("com o WhatsApp conectado, o modo formulário é ignorado: vale a confirmação automática pelo código", async () => {
+    await liberarEdicaoParaSite(banco, ed);
+    abrirSite();
+    vi.stubEnv("RESERVAS_SITE_MANUAL", "true");
+    const j = await (await post(corpo())).json();
+    expect(j.manual).toBeUndefined();
+    expect(j.whatsappLink).toContain("wa.me/");
+  });
+
   it("aberto, edição completa e liberada: cria o pedido, gera o código e ele aparece no banco na hora com origem 'site'", async () => {
     await liberarEdicaoParaSite(banco, ed);
     abrirSite();

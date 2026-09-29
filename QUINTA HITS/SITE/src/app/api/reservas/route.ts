@@ -6,7 +6,7 @@ import { edicaoProntaParaSite } from "@/lib/regras";
 import { verificarMesa } from "@/lib/disponibilidade";
 import { verificarTurnstile } from "@/lib/turnstile";
 import { numeroDaCasa } from "@/lib/whatsapp";
-import { estadoDasReservasDoSite } from "@/lib/reservasSite";
+import { estadoDasReservasDoSite, fimDoDiaDaEdicao } from "@/lib/reservasSite";
 import { limiteExcedido } from "@/lib/limiteTaxa";
 import { registrarAuditoria } from "@/lib/auditoria";
 import {
@@ -25,9 +25,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const erro = (mensagem: string, status: number) => NextResponse.json({ erro: mensagem }, { status });
 
 /**
- * POST /api/reservas — pedido de mesa feito pelo site.
- * Nasce "aguardando" com um código; a mesa fica segura por PRAZO_CONFIRMACAO_MIN até o cliente
- * mandar o código pelo WhatsApp (o webhook em /api/whatsapp/webhook confirma).
+ * POST /api/reservas — pedido de mesa feito pelo site. Nasce "aguardando" com um código.
+ * - WhatsApp conectado: a mesa fica segura por PRAZO_CONFIRMACAO_MIN até o cliente mandar o código pelo WhatsApp
+ *   (o webhook em /api/whatsapp/webhook confirma).
+ * - Modo formulário (RESERVAS_SITE_MANUAL): a mesa fica segura até o fim do dia da edição; a equipe confirma ou
+ *   recusa no painel e avisa o cliente pelo WhatsApp normal da casa.
  */
 export async function POST(req: Request) {
   // Primeira coisa, antes de ler o corpo ou falar com qualquer serviço: com a chave desligada nenhuma reserva é criada.
@@ -56,8 +58,9 @@ export async function POST(req: Request) {
   // Consentimento informado: o cliente precisa ter lido a Política de Privacidade (o formulário exige a caixa marcada).
   if (body.politica !== true) return erro("Leia a Política de Privacidade e marque a caixa para continuar.", 400);
 
-  const numeroCasa = numeroDaCasa();
-  if (!numeroCasa) return erro("A reserva pelo site está indisponível agora. Fale com a gente pelo Instagram.", 503);
+  const manual = estado.motivo === "manual";
+  const numeroCasa = manual ? null : numeroDaCasa();
+  if (!manual && !numeroCasa) return erro("A reserva pelo site está indisponível agora. Fale com a gente pelo Instagram.", 503);
 
   const nome = typeof body.nome === "string" ? body.nome.trim() : "";
   if (nome.length < 2 || nome.length > 80) return erro("Informe seu nome.", 400);
@@ -100,7 +103,7 @@ export async function POST(req: Request) {
       return erro("Esse WhatsApp já tem reservas nesta edição. Fale com a gente para mudar.", 409);
     }
 
-    const expiraEm = new Date(Date.now() + PRAZO_CONFIRMACAO_MIN * 60_000).toISOString();
+    const expiraEm = manual ? fimDoDiaDaEdicao(edicaoId) : new Date(Date.now() + PRAZO_CONFIRMACAO_MIN * 60_000).toISOString();
 
     // Código repetido entre pedidos aguardando é raro (6 dígitos), mas o índice do banco barra: tenta outro.
     for (let tentativa = 0; tentativa < 3; tentativa++) {
@@ -117,7 +120,9 @@ export async function POST(req: Request) {
       if (error) throw error;
 
       // Prova do aceite da Política de Privacidade (sem nome nem telefone: só o fato e a origem).
-      await registrarAuditoria({ ator: "site", acao: "reserva_site_criada", entidade: "reserva", entidadeId: data.id, detalhe: { origem: "site", politica_aceita: true } });
+      await registrarAuditoria({ ator: "site", acao: "reserva_site_criada", entidade: "reserva", entidadeId: data.id, detalhe: { origem: "site", politica_aceita: true, ...(manual ? { modo: "manual" } : {}) } });
+
+      if (manual) return NextResponse.json({ ok: true, id: data.id, mesa: mesa.numero, codigo, manual: true }, { status: 201 });
 
       return NextResponse.json(
         {

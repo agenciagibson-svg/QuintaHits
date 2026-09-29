@@ -10,6 +10,7 @@
  *   WHATSAPP_SEND_ENABLED          envio de mensagens (o envio REAL exige as duas chaves acima)
  *   WHATSAPP_REGISTRATION_ENABLED  registro do número na Meta (script manual separado, com confirmação interativa)
  *   RESERVAS_SITE_ENABLED          reserva de mesa pelo site
+ *   RESERVAS_SITE_MANUAL           enquanto o WhatsApp não está conectado, o pedido do site vai para o painel e a equipe confirma
  */
 
 /** Phone Number ID oficial da QUINTA HITS na WhatsApp Cloud API. Identificador técnico, não é segredo. */
@@ -39,6 +40,12 @@ export const registroLigadoPorEnv = () => ligado(process.env.WHATSAPP_REGISTRATI
 
 /** Reserva de mesa pelo site (formulário e API). Independe de qualquer credencial do WhatsApp. */
 export const reservasSiteLigadoPorEnv = () => ligado(process.env.RESERVAS_SITE_ENABLED);
+
+/**
+ * Modo formulário: com a reserva pelo site ligada e SEM WhatsApp conectado, o pedido chega ao painel e a equipe
+ * confirma à mão (e avisa o cliente pelo WhatsApp normal da casa). Sozinha esta chave não abre nada.
+ */
+export const reservasSiteManualPorEnv = () => ligado(process.env.RESERVAS_SITE_MANUAL);
 
 /** Repasse para humano: padrão LIGADO; só "false" desliga. */
 export const repasseHumanoLigadoPorEnv = () => process.env.WHATSAPP_HUMAN_HANDOFF_ENABLED?.trim().toLowerCase() !== "false";

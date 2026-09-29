@@ -8,7 +8,8 @@ import { cor, s, selo, type Tom } from "./estilos";
 const MOTIVO_SITE: Record<string, string> = {
   chave_desligada: "A chave RESERVAS_SITE_ENABLED está desligada na Vercel.",
   whatsapp_nao_configurado: "A confirmação pelo WhatsApp ainda não pode ser enviada (credenciais e chaves de envio).",
-  ok: "O público já pode reservar pelo site.",
+  ok: "O público já pode reservar pelo site (confirmação automática pelo WhatsApp).",
+  manual: "Modo formulário: o pedido chega em Reservas e a equipe confirma e avisa pelo WhatsApp da casa.",
 };
 
 const nomeAmbiente = (a: string | null) => (a === "producao" ? "produção" : a === "homologacao" ? "homologação" : a ?? "sem migração");
@@ -59,7 +60,7 @@ export default function IntegracoesPainel() {
     },
     {
       titulo: "Reservas pelo site",
-      estado: estado.reservas_site.aberto ? "Abertas" : "Fechadas",
+      estado: estado.reservas_site.aberto ? (estado.reservas_site.motivo === "manual" ? "Abertas (formulário)" : "Abertas") : "Fechadas",
       tom: estado.reservas_site.aberto ? "ok" : "neutro",
       texto: MOTIVO_SITE[estado.reservas_site.motivo] ?? estado.reservas_site.motivo,
     },
