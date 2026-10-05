@@ -18,6 +18,7 @@ const BASE = ler("schema.sql").replace(/create extension if not exists pgcrypto;
 const MIGRACAO = ler("migracao-2026-09-21-agente-whatsapp.sql");
 const MIGRACAO_PARTE2 = ler("migracao-2026-09-21-parte2-site-e-atendimento.sql");
 const MIGRACAO_PLANTA = ler("migracao-2026-09-29-planta-do-salao.sql");
+const MIGRACAO_ABERTURA = ler("migracao-2026-10-05-abertura-semanal.sql");
 
 export type ErroBanco = { code: string; message: string; details: string | null; hint: string | null };
 type Resposta<T> = { data: T; error: ErroBanco | null; count: number | null };
@@ -198,13 +199,15 @@ export type BancoTeste = {
 };
 
 /** `migracao: false` = banco antigo (sem nada do agente); `parte2: false` = só a parte 1 aplicada (estado do banco antes da parte 2). */
-export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean } = {}): Promise<BancoTeste> {
+/** `abertura: false` = banco sem as colunas da abertura semanal. Com elas, `limpar()` deixa a linha da casa SEM dia fixo. */
+export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean } = {}): Promise<BancoTeste> {
   const pg = new PGlite();
   await pg.exec("create role anon; create role authenticated; create role service_role;");
   await pg.exec(BASE);
   if (opcoes.migracao !== false) await pg.exec(MIGRACAO);
   if (opcoes.migracao !== false && opcoes.parte2 !== false) await pg.exec(MIGRACAO_PARTE2);
   if (opcoes.planta !== false) await pg.exec(MIGRACAO_PLANTA);
+  if (opcoes.abertura !== false) await pg.exec(MIGRACAO_ABERTURA);
   const temMigracao = opcoes.migracao !== false;
 
   const supabase = { from: (tabela: string) => new Consulta(pg, tabela) } as unknown as SupabaseClient;

@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatData, hojeISO, type Edicao } from "@/lib/edicao";
 import type { CanalDaMesa } from "@/lib/regras";
-import type { Prontidao, RegrasEdicao } from "@/lib/regrasEdicao";
+import { regrasCopiadas, soAguardaAbertura, temRegras, type Prontidao, type RegrasEdicao } from "@/lib/regrasEdicao";
 import { cor, s, selo } from "./estilos";
 
-type Painel = { migrado: false } | { migrado: true; parte2: boolean; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; prontidaoSite: Prontidao; mesas: CanalDaMesa[] };
+type Painel = { migrado: false } | { migrado: true; parte2: boolean; siteLigado: boolean; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; prontidaoSite: Prontidao; mesas: CanalDaMesa[] };
 
 type Formulario = {
   abertura: string;
@@ -78,6 +78,7 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [msg, setMsg] = useState("");
+  const [copiando, setCopiando] = useState(false);
   const ultimoPedido = useRef("");
 
   function aplicar(p: Painel) {
@@ -155,6 +156,41 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
     }
   }
 
+  /** Preenche o formulário com as regras da edição anterior mais recente que tenha regras. Não salva sozinho. */
+  async function copiarDaAnterior() {
+    const atual = edicoes.find((e) => e.id === edicaoId);
+    if (!atual || !form) return;
+    setErro("");
+    setMsg("");
+    setCopiando(true);
+    try {
+      const anteriores = edicoes.filter((e) => e.data < atual.data && e.status !== "cancelada").sort((a, b) => b.data.localeCompare(a.data)).slice(0, 8);
+      for (const anterior of anteriores) {
+        const res = await fetch(`/api/admin/edicoes/${anterior.id}/regras`);
+        if (res.status === 401) return router.replace("/admin/login");
+        if (!res.ok) throw new Error();
+        const p = (await res.json()) as Painel;
+        if (!p.migrado || !temRegras(p.regras)) continue;
+        if (ultimoPedido.current !== edicaoId) return; // trocou de edição no meio do caminho
+        const parte2 = painel?.migrado && painel.parte2;
+        // Funcional: preserva o que foi digitado nas observações enquanto buscava. A liberação para o site só é copiada
+        // se este banco já tem a parte 2 (senão a caixa fica desligada).
+        setForm((f) => {
+          if (!f) return f;
+          const copiado = formularioDe(regrasCopiadas(p.regras, anterior.data, atual.data, f.observacoes));
+          return { ...copiado, reservas_site: parte2 ? copiado.reservas_site : f.reservas_site };
+        });
+        setMsg(`Regras copiadas da edição de ${formatData(anterior.data, "numerica")} (inclusive as liberações). Confira, principalmente o prazo final, e clique em "Salvar regras e canais".`);
+        return;
+      }
+      if (ultimoPedido.current === edicaoId) setErro("Nenhuma edição anterior tem regras preenchidas para copiar.");
+    } catch {
+      if (ultimoPedido.current === edicaoId) setErro("Não foi possível copiar as regras da edição anterior.");
+    } finally {
+      setCopiando(false);
+    }
+  }
+
   const trocar = (campo: keyof Formulario, valor: string | boolean) => form && setForm({ ...form, [campo]: valor });
   const mudarMesa = (id: string, mudanca: Partial<CanalDaMesa>) => setMesas(mesas.map((m) => (m.mesa_id === id ? { ...m, ...mudanca } : m)));
 
@@ -188,16 +224,26 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
         <form onSubmit={salvar}>
           <div className="qh-kpis" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
             {[
-              { titulo: "Reservas pelo site", p: painel.prontidaoSite, ok: "Pronta (abre quando a chave do site for ligada na Vercel)." },
+              {
+                titulo: "Reservas pelo site",
+                p: painel.prontidaoSite,
+                ok: painel.siteLigado ? "Aberta para reservas pelo site." : "Pronta, mas as reservas pelo site estão desligadas na Vercel.",
+              },
               { titulo: "Reservas pelo WhatsApp", p: painel.prontidao, ok: "Pronta para o atendimento automático." },
             ].map(({ titulo, p, ok }) => (
               <div key={titulo} className="qh-kpi" role="status">
                 <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                   <span className="qh-kpi-rotulo">{titulo}</span>
-                  <span style={selo(p.pronta ? "ok" : "alerta")}>{p.pronta ? "Pronta" : `Faltam ${p.faltando.length}`}</span>
+                  <span style={selo(p.pronta || soAguardaAbertura(p) ? "ok" : "alerta")}>
+                    {p.pronta ? "Pronta" : soAguardaAbertura(p) ? "Agendada" : `Faltam ${p.faltando.length}`}
+                  </span>
                 </span>
                 {p.pronta ? (
                   <span className="qh-kpi-sub">{ok}</span>
+                ) : soAguardaAbertura(p) ? (
+                  <span className="qh-kpi-sub">
+                    Tudo pronto: as reservas abrem sozinhas {p.abreQuando}.{titulo === "Reservas pelo site" && !painel.siteLigado ? " (Atenção: as reservas pelo site estão desligadas na Vercel.)" : ""}
+                  </span>
                 ) : (
                   <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13, color: cor.suave }}>
                     {p.faltando.map((f) => <li key={f}>{f}</li>)}
@@ -214,7 +260,12 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
           )}
 
           <section style={s.secao}>
-          <h2 style={s.h2}>Regras da noite</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <h2 style={s.h2}>Regras da noite</h2>
+            <button type="button" style={s.botaoMiniOutline} onClick={copiarDaAnterior} disabled={copiando || carregando}>
+              {copiando ? "Copiando…" : "Copiar regras da quinta anterior"}
+            </button>
+          </div>
           <p style={s.legenda}>Horário do evento e local ficam em Programação. Campo vazio significa &quot;ainda não definido&quot;.</p>
           <div style={s.gridNova}>
             <label style={s.campo}><span>Horário de abertura</span>
@@ -298,7 +349,7 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
           </section>
 
           <div className="qh-salvar">
-            <button type="submit" style={{ ...s.botaoSalvar, marginTop: 0 }} disabled={salvando}>
+            <button type="submit" style={{ ...s.botaoSalvar, marginTop: 0 }} disabled={salvando || copiando}>
               {salvando ? "Salvando…" : "Salvar regras e canais"}
             </button>
           </div>

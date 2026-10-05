@@ -3,7 +3,9 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { estoqueDaEdicao, mesasDoCanal, tabelaAusente, type Estoque } from "@/lib/disponibilidade";
 import { edicoesReservaveis } from "@/lib/reservas";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { CAMPOS_REGRAS, CAMPOS_REGRAS_PARTE1, REGRAS_VAZIAS, avaliarProntidao, avaliarProntidaoDoSite, type Prontidao, type RegrasEdicao } from "@/lib/regrasEdicao";
+import { CAMPOS_REGRAS, CAMPOS_REGRAS_PARTE1, REGRAS_VAZIAS, avaliarProntidao, avaliarProntidaoDoSite, descreverAbertura, soAguardaAbertura, type AberturaSemanal, type Prontidao, type RegrasEdicao } from "@/lib/regrasEdicao";
+import { carregarAberturaSemanal } from "@/lib/aberturaSemanal";
+import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import { edicaoReservavel } from "@/lib/reservas";
 import type { Edicao } from "@/lib/edicao";
 
@@ -23,7 +25,7 @@ export type CanalDaMesa = {
 
 export type PainelDeRegras =
   | { migrado: false }
-  | { migrado: true; parte2: boolean; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; prontidaoSite: Prontidao; mesas: CanalDaMesa[] };
+  | { migrado: true; parte2: boolean; siteLigado: boolean; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; prontidaoSite: Prontidao; mesas: CanalDaMesa[] };
 
 async function lerEdicao(id: string): Promise<Edicao | null> {
   const { data, error } = await supabaseAdmin().from("edicoes").select(CAMPOS_EDICAO).eq("id", id).maybeSingle();
@@ -71,16 +73,18 @@ function canaisDoEstoque(estoque: Estoque): CanalDaMesa[] {
 export async function carregarPainelDeRegras(edicaoId: string, agora = new Date()): Promise<PainelDeRegras> {
   const lido = await lerRegras(edicaoId);
   if (!lido) return { migrado: false };
-  const [edicao, estoque] = await Promise.all([lerEdicao(edicaoId), estoqueDaEdicao(edicaoId)]);
+  const [edicao, estoque, abertura] = await Promise.all([lerEdicao(edicaoId), estoqueDaEdicao(edicaoId), carregarAberturaSemanal()]);
   const mesasWhatsapp = mesasDoCanal(estoque, "whatsapp").length;
   const mesasSite = mesasDoCanal(estoque, "site").length;
   return {
     migrado: true,
     parte2: lido.parte2,
+    /** Chaves da Vercel (RESERVAS_SITE_ENABLED e confirmação possível): sem isso, nem uma edição pronta recebe reserva. */
+    siteLigado: estadoDasReservasDoSite().aberto,
     edicao,
     regras: lido.regras ?? { ...REGRAS_VAZIAS },
     prontidao: avaliarProntidao({ edicao, regras: lido.regras, mesasWhatsapp, agora }),
-    prontidaoSite: avaliarProntidaoDoSite({ edicao, regras: lido.regras, mesasSite, agora }),
+    prontidaoSite: avaliarProntidaoDoSite({ edicao, regras: lido.regras, mesasSite, agora, aberturaSemanal: abertura.regra }),
     mesas: canaisDoEstoque(estoque),
   };
 }
@@ -168,30 +172,47 @@ export async function edicoesProntasParaAgente(agora = new Date(), limite = 6): 
 
 export type EdicaoProntaSite = { edicao: Edicao; regras: RegrasEdicao; mesasSite: number };
 
-/** Só devolve a edição se ela estiver COMPLETA e liberada para o site (regras, mesa oferecida ao site e `reservas_site`). */
-async function prontaParaSite(edicao: Edicao, agora: Date): Promise<EdicaoProntaSite | null> {
+/** Prontidão da edição para o SITE (regras, mesa oferecida ao site, `reservas_site` e a abertura semanal da casa). */
+async function avaliarParaSite(edicao: Edicao, agora: Date, abertura: AberturaSemanal | null): Promise<{ pronta: EdicaoProntaSite | null; prontidao: Prontidao | null }> {
   const lido = await lerRegras(edicao.id);
-  if (!lido || !lido.regras || !lido.parte2) return null;
+  if (!lido || !lido.regras || !lido.parte2) return { pronta: null, prontidao: null };
   const estoque = await estoqueDaEdicao(edicao.id);
   const mesasSite = mesasDoCanal(estoque, "site").length;
-  return avaliarProntidaoDoSite({ edicao, regras: lido.regras, mesasSite, agora }).pronta ? { edicao, regras: lido.regras, mesasSite } : null;
+  const prontidao = avaliarProntidaoDoSite({ edicao, regras: lido.regras, mesasSite, agora, aberturaSemanal: abertura });
+  return { pronta: prontidao.pronta ? { edicao, regras: lido.regras, mesasSite } : null, prontidao };
 }
 
-/** Edições em que o SITE pode aceitar reserva agora. Nenhuma completa e liberada = lista vazia (o site mostra "em breve"). */
-export async function edicoesProntasParaSite(agora = new Date(), limite = 6): Promise<EdicaoProntaSite[]> {
+export type ProximaAbertura = { edicao: Edicao; abreEm: string; descricao: string };
+
+/**
+ * O que o site mostra agora: edições que aceitam reserva e, se nenhuma aceita ainda, a próxima que já está pronta e só
+ * espera o dia/hora da abertura semanal (para a página dizer "abrem segunda, 05/10, às 12h").
+ */
+export async function situacaoDoSite(agora = new Date(), limite = 6): Promise<{ prontas: EdicaoProntaSite[]; proximaAbertura: ProximaAbertura | null }> {
+  const abertura = (await carregarAberturaSemanal()).regra;
   const prontas: EdicaoProntaSite[] = [];
+  let proximaAbertura: ProximaAbertura | null = null;
   for (const edicao of await edicoesReservaveis(agora, 50)) {
     if (prontas.length >= limite) break;
-    const pronta = await prontaParaSite(edicao, agora);
+    const { pronta, prontidao } = await avaliarParaSite(edicao, agora, abertura);
     if (pronta) prontas.push(pronta);
+    else if (!proximaAbertura && abertura && prontidao && soAguardaAbertura(prontidao)) {
+      proximaAbertura = { edicao, abreEm: prontidao.abreEm as string, descricao: descreverAbertura(edicao.data, abertura) };
+    }
   }
-  return prontas;
+  return { prontas, proximaAbertura };
 }
 
-/** A edição, se o site pode aceitar reserva dela agora; senão null. */
+/** Edições em que o SITE pode aceitar reserva agora. Nenhuma completa, liberada e já aberta = lista vazia. */
+export async function edicoesProntasParaSite(agora = new Date(), limite = 6): Promise<EdicaoProntaSite[]> {
+  return (await situacaoDoSite(agora, limite)).prontas;
+}
+
+/** A edição, se o site pode aceitar reserva dela agora; senão null (inclui "ainda não chegou o dia da abertura"). */
 export async function edicaoProntaParaSite(id: string, agora = new Date()): Promise<EdicaoProntaSite | null> {
   const edicao = await edicaoReservavel(id, agora);
-  return edicao ? prontaParaSite(edicao, agora) : null;
+  if (!edicao) return null;
+  return (await avaliarParaSite(edicao, agora, (await carregarAberturaSemanal()).regra)).pronta;
 }
 
 /** A migração parte 2 (coluna `reservas_site`) já foi aplicada neste banco? */

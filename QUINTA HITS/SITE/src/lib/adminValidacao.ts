@@ -81,3 +81,25 @@ export function validarConfig(body: Record<string, unknown>): Resultado {
   if (c.reserva_url && !urlHttps(c.reserva_url)) return { erro: "O link de reserva precisa começar com https://" };
   return r;
 }
+
+export type CamposAbertura = { reservas_abrem_dia: number | null; reservas_abrem_hora: string | null };
+
+/**
+ * Abertura semanal das reservas (Configurações da casa). Nenhum dos dois campos no corpo = não mexe.
+ * Os dois vazios = sem dia fixo; senão precisa dos dois: dia 0 (domingo) a 6 (sábado) e horário "12h" ou "12h30".
+ */
+export function validarAberturaSemanal(body: Record<string, unknown>): { erro: string } | { campos: CamposAbertura | null } {
+  const temDia = body.reservas_abrem_dia !== undefined;
+  const temHora = body.reservas_abrem_hora !== undefined;
+  if (!temDia && !temHora) return { campos: null };
+  const dia = body.reservas_abrem_dia;
+  const hora = typeof body.reservas_abrem_hora === "string" ? body.reservas_abrem_hora.trim() : body.reservas_abrem_hora;
+  const diaVazio = dia === null || dia === "" || dia === undefined;
+  const horaVazia = hora === null || hora === "" || hora === undefined;
+  if (diaVazio && horaVazia) return { campos: { reservas_abrem_dia: null, reservas_abrem_hora: null } };
+  if (diaVazio || horaVazia) return { erro: "Para a abertura semanal, escolha o dia e o horário (ou deixe os dois vazios)." };
+  const n = typeof dia === "string" ? Number(dia) : dia;
+  if (typeof n !== "number" || !Number.isInteger(n) || n < 0 || n > 6) return { erro: "Dia da abertura das reservas inválido." };
+  if (typeof hora !== "string" || !HORARIO_RE.test(hora)) return { erro: 'Horário da abertura das reservas no formato "12h" ou "12h30".' };
+  return { campos: { reservas_abrem_dia: n, reservas_abrem_hora: hora } };
+}

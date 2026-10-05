@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { site, instagramUrl } from "@/config/site";
-import { edicoesProntasParaSite } from "@/lib/regras";
+import { situacaoDoSite } from "@/lib/regras";
 import { regrasPublicas } from "@/lib/regrasEdicao";
+import { formatData } from "@/lib/edicao";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import ReservaMesa from "@/components/ReservaMesa";
 
@@ -17,8 +18,8 @@ export default async function Reservar() {
   // Reserva desligada (RESERVAS_SITE_ENABLED) ou sem como confirmar: a API recusa com 503, então não mostra o formulário à toa.
   const estado = estadoDasReservasDoSite();
   const reservaAberta = estado.aberto;
-  // Só edições completas e liberadas explicitamente para o site (regras no painel); nenhuma = "em breve".
-  const prontas = reservaAberta ? await edicoesProntasParaSite() : [];
+  // Só edições completas, liberadas explicitamente para o site (regras no painel) e já no horário da abertura semanal.
+  const { prontas, proximaAbertura } = reservaAberta ? await situacaoDoSite() : { prontas: [], proximaAbertura: null };
   const edicoes = prontas.map((p) => p.edicao);
 
   return (
@@ -33,9 +34,11 @@ export default async function Reservar() {
         {edicoes.length === 0 ? (
           <div className="vazio">
             <p>
-              {reservaAberta
-                ? "Ainda não abrimos reservas para as próximas quintas."
-                : "As reservas pelo site abrem em breve. Por enquanto, fale com a gente no Instagram."}
+              {!reservaAberta
+                ? "As reservas pelo site abrem em breve. Por enquanto, fale com a gente no Instagram."
+                : proximaAbertura
+                  ? `As reservas da quinta ${formatData(proximaAbertura.edicao.data, "numerica")} abrem ${proximaAbertura.descricao}.`
+                  : "Ainda não abrimos reservas para as próximas quintas."}
             </p>
             <a className="btn btn--terracota" href={instagramUrl(site.instagram)} target="_blank" rel="noopener noreferrer">
               Fale com a gente no Instagram

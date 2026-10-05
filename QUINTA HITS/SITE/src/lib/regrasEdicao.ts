@@ -110,7 +110,49 @@ export function validarRegras(body: unknown): Resultado {
   return { campos };
 }
 
-export type Prontidao = { pronta: boolean; faltando: string[] };
+/**
+ * Prontidão de uma edição. `abreEm` (só no site) aparece quando a edição está com tudo pronto, mas aguardando o dia e a
+ * hora da abertura semanal das reservas: é o instante (ISO) em que ela abre sozinha.
+ */
+export type Prontidao = { pronta: boolean; faltando: string[]; abreEm?: string; abreQuando?: string };
+
+/**
+ * Abertura semanal das reservas pelo SITE, padrão da casa (site_config): as reservas de cada edição abrem no `dia` da
+ * semana (0 = domingo … 6 = sábado) mais recente até a data da edição, no `hora` ("12h" ou "12h30"), horário de Uberlândia.
+ * Ex.: segunda às 12h para uma quinta = a segunda da mesma semana, 3 dias antes. null = sem dia fixo (abre assim que completa).
+ */
+export type AberturaSemanal = { dia: number; hora: string };
+
+export const DIAS_DA_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"] as const;
+
+/** Valida dia/hora vindos do banco; qualquer coisa fora do formato = sem regra (não inventa abertura). */
+export function aberturaSemanalDe(dia: unknown, hora: unknown): AberturaSemanal | null {
+  if (typeof dia !== "number" || !Number.isInteger(dia) || dia < 0 || dia > 6) return null;
+  if (typeof hora !== "string" || !HORARIO_RE.test(hora.trim())) return null;
+  return { dia, hora: hora.trim() };
+}
+
+/** Data (AAAA-MM-DD) em que as reservas da edição abrem: o `dia` da semana mais recente até a data da edição. */
+export function dataDeAbertura(dataEdicao: string, regra: AberturaSemanal): string {
+  const [a, m, d] = dataEdicao.split("-").map(Number);
+  const diaDaEdicao = new Date(Date.UTC(a, m - 1, d)).getUTCDay();
+  const recuo = (diaDaEdicao - regra.dia + 7) % 7;
+  return new Date(Date.UTC(a, m - 1, d - recuo)).toISOString().slice(0, 10);
+}
+
+/** Instante em que as reservas da edição abrem (Uberlândia = UTC-3, sem horário de verão). */
+export function inicioDasReservas(dataEdicao: string, regra: AberturaSemanal): Date {
+  const m = HORARIO_RE.exec(regra.hora) ?? [];
+  const hora = (m[1] ?? "0").padStart(2, "0");
+  const minuto = m[2] ?? "00";
+  return new Date(`${dataDeAbertura(dataEdicao, regra)}T${hora}:${minuto}:00-03:00`);
+}
+
+/** "segunda, 05/10, às 12h" — para o painel e para a página de reserva. */
+export function descreverAbertura(dataEdicao: string, regra: AberturaSemanal): string {
+  const data = dataDeAbertura(dataEdicao, regra);
+  return `${DIAS_DA_SEMANA[regra.dia]}, ${data.slice(8, 10)}/${data.slice(5, 7)}, às ${regra.hora}`;
+}
 
 /**
  * A edição está pronta para o atendimento automático? Todos os itens abaixo precisam existir; um só faltando
@@ -129,14 +171,34 @@ export function avaliarProntidao(entrada: { edicao: Edicao | null; regras: Regra
  * A edição está pronta para reservas pelo SITE? Mesmas exigências de dados do agente, mais a liberação EXPLÍCITA
  * para o site (`reservas_site`) e ao menos uma mesa oferecida ao site. Um só item faltando = o site NÃO aceita reserva.
  */
-export function avaliarProntidaoDoSite(entrada: { edicao: Edicao | null; regras: RegrasEdicao | null; mesasSite: number; agora?: Date }): Prontidao {
-  const { edicao, regras, mesasSite } = entrada;
-  const faltando = faltandoDaEdicao(edicao, regras, entrada.agora ?? new Date());
+export function avaliarProntidaoDoSite(entrada: {
+  edicao: Edicao | null;
+  regras: RegrasEdicao | null;
+  mesasSite: number;
+  agora?: Date;
+  /** Padrão da casa; ausente/null = sem dia fixo (abre assim que a edição estiver completa). */
+  aberturaSemanal?: AberturaSemanal | null;
+}): Prontidao {
+  const { edicao, regras, mesasSite, aberturaSemanal } = entrada;
+  const agora = entrada.agora ?? new Date();
+  const faltando = faltandoDaEdicao(edicao, regras, agora);
   if (!edicao) return { pronta: false, faltando };
   if (mesasSite < 1) faltando.push("ao menos uma mesa oferecida ao site");
   if (!(regras ?? REGRAS_VAZIAS).reservas_site) faltando.push("liberação da edição para reservas pelo site");
+  if (aberturaSemanal) {
+    const inicio = inicioDasReservas(edicao.data, aberturaSemanal);
+    // `!(>=)`: uma data inválida (NaN) fica FECHADA, nunca aberta por engano.
+    if (!(agora.getTime() >= inicio.getTime())) {
+      const abreQuando = descreverAbertura(edicao.data, aberturaSemanal);
+      faltando.push(`abertura das reservas (${abreQuando})`);
+      return { pronta: false, faltando, abreEm: inicio.toISOString(), abreQuando };
+    }
+  }
   return { pronta: faltando.length === 0, faltando };
 }
+
+/** Pronta em tudo e só esperando o dia/hora da abertura semanal? */
+export const soAguardaAbertura = (p: Prontidao) => !p.pronta && !!p.abreEm && p.faltando.length === 1;
 
 /** Exigências de dados comuns ao site e ao agente. Devolve exatamente o que falta (lista vazia = completo). */
 function faltandoDaEdicao(edicao: Edicao | null, regras: RegrasEdicao | null, agora: Date): string[] {
@@ -157,6 +219,23 @@ function faltandoDaEdicao(edicao: Edicao | null, regras: RegrasEdicao | null, ag
   if (r.consumacao_minima_centavos === null) faltando.push("consumação mínima (use 0 se não houver)");
   if (!r.instrucoes_chegada) faltando.push("instruções de chegada");
   return faltando;
+}
+
+/** A edição já tem alguma regra preenchida (serve de modelo para "copiar regras da quinta anterior")? */
+export const temRegras = (r: RegrasEdicao) =>
+  [r.abertura, r.reservas_ate, r.tolerancia_min, r.cancelamento_ate_horas, r.capacidade_maxima, r.consumacao_minima_centavos, r.preco_centavos, r.sinal_centavos, r.instrucoes_chegada].some((v) => v !== null);
+
+/**
+ * Regras de outra edição trazidas para esta: tudo igual, o prazo final para reservar andando junto com a data (mesmo
+ * horário, tantos dias depois) e as observações internas DESTA edição preservadas. Só preenche o formulário: nada é salvo.
+ */
+export function regrasCopiadas(modelo: RegrasEdicao, dataModelo: string, dataDestino: string, observacoes: string): RegrasEdicao {
+  const dias = Math.round((Date.parse(`${dataDestino}T12:00:00Z`) - Date.parse(`${dataModelo}T12:00:00Z`)) / 86_400_000);
+  return {
+    ...modelo,
+    reservas_ate: modelo.reservas_ate ? new Date(new Date(modelo.reservas_ate).getTime() + dias * 86_400_000).toISOString() : null,
+    observacoes,
+  };
 }
 
 /** O que o CLIENTE pode ver das regras da edição (nada interno: sem sinal e sem observações). */

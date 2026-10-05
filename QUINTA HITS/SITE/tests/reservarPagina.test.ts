@@ -3,11 +3,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ID_QUINTA_HITS } from "./helpers/whatsapp";
 
-vi.mock("@/lib/regras", () => ({ edicoesProntasParaSite: vi.fn(async () => [{ edicao: { id: "2026-10-08" }, regras: {}, mesasSite: 6 }]) }));
+vi.mock("@/lib/regras", () => ({
+  situacaoDoSite: vi.fn(async () => ({ prontas: [{ edicao: { id: "2026-10-08" }, regras: {}, mesasSite: 6 }], proximaAbertura: null })),
+}));
 vi.mock("@/components/ReservaMesa", () => ({ default: () => createElement("div", null, "FORMULARIO_DE_RESERVA") }));
 
 import Reservar from "@/app/reservar/page";
-import { edicoesProntasParaSite } from "@/lib/regras";
+import { situacaoDoSite } from "@/lib/regras";
 
 const renderizar = async () => renderToStaticMarkup(await Reservar());
 
@@ -23,14 +25,14 @@ function integracaoCompleta() {
 }
 
 describe("/reservar: formulário escondido enquanto a reserva do site não estiver aberta", () => {
-  afterEach(() => { vi.unstubAllEnvs(); vi.mocked(edicoesProntasParaSite).mockClear(); });
+  afterEach(() => { vi.unstubAllEnvs(); vi.mocked(situacaoDoSite).mockClear(); });
 
   it("sem nenhuma variável (produção hoje): aviso amigável e Instagram, sem formulário e sem consultar o banco", async () => {
     const html = await renderizar();
     expect(html).not.toContain("FORMULARIO_DE_RESERVA");
     expect(html).toContain("abrem em breve");
     expect(html).toContain("instagram.com/quintahits");
-    expect(edicoesProntasParaSite).not.toHaveBeenCalled();
+    expect(situacaoDoSite).not.toHaveBeenCalled();
   });
 
   it("credenciais completas e chaves de envio ligadas, mas RESERVAS_SITE_ENABLED desligada: continua fechado", async () => {
@@ -38,7 +40,7 @@ describe("/reservar: formulário escondido enquanto a reserva do site não estiv
     const html = await renderizar();
     expect(html).not.toContain("FORMULARIO_DE_RESERVA");
     expect(html).toContain("abrem em breve");
-    expect(edicoesProntasParaSite).not.toHaveBeenCalled();
+    expect(situacaoDoSite).not.toHaveBeenCalled();
   });
 
   it("RESERVAS_SITE_ENABLED ligada mas sem como confirmar pelo WhatsApp (sem credenciais): continua fechado", async () => {
@@ -57,9 +59,21 @@ describe("/reservar: formulário escondido enquanto a reserva do site não estiv
   it("chave ligada, integração completa, mas nenhuma edição pronta e liberada: mensagem de reservas ainda não abertas", async () => {
     integracaoCompleta();
     vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
-    vi.mocked(edicoesProntasParaSite).mockResolvedValueOnce([]);
+    vi.mocked(situacaoDoSite).mockResolvedValueOnce({ prontas: [], proximaAbertura: null });
     const html = await renderizar();
     expect(html).toContain("Ainda não abrimos reservas");
+    expect(html).not.toContain("FORMULARIO_DE_RESERVA");
+  });
+
+  it("edição pronta, mas antes da abertura semanal: diz o dia e a hora em que as reservas abrem", async () => {
+    integracaoCompleta();
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    vi.mocked(situacaoDoSite).mockResolvedValueOnce({
+      prontas: [],
+      proximaAbertura: { edicao: { id: "2026-10-08", data: "2026-10-08" } as never, abreEm: "2026-10-05T15:00:00.000Z", descricao: "segunda, 05/10, às 12h" },
+    });
+    const html = await renderizar();
+    expect(html).toContain("As reservas da quinta 08/10 abrem segunda, 05/10, às 12h.");
     expect(html).not.toContain("FORMULARIO_DE_RESERVA");
   });
 });
