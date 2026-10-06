@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { instagramUrl } from "@/config/site";
 import { formatData, type Edicao } from "@/lib/edicao";
-import type { MesaPublica } from "@/lib/reserva";
+import { mascararWhatsapp, problemaNoWhatsapp, type MesaPublica } from "@/lib/reserva";
 import type { ElementoSalao } from "@/lib/planta";
 import { formatarReais, type RegrasPublicas } from "@/lib/regrasEdicao";
 import MapaMesas, { LegendaMapa } from "./MapaMesas";
@@ -42,6 +42,7 @@ export default function ReservaMesa({ edicoes, instagram, regras, manual = false
   const [mesa, setMesa] = useState<MesaPublica | null>(null);
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [erroTelefone, setErroTelefone] = useState("");
   const [pessoas, setPessoas] = useState("");
   const [armadilha, setArmadilha] = useState("");
   const [politica, setPolitica] = useState(false);
@@ -82,6 +83,11 @@ export default function ReservaMesa({ edicoes, instagram, regras, manual = false
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     if (!mesa) return;
+    const problemaTelefone = problemaNoWhatsapp(whatsapp);
+    if (problemaTelefone) {
+      setErroTelefone(problemaTelefone);
+      return;
+    }
     if (TURNSTILE_SITE_KEY && !tokenRobo) {
       setErro("Aguarde a verificação de segurança terminar.");
       return;
@@ -225,13 +231,25 @@ export default function ReservaMesa({ edicoes, instagram, regras, manual = false
                 WhatsApp (com DDD)
                 <input
                   value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
+                  onChange={(e) => {
+                    setWhatsapp(mascararWhatsapp(e.target.value));
+                    setErroTelefone("");
+                  }}
+                  onBlur={() => whatsapp && setErroTelefone(problemaNoWhatsapp(whatsapp) ?? "")}
                   type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
                   placeholder="(34) 99999-9999"
+                  aria-invalid={erroTelefone ? true : undefined}
+                  aria-describedby={erroTelefone ? "erro-whatsapp" : undefined}
+                  style={erroTelefone ? { borderColor: "#B84A32" } : undefined}
                   required
                 />
+                {erroTelefone && (
+                  <small id="erro-whatsapp" role="alert" style={{ color: "#B84A32", fontWeight: 600 }}>
+                    {erroTelefone}
+                  </small>
+                )}
               </label>
               <label>
                 Quantas pessoas

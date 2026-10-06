@@ -80,6 +80,29 @@ export function normalizarWhatsapp(v: unknown): string | null {
   return /^[1-9]{2}9\d{8}$/.test(d) ? d : null;
 }
 
+/**
+ * Máscara do campo WhatsApp enquanto a pessoa digita: só números, no máximo 11 (DDD + 9 dígitos), no formato
+ * "(34) 99999-8888". Aceita colar com +55 na frente (o código do país é descartado).
+ */
+export function mascararWhatsapp(v: string): string {
+  let d = v.replace(/\D/g, "");
+  if (d.length > 11 && d.startsWith("55")) d = d.slice(2);
+  d = d.slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+/** Mensagem do que está errado no WhatsApp digitado (null = válido). Mesma regra do servidor (`normalizarWhatsapp`). */
+export function problemaNoWhatsapp(v: string): string | null {
+  if (normalizarWhatsapp(v)) return null;
+  const d = v.replace(/\D/g, "");
+  if (d.length < 11) return "Digite o celular completo com DDD: (34) 99999-9999.";
+  if (d[2] !== "9") return "O número de celular precisa começar com 9 depois do DDD.";
+  return "Celular inválido. Use o formato (34) 99999-9999.";
+}
+
 /** "34999998888" -> "(34) 99999-8888" */
 export function formatarWhatsapp(d: string): string {
   if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
