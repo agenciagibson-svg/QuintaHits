@@ -32,6 +32,7 @@ import { GET as listar } from "@/app/api/casa/reservas/route";
 import { PUT as mudar } from "@/app/api/casa/reservas/[id]/route";
 import { DELETE as pushSair, GET as pushConfig, POST as pushEntrar } from "@/app/api/casa/push/route";
 import { GET as manifest } from "@/app/casa/manifest.webmanifest/route";
+import { GET as manifestDoSite } from "@/app/manifest.webmanifest/route";
 import { notificarCasa, validarInscricao } from "@/lib/pushCasa";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 
@@ -247,6 +248,10 @@ describe("app instalável e mensagem do WhatsApp", () => {
     expect(m).toMatchObject({ start_url: "/casa", scope: "/casa", display: "standalone" });
     expect(m.icons.map((i: { sizes: string }) => i.sizes)).toEqual(expect.arrayContaining(["192x192", "512x512"]));
     expect(m.icons.some((i: { purpose: string }) => i.purpose === "maskable")).toBe(true);
+  });
+
+  it("o site público continua com o manifest dele (abre em /), separado do app da casa", async () => {
+    expect(await (await manifestDoSite()).json()).toMatchObject({ start_url: "/", display: "standalone" });
   });
 
   it("link do WhatsApp do cliente com a mensagem certa para cada situação", () => {

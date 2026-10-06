@@ -27,6 +27,7 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: `${site.nome} — ${site.slogan}`, description: site.descricao },
   robots: { index: true, follow: true },
   alternates: { canonical: "/" },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
