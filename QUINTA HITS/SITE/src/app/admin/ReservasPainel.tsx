@@ -8,6 +8,7 @@ import { cor, s, selo, type Tom } from "./estilos";
 import type { PedidoPendente } from "./AdminDashboard";
 import MapaMesas, { LegendaMapa, type EstadoMesa } from "@/components/MapaMesas";
 import type { ElementoSalao } from "@/lib/planta";
+import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 
 const ROTULO_STATUS: Record<StatusReserva, string> = {
   aguardando: "Para confirmar",
@@ -113,18 +114,7 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { e
   const edicao = edicoes.find((e) => e.id === edicaoId);
 
   /** Abre o WhatsApp normal da casa com a mensagem pronta para o cliente (não depende da Meta). */
-  function linkWhatsapp(r: Reserva): string {
-    const data = edicao ? formatData(edicao.data, "numerica") : "";
-    const hora = edicao?.horario ? `, a partir das ${edicao.horario}` : "";
-    const local = edicao?.local ? ` no ${edicao.local}` : "";
-    const texto =
-      r.status === "confirmada"
-        ? `Olá, ${r.nome}! Sua reserva na QUINTA HITS está confirmada: mesa ${numeroMesa(r.mesa_id)} para ${r.pessoas} pessoa(s), quinta ${data}${hora}${local}. Código ${r.codigo ?? ""}. Te esperamos!`
-        : r.status === "cancelada"
-          ? `Olá, ${r.nome}! Infelizmente não conseguimos confirmar a mesa ${numeroMesa(r.mesa_id)} na QUINTA HITS de ${data}. Se quiser, responda aqui que a gente te ajuda com outra opção.`
-          : `Olá, ${r.nome}! Recebemos seu pedido da mesa ${numeroMesa(r.mesa_id)} na QUINTA HITS de ${data}.`;
-    return `https://wa.me/55${r.whatsapp}?text=${encodeURIComponent(texto)}`;
-  }
+  const linkWhatsapp = (r: Reserva) => linkWhatsappCliente(r, edicao, numeroMesa(r.mesa_id));
 
   /** No mapa do painel: confirmada = vermelho (reservada), pedido esperando a equipe = amarelo. */
   function estadoNoMapa(mesaId: string): EstadoMesa {

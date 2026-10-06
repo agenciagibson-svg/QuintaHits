@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
+import { emailDaCasa } from "@/lib/casaAuth";
 
 /**
  * E-mails que podem entrar no painel (ADMIN_EMAILS, separados por vírgula).
@@ -15,8 +16,18 @@ function emailsAutorizados(): string[] {
 
 /** Confere e-mail e senha no Supabase Auth. Fica fora de adminAuth.ts porque aquele roda no middleware (Edge). */
 export async function verificarLogin(email: string, senha: string): Promise<boolean> {
+  if (!emailsAutorizados().includes(email.trim().toLowerCase())) return false;
+  return senhaConfere(email, senha);
+}
+
+/** Login do app da casa: e-mail em CASA_EMAILS ou ADMIN_EMAILS (ver casaAuth.ts) e senha certa no Supabase Auth. */
+export async function verificarLoginCasa(email: string, senha: string): Promise<boolean> {
+  if (!emailDaCasa(email)) return false;
+  return senhaConfere(email, senha);
+}
+
+async function senhaConfere(email: string, senha: string): Promise<boolean> {
   const emailNormalizado = email.trim().toLowerCase();
-  if (!emailsAutorizados().includes(emailNormalizado)) return false;
 
   const url = process.env.SUPABASE_URL;
   const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;

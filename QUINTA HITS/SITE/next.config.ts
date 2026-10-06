@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
       source: "/(admin|api/admin)/:path*",
       headers: [{ key: "Cache-Control", value: "no-store" }],
     },
+    // App da casa: páginas e API com nome e WhatsApp de clientes também nunca ficam em cache (ícones e manifest podem).
+    { source: "/casa", headers: [{ key: "Cache-Control", value: "no-store" }] },
+    { source: "/casa/login", headers: [{ key: "Cache-Control", value: "no-store" }] },
+    { source: "/api/casa/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
   ],
 };
 

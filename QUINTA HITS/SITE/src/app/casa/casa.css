@@ -1,0 +1,185 @@
+/* App da casa (/casa) — mobile-first, cores oficiais da QUINTA HITS. Tudo sob .cs para não vazar no site. */
+
+.cs {
+  --cs-verde: #17352b;
+  --cs-creme: #f1e7d2;
+  --cs-terracota: #b84a32;
+  --cs-mostarda: #d5a62a;
+  --cs-preto: #171717;
+  --cs-ok: #1f7a4d;
+  --cs-linha: rgba(23, 23, 23, 0.12);
+  --cs-suave: rgba(23, 23, 23, 0.62);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--cs-creme);
+  color: var(--cs-preto);
+  font-family: var(--texto);
+  font-size: 16px;
+}
+.cs * { -webkit-tap-highlight-color: transparent; }
+.cs button { font: inherit; cursor: pointer; }
+.cs button:disabled { opacity: 0.55; cursor: default; }
+.cs a { color: inherit; }
+.cs :focus-visible { outline: 3px solid var(--cs-mostarda); outline-offset: 2px; }
+
+/* ---------- topo ---------- */
+.cs-topo {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--cs-verde);
+  color: var(--cs-creme);
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+}
+.cs-topo-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 640px; margin: 0 auto; }
+.cs-marca { font-family: var(--display); font-size: 13px; letter-spacing: 0.14em; opacity: 0.75; }
+.cs-titulo { font-family: var(--display); font-size: 30px; line-height: 1; margin: 2px 0 0; letter-spacing: 0.02em; }
+.cs-botao-topo {
+  background: transparent;
+  border: 1px solid rgba(241, 231, 210, 0.35);
+  color: var(--cs-creme);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+/* ---------- quintas ---------- */
+.cs-quintas {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 16px 2px;
+  max-width: 672px;
+  margin: 0 auto;
+  scrollbar-width: none;
+}
+.cs-quintas::-webkit-scrollbar { display: none; }
+.cs-quinta {
+  flex: 0 0 auto;
+  border: 1.5px solid var(--cs-linha);
+  background: #fffaf0;
+  color: var(--cs-preto);
+  border-radius: 14px;
+  padding: 8px 12px;
+  text-align: left;
+  min-width: 104px;
+  position: relative;
+}
+.cs-quinta[aria-pressed="true"] { background: var(--cs-verde); color: var(--cs-creme); border-color: var(--cs-verde); }
+.cs-quinta-data { font-family: var(--display); font-size: 20px; line-height: 1.05; display: block; }
+.cs-quinta-artista { font-size: 12px; opacity: 0.75; display: block; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-contador {
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  background: var(--cs-mostarda);
+  color: var(--cs-preto);
+  font-weight: 700;
+  font-size: 12px;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  box-shadow: 0 0 0 2px var(--cs-creme);
+}
+
+/* ---------- conteúdo ---------- */
+.cs-conteudo { max-width: 640px; margin: 0 auto; padding: 12px 16px calc(env(safe-area-inset-bottom) + 40px); }
+.cs-resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 18px; }
+.cs-resumo div { background: #fffaf0; border: 1px solid var(--cs-linha); border-radius: 14px; padding: 10px 12px; }
+.cs-resumo strong { display: block; font-family: var(--display); font-size: 28px; line-height: 1; }
+.cs-resumo span { font-size: 12px; color: var(--cs-suave); }
+.cs-resumo .cs-destaque strong { color: var(--cs-terracota); }
+
+.cs-secao-titulo { font-family: var(--display); font-size: 20px; letter-spacing: 0.04em; margin: 20px 0 8px; display: flex; align-items: center; gap: 8px; }
+.cs-secao-titulo small { font-family: var(--texto); font-size: 13px; color: var(--cs-suave); letter-spacing: 0; }
+
+.cs-cartao {
+  background: #fffaf0;
+  border: 1px solid var(--cs-linha);
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 4px 12px;
+}
+.cs-cartao.cs-aguardando { border: 2px solid var(--cs-mostarda); background: #fff6dc; }
+.cs-cartao.cs-apagado { opacity: 0.6; }
+.cs-mesa {
+  grid-row: span 2;
+  background: var(--cs-verde);
+  color: var(--cs-creme);
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  height: 58px;
+  font-family: var(--display);
+  font-size: 28px;
+  line-height: 1;
+}
+.cs-mesa small { font-family: var(--texto); font-size: 10px; letter-spacing: 0.08em; opacity: 0.75; }
+.cs-nome { font-weight: 700; font-size: 17px; line-height: 1.25; overflow-wrap: anywhere; }
+.cs-detalhes { font-size: 14px; color: var(--cs-suave); line-height: 1.4; }
+.cs-selo { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 9px; margin-left: 6px; vertical-align: 2px; }
+.cs-selo-aguardando { background: var(--cs-mostarda); color: var(--cs-preto); }
+.cs-selo-confirmada { background: #d7eadf; color: var(--cs-ok); }
+.cs-selo-cancelada, .cs-selo-expirada { background: #e8e1d3; color: var(--cs-suave); }
+
+.cs-acoes { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.cs-acoes > * { flex: 1 1 0; min-width: 0; }
+.cs-btn {
+  border: 0;
+  border-radius: 12px;
+  min-height: 46px;
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  text-align: center;
+}
+.cs-btn-aprovar { background: var(--cs-ok); color: #fff; }
+.cs-btn-recusar { background: transparent; color: var(--cs-terracota); border: 1.5px solid var(--cs-terracota); }
+.cs-btn-perigo { background: var(--cs-terracota); color: #fff; }
+.cs-btn-neutro { background: transparent; color: var(--cs-preto); border: 1.5px solid var(--cs-linha); }
+.cs-btn-whats { background: #25d366; color: #0b3d1f; }
+.cs-pergunta { grid-column: 1 / -1; font-size: 14px; margin-top: 10px; font-weight: 600; }
+
+.cs-vazio { text-align: center; color: var(--cs-suave); padding: 36px 12px; border: 1.5px dashed var(--cs-linha); border-radius: 18px; }
+.cs-aviso { background: #fff6dc; border: 1px solid var(--cs-mostarda); border-radius: 14px; padding: 12px 14px; font-size: 14px; margin-bottom: 12px; }
+.cs-aviso button { margin-top: 8px; }
+.cs-erro { background: #f6ddd6; border: 1px solid var(--cs-terracota); color: #6d2414; border-radius: 14px; padding: 12px 14px; font-size: 14px; margin-bottom: 12px; }
+.cs-rodape { text-align: center; color: var(--cs-suave); font-size: 12px; margin-top: 24px; }
+.cs-detalhes-recolhidos summary { cursor: pointer; font-family: var(--display); font-size: 18px; margin: 20px 0 8px; list-style-position: inside; }
+
+.cs-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 18px);
+  transform: translateX(-50%);
+  background: var(--cs-preto);
+  color: var(--cs-creme);
+  padding: 12px 18px;
+  border-radius: 16px;
+  font-size: 14px;
+  text-align: center;
+  z-index: 20;
+  max-width: calc(100% - 32px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- login ---------- */
+.cs-login { min-height: 100vh; min-height: 100dvh; background: var(--cs-verde); display: grid; place-items: center; padding: 24px; }
+.cs-login form { background: var(--cs-creme); border-radius: 22px; padding: 28px 22px; width: 100%; max-width: 380px; display: grid; gap: 12px; }
+.cs-login h1 { font-family: var(--display); font-size: 34px; line-height: 1; margin: 0; color: var(--cs-verde); }
+.cs-login p { margin: 0; color: var(--cs-suave); font-size: 14px; }
+.cs-login label { display: grid; gap: 4px; font-size: 14px; font-weight: 600; }
+.cs-login input { font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--cs-linha); background: #fffaf0; color: var(--cs-preto); }
+.cs-login img { width: 56px; height: 56px; border-radius: 14px; }

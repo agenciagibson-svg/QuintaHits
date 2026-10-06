@@ -11,7 +11,11 @@ vi.mock("@/lib/supabaseAdmin", async () => {
   return { supabaseAdmin: () => h.bancoAtual().supabase };
 });
 
+// Aviso no celular do dono do bar (app da casa): só registra a chamada.
+vi.mock("@/lib/pushCasa", () => ({ notificarCasa: vi.fn(async () => ({ enviados: 0, removidos: 0 })) }));
+
 import { POST } from "@/app/api/reservas/route";
+import { notificarCasa } from "@/lib/pushCasa";
 import { GET as mapa } from "@/app/api/reservas/mapa/route";
 import { _reiniciarCacheDeCanais } from "@/lib/disponibilidade";
 import { carregarPainelDeRegras, edicaoProntaParaSite, edicoesProntasParaSite, salvarRegrasECanais } from "@/lib/regras";
@@ -218,6 +222,7 @@ describe("POST /api/reservas com o site aberto (ambiente de teste, tudo simulado
   });
 
   it("modo formulário (sem WhatsApp): cria o pedido para a equipe, segura a mesa até o fim do dia e não chama a Meta", async () => {
+    vi.mocked(notificarCasa).mockClear();
     await liberarEdicaoParaSite(banco, ed);
     vi.stubEnv("TURNSTILE_SECRET_KEY", "chave-ficticia");
     vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
@@ -238,6 +243,11 @@ describe("POST /api/reservas com o site aberto (ambiente de teste, tudo simulado
     // A mesa fica segura: a segunda tentativa na mesma mesa é recusada.
     expect((await post(corpo({ nome: "Bia Teste", whatsapp: "(34) 98888-7777" }), "10.0.0.2")).status).toBe(409);
     expect(fetch).toHaveBeenCalledTimes(2); // só o Turnstile simulado (uma vez por pedido); nenhuma chamada à Meta
+    // O dono do bar recebe UM aviso (do pedido que deu certo), sem nome nem telefone do cliente.
+    expect(notificarCasa).toHaveBeenCalledTimes(1);
+    const aviso = vi.mocked(notificarCasa).mock.calls[0][0];
+    expect(aviso).toEqual({ titulo: "Novo pedido de mesa", corpo: expect.stringMatching(/^Mesa T1 · \d+ pessoas? · quinta 07\/01$/), url: `/casa?edicao=${ed}` });
+    expect(JSON.stringify(aviso)).not.toMatch(/Teste|9\d{4}/);
   });
 
   it("com o WhatsApp conectado, o modo formulário é ignorado: vale a confirmação automática pelo código", async () => {

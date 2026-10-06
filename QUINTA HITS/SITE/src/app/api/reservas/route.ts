@@ -9,6 +9,9 @@ import { numeroDaCasa } from "@/lib/whatsapp";
 import { estadoDasReservasDoSite, fimDoDiaDaEdicao } from "@/lib/reservasSite";
 import { limiteExcedido } from "@/lib/limiteTaxa";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { agendarDepois } from "@/lib/agente/depois";
+import { notificarCasa } from "@/lib/pushCasa";
+import { formatData } from "@/lib/edicao";
 import {
   MAX_RESERVAS_POR_WHATSAPP,
   PRAZO_CONFIRMACAO_MIN,
@@ -122,7 +125,17 @@ export async function POST(req: Request) {
       // Prova do aceite da Política de Privacidade (sem nome nem telefone: só o fato e a origem).
       await registrarAuditoria({ ator: "site", acao: "reserva_site_criada", entidade: "reserva", entidadeId: data.id, detalhe: { origem: "site", politica_aceita: true, ...(manual ? { modo: "manual" } : {}) } });
 
-      if (manual) return NextResponse.json({ ok: true, id: data.id, mesa: mesa.numero, codigo, manual: true }, { status: 201 });
+      if (manual) {
+        // Aviso no celular do dono do bar (app da casa), depois de responder ao cliente. Sem nome nem telefone.
+        agendarDepois(() =>
+          notificarCasa({
+            titulo: "Novo pedido de mesa",
+            corpo: `Mesa ${mesa.numero} · ${pessoas} pessoa${pessoas > 1 ? "s" : ""} · quinta ${formatData(edicaoId, "numerica")}`,
+            url: `/casa?edicao=${edicaoId}`,
+          }),
+        );
+        return NextResponse.json({ ok: true, id: data.id, mesa: mesa.numero, codigo, manual: true }, { status: 201 });
+      }
 
       return NextResponse.json(
         {

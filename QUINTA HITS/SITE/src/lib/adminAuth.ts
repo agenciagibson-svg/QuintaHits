@@ -38,10 +38,17 @@ function deBase64Url(texto: string): Uint8Array<ArrayBuffer> | null {
  * O e-mail de quem entrou vai DENTRO do que é assinado: identifica quem executa cada ação do painel (auditoria)
  * e não pode ser trocado sem invalidar a assinatura.
  */
-export async function criarSessao(email: string): Promise<string> {
+/**
+ * `finalidade` separa as sessões: o cookie do app da casa ("casa") é assinado sobre "casa|<carga>" e NUNCA vale como
+ * cookie do painel (e vice-versa), mesmo para um e-mail que esteja nas duas listas. Painel = sem finalidade (formato de sempre).
+ */
+export type FinalidadeSessao = "painel" | "casa";
+const textoAssinado = (carga: string, finalidade: FinalidadeSessao) => (finalidade === "casa" ? `casa|${carga}` : carga);
+
+export async function criarSessao(email: string, finalidade: FinalidadeSessao = "painel"): Promise<string> {
   const expiraEm = String(Date.now() + SESSAO_DURACAO_S * 1000);
   const carga = `${expiraEm}.${paraBase64Url(encoder.encode(email.trim().toLowerCase()).buffer as ArrayBuffer)}`;
-  const assinatura = await crypto.subtle.sign("HMAC", await chaveHmac("sign"), encoder.encode(carga));
+  const assinatura = await crypto.subtle.sign("HMAC", await chaveHmac("sign"), encoder.encode(textoAssinado(carga, finalidade)));
   return `${carga}.${paraBase64Url(assinatura)}`;
 }
 
@@ -49,7 +56,7 @@ export async function criarSessao(email: string): Promise<string> {
  * Lê o cookie de sessão: assinatura correta (verificação em tempo constante) e ainda não expirada.
  * Devolve o e-mail de quem entrou, ou null. Cookies no formato antigo (sem e-mail) são recusados: basta entrar de novo.
  */
-export async function lerSessao(valorCookie: string | undefined): Promise<{ email: string } | null> {
+export async function lerSessao(valorCookie: string | undefined, finalidade: FinalidadeSessao = "painel"): Promise<{ email: string } | null> {
   if (!valorCookie) return null;
   const partes = valorCookie.split(".");
   if (partes.length !== 3) return null;
@@ -60,7 +67,7 @@ export async function lerSessao(valorCookie: string | undefined): Promise<{ emai
   const assinatura = deBase64Url(assinaturaStr);
   const emailBytes = deBase64Url(emailB64);
   if (!assinatura || !emailBytes) return null;
-  const confere = await crypto.subtle.verify("HMAC", await chaveHmac("verify"), assinatura, encoder.encode(`${expiraEmStr}.${emailB64}`));
+  const confere = await crypto.subtle.verify("HMAC", await chaveHmac("verify"), assinatura, encoder.encode(textoAssinado(`${expiraEmStr}.${emailB64}`, finalidade)));
   if (!confere) return null;
   const email = new TextDecoder().decode(emailBytes);
   return email ? { email } : null;
