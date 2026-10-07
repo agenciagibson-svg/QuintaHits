@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: `${site.nome} — ${site.slogan}`, template: `%s — ${site.nome}` },
   description: site.descricao,
-  keywords: ["Quinta Hits", "Uberlândia", "quinta-feira", "música ao vivo", "bar", "Florindos Bar", "nightlife", "GIBSON PROMOÇÕES"],
+  keywords: ["Quinta Hits", "Uberlândia", "quinta-feira", "música ao vivo", "bar", "Florindos Bar", "nightlife", "HITS PRODUÇÕES"],
   openGraph: {
     type: "website",
     locale: "pt_BR",

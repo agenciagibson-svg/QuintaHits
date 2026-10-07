@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-/** Login do app da casa (dono do bar). Conta criada pela equipe da Gibson; não há cadastro aberto. */
+/** Login do app da casa (dono do bar). Conta criada pela equipe da Hits Produções; não há cadastro aberto. */
 export default function CasaLogin() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -41,7 +41,7 @@ export default function CasaLogin() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/casa/icones/icone-192.png" alt="" />
         <h1>Reservas</h1>
-        <p>Pedidos de mesa da QUINTA HITS. Entre com o e-mail e a senha que a Gibson Promoções enviou.</p>
+        <p>Pedidos de mesa da QUINTA HITS. Entre com o e-mail e a senha que a Hits Produções enviou.</p>
         <label>
           E-mail
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" inputMode="email" required />

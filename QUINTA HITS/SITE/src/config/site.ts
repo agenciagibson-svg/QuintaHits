@@ -39,17 +39,17 @@ export const site = {
   // Horário padrão de início (texto livre, ex.: "20h"). Vazio = não exibe.
   horarioPadrao: "",
 
-  empresa: "GIBSON PROMOÇÕES",
+  empresa: "HITS PRODUÇÕES",
 
   // Política de privacidade (/privacidade). Campos vazios NÃO aparecem na página.
   privacidade: {
-    atualizadaEm: "22 de setembro de 2026",
+    atualizadaEm: "7 de outubro de 2026",
     razaoSocial: "K. L & F PRODUÇÕES E PROMOÇÕES ARTÍSTICAS LTDA",
     cnpj: "58.824.097/0001-37", // confirmado pelo responsável em 22/09/2026 (substitui o número anterior, com dígito inválido)
     endereco: "Av. dos Vinhedos, 70, Sala 109 – Uberlândia/MG – CEP 38411-217",
     emailContato: "agenciagibson@gmail.com", // contato de privacidade e exercício de direitos (não há encarregado/DPO designado)
   },
-  hashtagEmpresa: "#GibsonPromoções",
+  hashtagEmpresa: "#HitsProduções",
   hashtags: ["#QuintaHits", "#Uberlândia", "#MúsicaAoVivo", "#QuintaFeira"],
 } as const;
 

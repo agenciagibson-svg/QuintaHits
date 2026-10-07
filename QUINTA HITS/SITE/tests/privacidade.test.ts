@@ -11,7 +11,7 @@ const texto = html.replace(/<[^>]+>/g, " ").replace(/&quot;/g, '"').replace(/&am
 
 describe("página /privacidade", () => {
   it("identifica a empresa e o local oficiais, sem citar outra casa", () => {
-    expect(texto).toContain("GIBSON PROMOÇÕES");
+    expect(texto).toContain("HITS PRODUÇÕES");
     expect(texto).toContain("Florindos Bar");
     expect(texto).toContain("Uberlândia");
     expect(texto).not.toMatch(/(^|[^a-z])tatu([^a-z]|$)/i);
@@ -75,8 +75,8 @@ describe("dados oficiais na política", () => {
     expect(texto).toContain("Av. dos Vinhedos, 70, Sala 109 – Uberlândia/MG – CEP 38411-217");
     expect(html).toContain('href="mailto:agenciagibson@gmail.com"');
     expect(texto).toContain("agenciagibson@gmail.com");
-    expect(texto).toContain("GIBSON PROMOÇÕES");
-    expect(texto).not.toMatch(/Gibson Produções/i);
+    expect(texto).toContain("HITS PRODUÇÕES");
+    expect(texto).not.toMatch(/GIBSON PROMOÇÕES|Gibson Promoções/i);
   });
 
   it("não inventa encarregado de dados e diz que o contato atende os pedidos", () => {

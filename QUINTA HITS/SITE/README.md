@@ -88,7 +88,7 @@ Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas
 
 ## Regras de marca que o código respeita
 
-- Nome da empresa: **GIBSON PROMOÇÕES** (nunca "Produções").
+- Nome da empresa no site: **HITS PRODUÇÕES** (desde 07/10/2026; antes GIBSON PROMOÇÕES).
 - Paleta: `#17352B` `#F1E7D2` `#B84A32` `#D5A62A` `#171717`.
 - Placa com canto reto embaixo à direita; aba de edição pendurada nesse canto.
 - Comunicação institucional não depende do artista da semana.

@@ -11,7 +11,7 @@ const lista = (nome: "CASA_EMAILS" | "ADMIN_EMAILS") =>
   (process.env[nome] ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
 /**
- * Pode usar o app da casa? CASA_EMAILS (o dono e quem ele indicar) ou ADMIN_EMAILS (a equipe da Gibson também entra).
+ * Pode usar o app da casa? CASA_EMAILS (o dono e quem ele indicar) ou ADMIN_EMAILS (a equipe também entra).
  * Conferido a cada requisição: tirar o e-mail da lista derruba o acesso na hora.
  */
 export function emailDaCasa(email: string): boolean {

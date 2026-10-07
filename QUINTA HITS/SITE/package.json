@@ -2,7 +2,7 @@
   "name": "quinta-hits",
   "version": "1.0.0",
   "private": true,
-  "description": "Site oficial da QUINTA HITS — a quinta oficial de Uberlândia. Uma label GIBSON PROMOÇÕES.",
+  "description": "Site oficial da QUINTA HITS — a quinta oficial de Uberlândia. Uma label HITS PRODUÇÕES.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
