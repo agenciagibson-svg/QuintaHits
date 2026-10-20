@@ -17,7 +17,7 @@ vi.mock("@/lib/adminSessao", () => ({
   auditarPainel: async () => undefined,
 }));
 
-import { GET as lerPlanta, PUT as gravarPlanta } from "@/app/api/admin/planta/route";
+import { GET as lerPlantaRota, PUT as gravarPlanta } from "@/app/api/admin/planta/route";
 import { GET as mapa } from "@/app/api/reservas/mapa/route";
 import { _reiniciarCacheDeCanais } from "@/lib/disponibilidade";
 
@@ -27,6 +27,7 @@ beforeAll(async () => { banco = await criarBancoTeste(); bancoSemPlanta = await 
 afterAll(async () => { definirBanco(null); await banco.pg.close(); await bancoSemPlanta.pg.close(); });
 
 const palco = { id: "palco-1", tipo: "palco", rotulo: "", x: 50, y: 8, w: 40, h: 12 };
+const lerPlanta = () => lerPlantaRota(new Request("http://localhost/api/admin/planta"));
 const put = (elementos: unknown) => gravarPlanta(new Request("http://localhost/api/admin/planta", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ elementos }) }));
 
 describe("validarPlanta (pura)", () => {

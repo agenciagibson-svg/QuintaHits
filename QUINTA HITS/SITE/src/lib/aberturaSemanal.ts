@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { aberturaSemanalDe, type AberturaSemanal } from "@/lib/regrasEdicao";
+import { CASA_PADRAO, type CasaId } from "@/config/casas";
 
 export type EstadoAberturaSemanal = { migrado: boolean; regra: AberturaSemanal | null };
 
@@ -12,8 +13,10 @@ export const colunasAberturaAusentes = (e: { code?: string; message?: string } |
  * Padrão da casa para a abertura semanal das reservas pelo site (linha única site_config).
  * Sem a migração: `migrado: false` e nenhuma regra (o site segue como antes: abre assim que a edição está completa).
  * Outros erros de leitura sobem (quem chama já trata erro de banco), para nunca abrir reservas por engano.
+ * Só a Quinta Hits tem abertura semanal: nas outras casas a edição abre assim que está completa e liberada.
  */
-export async function carregarAberturaSemanal(): Promise<EstadoAberturaSemanal> {
+export async function carregarAberturaSemanal(casa: CasaId = CASA_PADRAO): Promise<EstadoAberturaSemanal> {
+  if (casa !== CASA_PADRAO) return { migrado: true, regra: null };
   const { data, error } = await supabaseAdmin().from("site_config").select("reservas_abrem_dia, reservas_abrem_hora").eq("id", 1).maybeSingle();
   if (colunasAberturaAusentes(error)) return { migrado: false, regra: null };
   if (error) throw new Error(`Erro ao buscar a abertura semanal: ${error.message}`);

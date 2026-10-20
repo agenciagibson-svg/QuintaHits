@@ -34,6 +34,8 @@ function lerEnvLocal() {
 const TABELAS = [
   // dados originais do site (o que mais importa preservar)
   "edicoes", "mesas", "site_config", "reservas",
+  // várias casas (migração de 20/10/2026)
+  "casas",
   // parte 1 da migração
   "edicoes_regras", "edicoes_mesas", "wa_config", "wa_contatos", "wa_conversas", "wa_transferencias", "wa_mensagens",
   "wa_webhook_eventos", "wa_fila_saida", "wa_fila_tentativas", "auditoria", "reservas_historico",

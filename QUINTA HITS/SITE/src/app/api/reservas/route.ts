@@ -12,6 +12,8 @@ import { registrarAuditoria } from "@/lib/auditoria";
 import { agendarDepois } from "@/lib/agente/depois";
 import { notificarCasa } from "@/lib/pushCasa";
 import { formatData } from "@/lib/edicao";
+import { reservasSiteLigadoPorEnv } from "@/lib/agente/ambiente";
+import { CASAS, CASA_PADRAO, casaDaEdicaoId, dataDaEdicaoId } from "@/config/casas";
 import {
   MAX_RESERVAS_POR_WHATSAPP,
   PRAZO_CONFIRMACAO_MIN,
@@ -33,20 +35,18 @@ const erro = (mensagem: string, status: number) => NextResponse.json({ erro: men
  *   (o webhook em /api/whatsapp/webhook confirma).
  * - Modo formulário (RESERVAS_SITE_MANUAL): a mesa fica segura até o fim do dia da edição; a equipe confirma ou
  *   recusa no painel e avisa o cliente pelo WhatsApp normal da casa.
+ * - Outras casas (ex.: Harley Grill, edição 'AAAA-MM-DD_harley-grill'): sempre no modo formulário.
  */
 export async function POST(req: Request) {
   // Primeira coisa, antes de ler o corpo ou falar com qualquer serviço: com a chave desligada nenhuma reserva é criada.
-  const estado = estadoDasReservasDoSite();
-  if (!estado.aberto) {
-    return erro(
-      estado.motivo === "chave_desligada"
-        ? "As reservas online abrirão em breve. Fale com a gente pelo Instagram."
-        : "A reserva pelo site está indisponível agora. Fale com a gente pelo Instagram.",
-      503,
-    );
-  }
+  if (!reservasSiteLigadoPorEnv()) return erro("As reservas online abrirão em breve. Fale com a gente pelo Instagram.", 503);
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return erro("Pedido inválido.", 400);
+
+  const edicaoId = typeof body.edicao_id === "string" ? body.edicao_id : "";
+  const casa = casaDaEdicaoId(edicaoId);
+  const estado = estadoDasReservasDoSite(casa);
+  if (!estado.aberto) return erro("A reserva pelo site está indisponível agora. Fale com a gente pelo Instagram.", 503);
 
   // Campo invisível no formulário: gente não preenche, robô preenche. Finge sucesso para não ensinar o robô.
   if (typeof body.site === "string" && body.site !== "") return NextResponse.json({ ok: true }, { status: 201 });
@@ -74,7 +74,6 @@ export async function POST(req: Request) {
   const pessoas = inteiroEntre(body.pessoas, 1, 50);
   if (!pessoas) return erro("Informe quantas pessoas vão.", 400);
 
-  const edicaoId = typeof body.edicao_id === "string" ? body.edicao_id : "";
   const mesaId = typeof body.mesa_id === "string" ? body.mesa_id : "";
   if (!UUID_RE.test(mesaId)) return erro("Escolha uma mesa no mapa.", 400);
 
@@ -110,7 +109,7 @@ export async function POST(req: Request) {
 
     // Código repetido entre pedidos aguardando é raro (6 dígitos), mas o índice do banco barra: tenta outro.
     for (let tentativa = 0; tentativa < 3; tentativa++) {
-      const codigo = `QH-${String(randomInt(0, 1_000_000)).padStart(6, "0")}`;
+      const codigo = `${CASAS[casa].prefixoCodigo}-${String(randomInt(0, 1_000_000)).padStart(6, "0")}`;
       const { data, error } = await db
         .from("reservas")
         .insert({ edicao_id: edicaoId, mesa_id: mesa.id, nome, whatsapp, pessoas, codigo, expira_em: expiraEm })
@@ -123,17 +122,20 @@ export async function POST(req: Request) {
       if (error) throw error;
 
       // Prova do aceite da Política de Privacidade (sem nome nem telefone: só o fato e a origem).
-      await registrarAuditoria({ ator: "site", acao: "reserva_site_criada", entidade: "reserva", entidadeId: data.id, detalhe: { origem: "site", politica_aceita: true, ...(manual ? { modo: "manual" } : {}) } });
+      await registrarAuditoria({ ator: "site", acao: "reserva_site_criada", entidade: "reserva", entidadeId: data.id, detalhe: { origem: "site", politica_aceita: true, ...(manual ? { modo: "manual" } : {}), ...(casa !== CASA_PADRAO ? { casa } : {}) } });
 
       if (manual) {
-        // Aviso no celular do dono do bar (app da casa), depois de responder ao cliente. Sem nome nem telefone.
-        agendarDepois(() =>
-          notificarCasa({
-            titulo: "Novo pedido de mesa",
-            corpo: `Mesa ${mesa.numero} · ${pessoas} pessoa${pessoas > 1 ? "s" : ""} · quinta ${formatData(edicaoId, "numerica")}`,
-            url: `/casa?edicao=${edicaoId}`,
-          }),
-        );
+        // Aviso no celular do dono do Florindos (app da casa), depois de responder ao cliente. Sem nome nem telefone.
+        // O app da casa é só da Quinta Hits: pedido de outra casa aparece no painel (/admin).
+        if (casa === CASA_PADRAO) {
+          agendarDepois(() =>
+            notificarCasa({
+              titulo: "Novo pedido de mesa",
+              corpo: `Mesa ${mesa.numero} · ${pessoas} pessoa${pessoas > 1 ? "s" : ""} · quinta ${formatData(dataDaEdicaoId(edicaoId), "numerica")}`,
+              url: `/casa?edicao=${edicaoId}`,
+            }),
+          );
+        }
         return NextResponse.json({ ok: true, id: data.id, mesa: mesa.numero, codigo, manual: true }, { status: 201 });
       }
 

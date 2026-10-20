@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { cssAdmin, s } from "./estilos";
 import AtendimentoPainel from "./AtendimentoPainel";
@@ -16,6 +16,9 @@ import {
   IconeCalendario, IconeCasa, IconeConversa, IconeExterno, IconeInicio, IconeMesas, IconeRegras, IconeReserva, IconeSair, IconeSistema,
 } from "./Icones";
 import type { Edicao } from "@/lib/edicao";
+import { CASAS, CASA_IDS, CASA_PADRAO, casaDaEdicaoId, ehCasa, type CasaId } from "@/config/casas";
+
+const CHAVE_CASA = "qh-painel-casa";
 
 export type PedidoPendente = { id: string; edicao_id: string; created_at: string };
 
@@ -35,6 +38,8 @@ const MENU: ItemMenu[] = [
 ];
 
 const ABAS = MENU.map((m) => m.aba);
+/** Abas que valem só para a Quinta Hits (WhatsApp e dados do site): somem quando outra casa está escolhida. */
+const SO_DA_QUINTA: Aba[] = ["atendimento", "casa"];
 const ehAba = (v: string): v is Aba => (ABAS as string[]).includes(v);
 
 export default function AdminDashboard() {
@@ -47,6 +52,31 @@ export default function AdminDashboard() {
   const [aguardando, setAguardando] = useState(0);
   const [visitaInicio, setVisitaInicio] = useState(0);
   const [pendentes, setPendentes] = useState<PedidoPendente[]>([]);
+  // Casa escolhida no painel (programação, reservas, regras e mesas são de cada casa). Lembrada neste navegador.
+  const [casa, setCasa] = useState<CasaId>(CASA_PADRAO);
+  useEffect(() => {
+    try {
+      const salva = window.localStorage.getItem(CHAVE_CASA);
+      if (ehCasa(salva) && salva !== CASA_PADRAO) {
+        setCarregando(true);
+        setCasa(salva);
+      }
+    } catch {
+      // sem armazenamento local: começa na Quinta Hits
+    }
+  }, []);
+  function trocarCasa(nova: CasaId) {
+    setCasa(nova);
+    setCarregando(true);
+    try {
+      window.localStorage.setItem(CHAVE_CASA, nova);
+    } catch {
+      // ignora: só não lembra a escolha
+    }
+    if (nova !== CASA_PADRAO && SO_DA_QUINTA.includes(aba)) irPara("inicio");
+  }
+  const pendentesDaCasa = pendentes.filter((p) => casaDaEdicaoId(p.edicao_id) === casa);
+  const pendentesPorCasa = (c: CasaId) => pendentes.filter((p) => casaDaEdicaoId(p.edicao_id) === c).length;
 
   const carregarPendentes = useCallback(async () => {
     try {
@@ -64,19 +94,23 @@ export default function AdminDashboard() {
     return () => clearInterval(t);
   }, [carregarPendentes]);
 
+  // Troca rápida de casa: só a resposta da casa escolhida por último preenche o painel.
+  const casaPedida = useRef(casa);
   const carregarEdicoes = useCallback(async () => {
+    casaPedida.current = casa;
     setErro("");
     try {
-      const res = await fetch("/api/admin/edicoes");
+      const res = await fetch(`/api/admin/edicoes?casa=${casa}`);
       if (res.status === 401) return router.replace("/admin/login");
       if (!res.ok) throw new Error();
-      setEdicoes((await res.json()).edicoes ?? []);
+      const lista = (await res.json()).edicoes ?? [];
+      if (casaPedida.current === casa) setEdicoes(lista);
     } catch {
-      setErro("Não foi possível carregar os dados. Tente recarregar a página.");
+      if (casaPedida.current === casa) setErro("Não foi possível carregar os dados. Tente recarregar a página.");
     } finally {
-      setCarregando(false);
+      if (casaPedida.current === casa) setCarregando(false);
     }
-  }, [router]);
+  }, [router, casa]);
 
   useEffect(() => { carregarEdicoes(); }, [carregarEdicoes]);
 
@@ -124,23 +158,33 @@ export default function AdminDashboard() {
             QUINTA HITS
             <small>Painel da casa</small>
           </div>
+          <label className="qh-casa">
+            <span>Casa</span>
+            <select value={casa} onChange={(e) => ehCasa(e.target.value) && trocarCasa(e.target.value)}>
+              {CASA_IDS.map((c) => (
+                <option key={c} value={c}>
+                  {CASAS[c].rotulo}{pendentesPorCasa(c) > 0 ? ` (${pendentesPorCasa(c)} para confirmar)` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
           <nav className="qh-nav" aria-label="Seções do painel">
             {grupos.map((g) => (
               <div key={g} style={{ display: "contents" }}>
                 <div className="qh-nav-grupo">{g}</div>
-                {MENU.filter((m) => m.grupo === g).map((m) => (
+                {MENU.filter((m) => m.grupo === g && (casa === CASA_PADRAO || !SO_DA_QUINTA.includes(m.aba))).map((m) => (
                   <button key={m.aba} type="button" className="qh-item" aria-current={aba === m.aba ? "page" : undefined} onClick={() => irPara(m.aba)}>
                     {m.icone}
                     {m.rotulo}
                     {m.aba === "atendimento" && aguardando > 0 && <span className="qh-badge" aria-label={`${aguardando} aguardando`}>{aguardando}</span>}
-                    {m.aba === "reservas" && pendentes.length > 0 && <span className="qh-badge" style={{ background: "#D5A62A", color: "#171717" }} aria-label={`${pendentes.length} para confirmar`}>{pendentes.length}</span>}
+                    {m.aba === "reservas" && pendentesDaCasa.length > 0 && <span className="qh-badge" style={{ background: "#D5A62A", color: "#171717" }} aria-label={`${pendentesDaCasa.length} para confirmar`}>{pendentesDaCasa.length}</span>}
                   </button>
                 ))}
               </div>
             ))}
           </nav>
           <div className="qh-rodape">
-            <a className="qh-item qh-site" href="/" target="_blank" rel="noopener noreferrer"><IconeExterno /> Ver o site</a>
+            <a className="qh-item qh-site" href={casa === CASA_PADRAO ? "/" : CASAS[casa].pagina} target="_blank" rel="noopener noreferrer"><IconeExterno /> Ver o site</a>
             <button type="button" className="qh-item" onClick={sair}><IconeSair /> Sair</button>
           </div>
         </aside>
@@ -149,8 +193,8 @@ export default function AdminDashboard() {
           <div className="qh-conteudo">
             <header className="qh-cabecalho">
               <div>
-                <h1>{atual.titulo}</h1>
-                <p>{atual.descricao}</p>
+                <h1>{atual.titulo}{casa !== CASA_PADRAO && !SO_DA_QUINTA.includes(aba) && aba !== "sistema" ? ` · ${CASAS[casa].nome}` : ""}</h1>
+                <p>{atual.descricao.replace("/reservar", CASAS[casa].pagina)}</p>
               </div>
             </header>
 
@@ -160,13 +204,14 @@ export default function AdminDashboard() {
               <p style={s.legenda}>Carregando…</p>
             ) : (
               <>
-                {aba === "inicio" && <VisaoGeral key={visitaInicio} edicoes={edicoes} aguardando={aguardando} pendentes={pendentes.length} irPara={irPara} />}
+                {aba === "inicio" && <VisaoGeral key={`${casa}-${visitaInicio}`} casa={casa} edicoes={edicoes} aguardando={aguardando} pendentes={pendentesDaCasa.length} irPara={irPara} />}
                 {/* Sempre montado: mantém o contador de atendimento do menu atualizado. */}
                 <div hidden={aba !== "atendimento"}><AtendimentoPainel onContagem={setAguardando} /></div>
-                {painel("reservas", <ReservasPainel edicoes={edicoes} pendentes={pendentes} onMudou={carregarPendentes} />)}
-                {painel("programacao", <ProgramacaoPainel edicoes={edicoes} recarregar={carregarEdicoes} />)}
-                {painel("regras", <RegrasEdicaoPainel edicoes={edicoes} />)}
-                {painel("mesas", <MesasEditor />)}
+                {/* key = casa: trocar de casa remonta o painel do zero (nada da outra casa fica na tela). */}
+                {painel("reservas", <ReservasPainel key={casa} casa={casa} edicoes={edicoes} pendentes={pendentesDaCasa} onMudou={carregarPendentes} />)}
+                {painel("programacao", <ProgramacaoPainel key={casa} casa={casa} edicoes={edicoes} recarregar={carregarEdicoes} />)}
+                {painel("regras", <RegrasEdicaoPainel key={casa} casa={casa} edicoes={edicoes} />)}
+                {painel("mesas", <MesasEditor key={casa} casa={casa} />)}
                 {painel("casa", <CasaPainel />)}
                 {painel("sistema", <><IntegracoesPainel /><AuditoriaPainel /></>)}
               </>

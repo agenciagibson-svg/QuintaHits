@@ -426,3 +426,23 @@ button { font: inherit; cursor: pointer; }
 .reserva__form .reserva__consentimento { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.4; cursor: pointer; }
 .reserva__form .reserva__consentimento input { width: 20px; height: 20px; padding: 0; margin: 0; flex: none; accent-color: var(--terracota); cursor: pointer; }
 .reserva__consentimento a { text-decoration: underline; text-underline-offset: 2px; }
+
+/* Casa com planta própria (ex.: Harley Grill): a planta enviada pela casa ao fundo e mesas compactas por cima */
+.mapa-rolagem { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
+.mapa--planta { background-color: #f7f3ea; background-size: 100% 100%; background-repeat: no-repeat; background-position: center; box-shadow: none; }
+.mapa__mesa--compacta { width: calc(var(--t) * 1%); min-width: 22px; }
+.mapa__mesa--compacta .mapa__tampo { inset: 0; border-radius: 5px; border-width: 1.5px; box-shadow: 0 2px 0 rgba(23, 23, 23, 0.18); }
+.mapa__mesa--compacta .mapa__num { font-family: "DM Sans", system-ui, sans-serif; font-weight: 700; font-size: clamp(9px, 46cqw, 15px); padding-top: 0; }
+.mapa__mesa--compacta.mapa__mesa--livre:hover, .mapa__mesa--compacta.mapa__mesa--selecionada { transform: translate(-50%, -50%) scale(1.25); }
+.reserva--larga { grid-template-columns: minmax(0, 1fr); }
+.reserva--larga .reserva__painel { max-width: 640px; }
+
+/* Página de reserva de outra casa: barra própria no lugar do cabeçalho da Quinta Hits */
+.pagina-casa__topo { background: var(--preto); color: var(--creme); padding-block: 18px; }
+.pagina-casa__topo-in { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.pagina-casa__nome { font-family: var(--display); font-size: clamp(26px, 3.4vw, 38px); letter-spacing: 0.06em; text-transform: uppercase; line-height: 1; }
+.pagina-casa__secao { padding-top: clamp(32px, 5vw, 64px); }
+.mapa__mesa--destaque.mapa__mesa--livre { --tampo: #dbe7f3; --contorno: #2f5f8f; --texto: #1d3f63; }
+.mapa__legenda-mesa--destaque { background: #dbe7f3; border-color: #2f5f8f; border-radius: 4px; }
+.mapa__dica-rolar { display: none; margin: 6px 0 0; font-size: 13px; opacity: 0.65; }
+@media (max-width: 1060px) { .mapa__dica-rolar { display: block; } }

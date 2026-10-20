@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { atorDaSessao, exigirSessao } from "@/lib/adminSessao";
-import { dataISOValida } from "@/lib/edicao";
+import { edicaoIdValido } from "@/config/casas";
 import { carregarPainelDeRegras, salvarRegrasECanais, validarCanais } from "@/lib/regras";
 import { validarRegras } from "@/lib/regrasEdicao";
 
@@ -16,7 +16,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const negado = await exigirSessao();
   if (negado) return negado;
   const { id } = await params;
-  if (!dataISOValida(id)) return erro("Edição inválida.", 400);
+  if (!edicaoIdValido(id)) return erro("Edição inválida.", 400);
   try {
     return NextResponse.json(await carregarPainelDeRegras(id));
   } catch (e) {
@@ -30,7 +30,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const negado = await exigirSessao();
   if (negado) return negado;
   const { id } = await params;
-  if (!dataISOValida(id)) return erro("Edição inválida.", 400);
+  if (!edicaoIdValido(id)) return erro("Edição inválida.", 400);
 
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return erro("Pedido inválido.", 400);

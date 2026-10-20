@@ -8,8 +8,9 @@ import { carregarAberturaSemanal } from "@/lib/aberturaSemanal";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import { edicaoReservavel } from "@/lib/reservas";
 import type { Edicao } from "@/lib/edicao";
+import { CASA_PADRAO, casaDaEdicaoId, type CasaId } from "@/config/casas";
 
-const CAMPOS_EDICAO = "id, data, artista, instagram, tema, genero, horario, local, status, destaque";
+const CAMPOS_EDICAO = "id, data, artista, instagram, tema, genero, horario, local, status, destaque, casa";
 
 export type CanalDaMesa = {
   mesa_id: string;
@@ -73,14 +74,15 @@ function canaisDoEstoque(estoque: Estoque): CanalDaMesa[] {
 export async function carregarPainelDeRegras(edicaoId: string, agora = new Date()): Promise<PainelDeRegras> {
   const lido = await lerRegras(edicaoId);
   if (!lido) return { migrado: false };
-  const [edicao, estoque, abertura] = await Promise.all([lerEdicao(edicaoId), estoqueDaEdicao(edicaoId), carregarAberturaSemanal()]);
+  const casa = casaDaEdicaoId(edicaoId);
+  const [edicao, estoque, abertura] = await Promise.all([lerEdicao(edicaoId), estoqueDaEdicao(edicaoId), carregarAberturaSemanal(casa)]);
   const mesasWhatsapp = mesasDoCanal(estoque, "whatsapp").length;
   const mesasSite = mesasDoCanal(estoque, "site").length;
   return {
     migrado: true,
     parte2: lido.parte2,
     /** Chaves da Vercel (RESERVAS_SITE_ENABLED e confirmação possível): sem isso, nem uma edição pronta recebe reserva. */
-    siteLigado: estadoDasReservasDoSite().aberto,
+    siteLigado: estadoDasReservasDoSite(casa).aberto,
     edicao,
     regras: lido.regras ?? { ...REGRAS_VAZIAS },
     prontidao: avaliarProntidao({ edicao, regras: lido.regras, mesasWhatsapp, agora }),
@@ -154,9 +156,10 @@ export type EdicaoPronta = { edicao: Edicao; regras: RegrasEdicao; mesasWhatsapp
 /**
  * Edições em que o agente PODE atender agora: futuras, abertas para reserva e com regras completas, liberadas e com
  * mesa oferecida ao WhatsApp. Sem migração ou sem nenhuma pronta, a lista vem vazia (e o agente repassa a humano).
+ * O agente do WhatsApp é só da Quinta Hits: nunca oferece edição de outra casa.
  */
 export async function edicoesProntasParaAgente(agora = new Date(), limite = 6): Promise<EdicaoPronta[]> {
-  const candidatas = await edicoesReservaveis(agora, 50);
+  const candidatas = await edicoesReservaveis(agora, 50, CASA_PADRAO);
   const prontas: EdicaoPronta[] = [];
   for (const edicao of candidatas) {
     if (prontas.length >= limite) break;
@@ -188,11 +191,11 @@ export type ProximaAbertura = { edicao: Edicao; abreEm: string; descricao: strin
  * O que o site mostra agora: edições que aceitam reserva e, se nenhuma aceita ainda, a próxima que já está pronta e só
  * espera o dia/hora da abertura semanal (para a página dizer "abrem segunda, 05/10, às 12h").
  */
-export async function situacaoDoSite(agora = new Date(), limite = 6): Promise<{ prontas: EdicaoProntaSite[]; proximaAbertura: ProximaAbertura | null }> {
-  const abertura = (await carregarAberturaSemanal()).regra;
+export async function situacaoDoSite(agora = new Date(), limite = 6, casa: CasaId = CASA_PADRAO): Promise<{ prontas: EdicaoProntaSite[]; proximaAbertura: ProximaAbertura | null }> {
+  const abertura = (await carregarAberturaSemanal(casa)).regra;
   const prontas: EdicaoProntaSite[] = [];
   let proximaAbertura: ProximaAbertura | null = null;
-  for (const edicao of await edicoesReservaveis(agora, 50)) {
+  for (const edicao of await edicoesReservaveis(agora, 50, casa)) {
     if (prontas.length >= limite) break;
     const { pronta, prontidao } = await avaliarParaSite(edicao, agora, abertura);
     if (pronta) prontas.push(pronta);
@@ -204,15 +207,15 @@ export async function situacaoDoSite(agora = new Date(), limite = 6): Promise<{ 
 }
 
 /** Edições em que o SITE pode aceitar reserva agora. Nenhuma completa, liberada e já aberta = lista vazia. */
-export async function edicoesProntasParaSite(agora = new Date(), limite = 6): Promise<EdicaoProntaSite[]> {
-  return (await situacaoDoSite(agora, limite)).prontas;
+export async function edicoesProntasParaSite(agora = new Date(), limite = 6, casa: CasaId = CASA_PADRAO): Promise<EdicaoProntaSite[]> {
+  return (await situacaoDoSite(agora, limite, casa)).prontas;
 }
 
 /** A edição, se o site pode aceitar reserva dela agora; senão null (inclui "ainda não chegou o dia da abertura"). */
 export async function edicaoProntaParaSite(id: string, agora = new Date()): Promise<EdicaoProntaSite | null> {
   const edicao = await edicaoReservavel(id, agora);
   if (!edicao) return null;
-  return (await avaliarParaSite(edicao, agora, (await carregarAberturaSemanal()).regra)).pronta;
+  return (await avaliarParaSite(edicao, agora, (await carregarAberturaSemanal(casaDaEdicaoId(id))).regra)).pronta;
 }
 
 /** A migração parte 2 (coluna `reservas_site`) já foi aplicada neste banco? */

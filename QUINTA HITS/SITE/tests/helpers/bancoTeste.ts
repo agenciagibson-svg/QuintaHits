@@ -20,6 +20,7 @@ const MIGRACAO_PARTE2 = ler("migracao-2026-09-21-parte2-site-e-atendimento.sql")
 const MIGRACAO_PLANTA = ler("migracao-2026-09-29-planta-do-salao.sql");
 const MIGRACAO_ABERTURA = ler("migracao-2026-10-05-abertura-semanal.sql");
 const MIGRACAO_CASA = ler("migracao-2026-10-06-app-da-casa.sql");
+const MIGRACAO_MULTI_CASA = ler("migracao-2026-10-20-multi-casa.sql");
 
 export type ErroBanco = { code: string; message: string; details: string | null; hint: string | null };
 type Resposta<T> = { data: T; error: ErroBanco | null; count: number | null };
@@ -201,7 +202,7 @@ export type BancoTeste = {
 
 /** `migracao: false` = banco antigo (sem nada do agente); `parte2: false` = só a parte 1 aplicada (estado do banco antes da parte 2). */
 /** `abertura: false` = banco sem as colunas da abertura semanal. Com elas, `limpar()` deixa a linha da casa SEM dia fixo. */
-export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean; casa?: boolean } = {}): Promise<BancoTeste> {
+export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean; casa?: boolean; multiCasa?: boolean } = {}): Promise<BancoTeste> {
   const pg = new PGlite();
   await pg.exec("create role anon; create role authenticated; create role service_role;");
   await pg.exec(BASE);
@@ -210,6 +211,8 @@ export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boo
   if (opcoes.planta !== false) await pg.exec(MIGRACAO_PLANTA);
   if (opcoes.abertura !== false) await pg.exec(MIGRACAO_ABERTURA);
   if (opcoes.casa !== false) await pg.exec(MIGRACAO_CASA);
+  // Mesas e edições por casa: o código atual sempre filtra pela casa, então vem ligada em todo teste.
+  if (opcoes.multiCasa !== false) await pg.exec(MIGRACAO_MULTI_CASA);
   const temMigracao = opcoes.migracao !== false;
 
   const supabase = { from: (tabela: string) => new Consulta(pg, tabela) } as unknown as SupabaseClient;
@@ -221,6 +224,7 @@ export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boo
     const alvo = TABELAS_DE_DADOS.filter((t) => existentes.includes(t));
     await pg.exec(`truncate table ${alvo.map(aspas).join(", ")} restart identity cascade`);
     await pg.exec("insert into site_config (id) values (1)");
+    if (existentes.includes("casas")) await pg.exec("update casas set planta = null");
     if (temMigracao) await pg.exec("insert into wa_config (id) values (1)");
   };
   await limpar();

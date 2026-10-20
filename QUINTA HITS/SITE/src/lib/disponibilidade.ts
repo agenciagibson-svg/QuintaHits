@@ -2,6 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { expirarPedidosVencidos } from "@/lib/expiracao";
 import { STATUS_OCUPA_MESA } from "@/lib/reserva";
+import { casaDaEdicaoId } from "@/config/casas";
 
 /**
  * DISPONIBILIDADE ÚNICA de mesas: site, WhatsApp e painel consultam ESTA função. Não existe estoque paralelo.
@@ -71,7 +72,8 @@ export async function estoqueDaEdicao(edicaoId: string): Promise<Estoque> {
   await expirarPedidosVencidos();
   const db = supabaseAdmin();
   const [resMesas, resReservas, canais] = await Promise.all([
-    db.from("mesas").select("id, numero, lugares, area, x, y").eq("ativa", true).order("numero"),
+    // Só as mesas da casa da edição (o id da edição diz a casa): o mapa do Harley nunca mostra mesa da Quinta Hits.
+    db.from("mesas").select("id, numero, lugares, area, x, y").eq("casa", casaDaEdicaoId(edicaoId)).eq("ativa", true).order("numero"),
     db.from("reservas").select("mesa_id").eq("edicao_id", edicaoId).in("status", STATUS_OCUPA_MESA),
     configuracaoDosCanais(edicaoId),
   ]);

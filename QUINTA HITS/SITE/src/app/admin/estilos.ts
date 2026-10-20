@@ -73,6 +73,8 @@ export const cssAdmin = `
 .qh-marca { font-family: var(--display, Impact, sans-serif); font-size: 30px; line-height: 0.9; letter-spacing: 0.02em; color: ${cor.texto}; padding: 0 10px 4px; }
 .qh-marca small { display: block; font-family: var(--texto, system-ui); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: ${cor.mostarda}; margin-top: 8px; }
 .qh-nav { display: flex; flex-direction: column; gap: 2px; margin-top: 22px; }
+.qh-casa { display: grid; gap: 6px; margin: 18px 10px 0; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(241,231,210,0.38); }
+.qh-casa select { font: inherit; font-size: 14px; letter-spacing: 0; text-transform: none; color: ${cor.texto}; background: rgba(241,231,210,0.06); border: 1px solid ${cor.linha}; border-radius: 9px; padding: 8px 10px; }
 .qh-nav-grupo { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(241,231,210,0.38); padding: 14px 12px 6px; }
 .qh-item { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; background: transparent; border: 0; color: ${cor.suave}; padding: 9px 12px; border-radius: 9px; font-size: 14px; font-weight: 500; transition: background .15s, color .15s; }
 .qh-item:hover { background: rgba(241,231,210,0.05); color: ${cor.texto}; }
@@ -121,6 +123,9 @@ button.qh-kpi:hover { border-color: ${cor.linhaForte}; transform: translateY(-1p
   .qh-marca small { display: none; }
   .qh-nav { flex-direction: row; margin: 0; overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
   .qh-nav-grupo { display: none; }
+  .qh-casa { margin: 0; }
+  .qh-casa span { display: none; }
+  .qh-casa select { padding: 6px 8px; font-size: 13px; max-width: 150px; }
   .qh-item { white-space: nowrap; padding: 8px 10px; }
   .qh-item svg { display: none; }
   .qh-rodape { margin: 0; }

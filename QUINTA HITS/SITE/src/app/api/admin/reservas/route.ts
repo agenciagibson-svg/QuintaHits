@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { exigirSessao } from "@/lib/adminSessao";
 import { erroInterno } from "@/lib/respostas";
-import { dataISOValida, hojeISO } from "@/lib/edicao";
+import { hojeISO } from "@/lib/edicao";
+import { edicaoIdValido } from "@/config/casas";
 import { expirarPedidosVencidos } from "@/lib/reservas";
 
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/admin/reservas?edicao=AAAA-MM-DD — pedidos da edição, mais antigos primeiro.
- * GET /api/admin/reservas?pendentes=1       — pedidos "aguardando" de hoje em diante (contador do painel).
+ * GET /api/admin/reservas?edicao=<id>  — pedidos da edição, mais antigos primeiro.
+ * GET /api/admin/reservas?pendentes=1   — pedidos "aguardando" de hoje em diante, de todas as casas (contador do painel).
  */
 export async function GET(req: Request) {
   const negado = await exigirSessao();
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const pendentes = params.get("pendentes") === "1";
   const edicao = params.get("edicao");
-  if (!pendentes && !dataISOValida(edicao)) return NextResponse.json({ erro: "Informe a edição." }, { status: 400 });
+  if (!pendentes && !edicaoIdValido(edicao)) return NextResponse.json({ erro: "Informe a edição." }, { status: 400 });
 
   try {
     await expirarPedidosVencidos();

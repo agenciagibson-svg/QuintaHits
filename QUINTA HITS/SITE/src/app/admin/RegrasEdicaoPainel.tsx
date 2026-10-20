@@ -6,6 +6,7 @@ import { formatData, hojeISO, type Edicao } from "@/lib/edicao";
 import type { CanalDaMesa } from "@/lib/regras";
 import { regrasCopiadas, soAguardaAbertura, temRegras, type Prontidao, type RegrasEdicao } from "@/lib/regrasEdicao";
 import { cor, s, selo } from "./estilos";
+import { CASAS, CASA_PADRAO, type CasaId } from "@/config/casas";
 
 type Painel = { migrado: false } | { migrado: true; parte2: boolean; siteLigado: boolean; edicao: Edicao | null; regras: RegrasEdicao; prontidao: Prontidao; prontidaoSite: Prontidao; mesas: CanalDaMesa[] };
 
@@ -68,8 +69,10 @@ function edicaoPadrao(edicoes: Edicao[]): string {
   return (futuras[futuras.length - 1] ?? edicoes[0])?.id ?? "";
 }
 
-export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
+export default function RegrasEdicaoPainel({ edicoes, casa = CASA_PADRAO }: { edicoes: Edicao[]; casa?: CasaId }) {
   const router = useRouter();
+  // WhatsApp (agente) é só da Quinta Hits: nas outras casas o painel mostra só site e painel.
+  const comWhatsapp = casa === CASA_PADRAO;
   const [edicaoId, setEdicaoId] = useState(() => edicaoPadrao(edicoes));
   const [painel, setPainel] = useState<Painel | null>(null);
   const [form, setForm] = useState<Formulario | null>(null);
@@ -229,7 +232,7 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
                 p: painel.prontidaoSite,
                 ok: painel.siteLigado ? "Aberta para reservas pelo site." : "Pronta, mas as reservas pelo site estão desligadas na Vercel.",
               },
-              { titulo: "Reservas pelo WhatsApp", p: painel.prontidao, ok: "Pronta para o atendimento automático." },
+              ...(comWhatsapp ? [{ titulo: "Reservas pelo WhatsApp", p: painel.prontidao, ok: "Pronta para o atendimento automático." }] : []),
             ].map(({ titulo, p, ok }) => (
               <div key={titulo} className="qh-kpi" role="status">
                 <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -263,7 +266,7 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <h2 style={s.h2}>Regras da noite</h2>
             <button type="button" style={s.botaoMiniOutline} onClick={copiarDaAnterior} disabled={copiando || carregando}>
-              {copiando ? "Copiando…" : "Copiar regras da quinta anterior"}
+              {copiando ? "Copiando…" : `Copiar regras da ${CASAS[casa].noite} anterior`}
             </button>
           </div>
           <p style={s.legenda}>Horário do evento e local ficam em Programação. Campo vazio significa &quot;ainda não definido&quot;.</p>
@@ -288,10 +291,12 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
               <textarea style={{ ...s.input, minHeight: 64 }} value={form.instrucoes_chegada} onChange={(e) => trocar("instrucoes_chegada", e.target.value)} /></label>
             <label style={{ ...s.campo, gridColumn: "1 / -1" }}><span>Observações internas</span>
               <input style={s.input} value={form.observacoes} onChange={(e) => trocar("observacoes", e.target.value)} /></label>
-            <label style={{ ...s.campo, gridColumn: "1 / -1", flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <input type="checkbox" checked={form.atendimento_automatico} onChange={(e) => trocar("atendimento_automatico", e.target.checked)} />
-              <span>Liberar esta edição para o atendimento automático (WhatsApp)</span>
-            </label>
+            {comWhatsapp && (
+              <label style={{ ...s.campo, gridColumn: "1 / -1", flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <input type="checkbox" checked={form.atendimento_automatico} onChange={(e) => trocar("atendimento_automatico", e.target.checked)} />
+                <span>Liberar esta edição para o atendimento automático (WhatsApp)</span>
+              </label>
+            )}
             <label style={{ ...s.campo, gridColumn: "1 / -1", flexDirection: "row", alignItems: "center", gap: 8 }}>
               <input type="checkbox" checked={form.reservas_site} disabled={!painel.parte2} onChange={(e) => trocar("reservas_site", e.target.checked)} />
               <span>Liberar esta edição para reservas pelo SITE (exige todos os campos acima e ao menos uma mesa oferecida ao site)</span>
@@ -309,7 +314,7 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
             <table style={s.tabela} className="qh-tabela">
               <thead>
                 <tr>
-                  <th style={s.th}>Mesa</th><th style={s.th}>Lugares</th><th style={s.th}>Site</th><th style={s.th}>WhatsApp</th>
+                  <th style={s.th}>Mesa</th><th style={s.th}>Lugares</th><th style={s.th}>Site</th>{comWhatsapp && <th style={s.th}>WhatsApp</th>}
                   <th style={s.th}>Painel</th><th style={s.th}>Ajuste de lugares</th><th style={s.th}>Situação</th>
                 </tr>
               </thead>
@@ -321,7 +326,7 @@ export default function RegrasEdicaoPainel({ edicoes }: { edicoes: Edicao[] }) {
                       <td style={s.td}>{m.numero}{m.area ? ` · ${m.area}` : ""}</td>
                       <td style={s.td}>{m.lugares_da_mesa}</td>
                       <td style={s.td}><input type="checkbox" checked={m.disponivel_site} onChange={(e) => mudarMesa(m.mesa_id, { disponivel_site: e.target.checked })} /></td>
-                      <td style={s.td}><input type="checkbox" checked={m.disponivel_whatsapp} onChange={(e) => mudarMesa(m.mesa_id, { disponivel_whatsapp: e.target.checked })} /></td>
+                      {comWhatsapp && <td style={s.td}><input type="checkbox" checked={m.disponivel_whatsapp} onChange={(e) => mudarMesa(m.mesa_id, { disponivel_whatsapp: e.target.checked })} /></td>}
                       <td style={s.td}><input type="checkbox" checked={m.disponivel_admin} onChange={(e) => mudarMesa(m.mesa_id, { disponivel_admin: e.target.checked })} /></td>
                       <td style={s.td}>
                         <input

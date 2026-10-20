@@ -9,14 +9,17 @@ import type { Prontidao } from "@/lib/regrasEdicao";
 import { cor, s, selo } from "./estilos";
 import { dataLonga, dia, edicoesFuturas, mes, proximaEdicao, ROTULO_STATUS_EDICAO, TOM_STATUS_EDICAO } from "./util";
 import type { Aba } from "./AdminDashboard";
+import { CASAS, CASA_PADRAO, type CasaId } from "@/config/casas";
 
 type Regras = { migrado: false } | { migrado: true; prontidao: Prontidao; prontidaoSite: Prontidao };
 
 type Passo = { titulo: string; feito: boolean; detalhe: string; aba?: Aba; acao?: string };
 
 /** Tela inicial: o que importa hoje, em números, e o caminho até abrir as reservas. */
-export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara }: { edicoes: Edicao[]; aguardando: number; pendentes?: number; irPara: (a: Aba) => void }) {
+export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara, casa = CASA_PADRAO }: { edicoes: Edicao[]; aguardando: number; pendentes?: number; irPara: (a: Aba) => void; casa?: CasaId }) {
   const router = useRouter();
+  const configCasa = CASAS[casa];
+  const quinta = casa === CASA_PADRAO;
   const proxima = proximaEdicao(edicoes);
   const [integ, setInteg] = useState<EstadoIntegracoes | null>(null);
   const [mesas, setMesas] = useState<Mesa[] | null>(null);
@@ -35,13 +38,13 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara 
       }
     };
     (async () => {
-      const [i, m] = await Promise.all([pegar<EstadoIntegracoes>("/api/admin/integracoes"), pegar<{ mesas: Mesa[] }>("/api/admin/mesas")]);
+      const [i, m] = await Promise.all([pegar<EstadoIntegracoes>("/api/admin/integracoes"), pegar<{ mesas: Mesa[] }>(`/api/admin/mesas?casa=${casa}`)]);
       if (!vivo) return;
       setInteg(i);
       setMesas(m?.mesas ?? []);
       if (proxima) {
         const [r, g] = await Promise.all([
-          pegar<{ reservas: Reserva[] }>(`/api/admin/reservas?edicao=${proxima.id}`),
+          pegar<{ reservas: Reserva[] }>(`/api/admin/reservas?edicao=${encodeURIComponent(proxima.id)}`),
           pegar<Regras>(`/api/admin/edicoes/${proxima.id}/regras`),
         ]);
         if (!vivo) return;
@@ -52,7 +55,7 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara 
       }
     })();
     return () => { vivo = false; };
-  }, [proxima, router]);
+  }, [proxima, router, casa]);
 
   const ativas = (reservas ?? []).filter((r) => r.status === "aguardando" || r.status === "confirmada");
   const pessoas = (reservas ?? []).filter((r) => r.status === "confirmada").reduce((t, r) => t + r.pessoas, 0);
@@ -61,6 +64,8 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara 
   const futuras = edicoesFuturas(edicoes).slice(0, 5);
 
   const faltaRegras = regras && regras.migrado ? regras.prontidaoSite.faltando : null;
+  // Outras casas: abrem com a mesma chave do site e sempre no modo formulário (sem WhatsApp automático).
+  const siteAberto = quinta ? !!integ?.reservas_site.aberto : !!integ && integ.reservas_site.motivo !== "chave_desligada";
   const passos: Passo[] = [
     {
       titulo: "Banco de dados atualizado",
@@ -76,7 +81,7 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara 
       acao: "Abrir mapa",
     },
     {
-      titulo: "Regras da próxima quinta preenchidas",
+      titulo: `Regras da próxima ${configCasa.noite} preenchidas`,
       feito: !!faltaRegras && faltaRegras.length === 0,
       detalhe: !proxima ? "Cadastre uma edição." : faltaRegras === null ? "Verificando…" : faltaRegras.length === 0 ? "Tudo preenchido e liberado para o site." : `Faltam ${faltaRegras.length} item(ns): ${faltaRegras.slice(0, 3).join("; ")}${faltaRegras.length > 3 ? "…" : ""}`,
       aba: "regras",
@@ -84,20 +89,24 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara 
     },
     {
       titulo: "Reservas abertas no site",
-      feito: !!integ?.reservas_site.aberto,
-      detalhe: integ?.reservas_site.aberto
-        ? integ.reservas_site.motivo === "manual"
+      feito: siteAberto,
+      detalhe: siteAberto
+        ? !quinta || integ?.reservas_site.motivo === "manual"
           ? "Abertas no modo formulário: os pedidos chegam em Reservas e a equipe confirma."
-          : "O público já pode reservar em /reservar."
+          : `O público já pode reservar em ${configCasa.pagina}.`
         : "Fechado: o site mostra “abrem em breve”.",
       aba: "sistema",
     },
-    {
-      titulo: "WhatsApp conectado (automático)",
-      feito: !!integ?.envio_real_liberado_agora,
-      detalhe: integ?.envio_real_liberado_agora ? "Envio real liberado." : "Aguardando a Meta. Enquanto isso, o modo formulário atende sem ele.",
-      aba: "sistema",
-    },
+    ...(quinta
+      ? [
+          {
+            titulo: "WhatsApp conectado (automático)",
+            feito: !!integ?.envio_real_liberado_agora,
+            detalhe: integ?.envio_real_liberado_agora ? "Envio real liberado." : "Aguardando a Meta. Enquanto isso, o modo formulário atende sem ele.",
+            aba: "sistema" as Aba,
+          },
+        ]
+      : []),
   ];
   const feitos = passos.filter((p) => p.feito).length;
 
@@ -105,7 +114,7 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara 
     <>
       <div className="qh-kpis qh-compacto">
         <button type="button" className="qh-kpi" onClick={() => irPara("programacao")}>
-          <span className="qh-kpi-rotulo">Próxima quinta</span>
+          <span className="qh-kpi-rotulo">Próxima {configCasa.noite}</span>
           {proxima ? (
             <>
               <span className="qh-kpi-valor">{dia(proxima.data)} {mes(proxima.data).toUpperCase()}</span>
@@ -161,7 +170,7 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara 
 
         <section style={s.secao}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-            <h2 style={s.h2}>Próximas quintas</h2>
+            <h2 style={s.h2}>{quinta ? "Próximas quintas" : "Próximos eventos"}</h2>
             <button type="button" style={{ ...s.botaoMiniOutline, marginRight: 0 }} onClick={() => irPara("programacao")}>Ver todas</button>
           </div>
           {futuras.length === 0 ? (

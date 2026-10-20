@@ -9,6 +9,7 @@ import type { PedidoPendente } from "./AdminDashboard";
 import MapaMesas, { LegendaMapa, type EstadoMesa } from "@/components/MapaMesas";
 import type { ElementoSalao } from "@/lib/planta";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
+import { CASAS, CASA_PADRAO, type CasaId } from "@/config/casas";
 
 const ROTULO_STATUS: Record<StatusReserva, string> = {
   aguardando: "Para confirmar",
@@ -33,7 +34,8 @@ function edicaoPadrao(edicoes: Edicao[]): string {
 
 const botaoWhats: React.CSSProperties = { ...s.botaoMini, background: "#1f7a4d", borderColor: "#1f7a4d", textDecoration: "none", display: "inline-block" };
 
-export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { edicoes: Edicao[]; pendentes?: PedidoPendente[]; onMudou?: () => void }) {
+export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa = CASA_PADRAO }: { edicoes: Edicao[]; pendentes?: PedidoPendente[]; onMudou?: () => void; casa?: CasaId }) {
+  const plantaDaCasa = CASAS[casa].mapa.fundo ? CASAS[casa].mapa : null;
   const router = useRouter();
   const [edicaoId, setEdicaoId] = useState(() => edicaoPadrao(edicoes));
   const [reservas, setReservas] = useState<Reserva[]>([]);
@@ -55,7 +57,7 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { e
     }
     setErro("");
     try {
-      const [resR, resM] = await Promise.all([fetch(`/api/admin/reservas?edicao=${id}`), fetch("/api/admin/mesas")]);
+      const [resR, resM] = await Promise.all([fetch(`/api/admin/reservas?edicao=${encodeURIComponent(id)}`), fetch(`/api/admin/mesas?casa=${casa}`)]);
       if (resR.status === 401 || resM.status === 401) return router.replace("/admin/login");
       if (!resR.ok || !resM.ok) throw new Error();
       const [jR, jM] = await Promise.all([resR.json(), resM.json()]);
@@ -70,8 +72,8 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { e
   }
 
   useEffect(() => {
-    fetch("/api/admin/planta").then((r) => (r.ok ? r.json() : null)).then((p) => p && setPlanta(p.elementos ?? [])).catch(() => undefined);
-  }, []);
+    fetch(`/api/admin/planta?casa=${casa}`).then((r) => (r.ok ? r.json() : null)).then((p) => p && setPlanta(p.elementos ?? [])).catch(() => undefined);
+  }, [casa]);
 
   useEffect(() => {
     carregar(edicaoId);
@@ -170,17 +172,18 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou }: { e
       </div>
 
       {mesas.length > 0 && (
-        <section style={{ ...s.secao, background: "#f1e7d2", padding: 16, maxWidth: 780 }}>
+        <section style={{ ...s.secao, background: "#f1e7d2", padding: 16, maxWidth: plantaDaCasa ? undefined : 780 }}>
           <MapaMesas
             mesas={mesas.map((m) => {
               const c = clienteDaMesa(m.id);
               return { ...m, area: c ? `${c.nome} · ${c.pessoas} pessoa(s)` : m.area };
             })}
             elementos={planta}
+            planta={plantaDaCasa}
             desativarOcupadas={false}
             estado={(m) => estadoNoMapa(m.id)}
           />
-          <div style={{ color: "#171717" }}><LegendaMapa painel /></div>
+          <div style={{ color: "#171717" }}><LegendaMapa painel destaque={plantaDaCasa?.destaque?.rotulo ?? null} /></div>
         </section>
       )}
 

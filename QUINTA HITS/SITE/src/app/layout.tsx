@@ -64,8 +64,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="stylesheet" href={GOOGLE_FONTS} />
       </head>
       <body>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <ForaDoAdmin>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
           <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasCanceladas={canceladas} />
           <Header />
         </ForaDoAdmin>

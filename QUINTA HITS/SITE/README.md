@@ -77,6 +77,36 @@ Precisa de um número de telefone **só para o sistema** — enquanto estiver na
 
 Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas na Meta.
 
+## Várias casas: Harley Grill (`/harley-grill`)
+
+O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mesas, edições, regras e planta**. A Quinta Hits
+(Florindos Bar) segue exatamente como antes: o site, a programação, o app da casa (`/casa`) e o WhatsApp são só dela.
+
+- **Página de reserva:** `/harley-grill` (também abre pelo domínio próprio, ver abaixo). Mostra só edições do Harley
+  completas, liberadas para o site e dentro do prazo. O pedido é sempre no **modo formulário**: nasce *aguardando*, com
+  código `HG-000000`, segura a mesa até o fim do dia e a equipe confirma ou recusa no painel (botão do WhatsApp com a
+  mensagem pronta). Abre e fecha com a mesma chave `RESERVAS_SITE_ENABLED`; não depende do WhatsApp.
+- **Painel `/admin`:** seletor **Casa** no menu lateral. Programação, Reservas, Regras da noite e Mesas passam a ser da casa
+  escolhida. O contador de pedidos mostra a casa de cada pedido. Atendimento e Dados da casa são só da Quinta Hits.
+- **Edições do Harley:** qualquer dia da semana. O id é `AAAA-MM-DD_harley-grill` (a Quinta Hits continua `AAAA-MM-DD`).
+  Para abrir: preencher horário em Programação e as regras + "Liberar esta edição para reservas pelo SITE" em Regras da noite.
+- **Mapa:** a planta enviada pela casa fica ao fundo (`public/casas/harley-grill/planta.webp`) e as 93 mesas por cima.
+  Número, lugares, área e posição (arrastar) se ajustam em **Mesas** com a casa Harley escolhida.
+- **Domínio próprio:** na Vercel, adicione o domínio ao projeto e a variável
+  `DOMINIOS_CASAS="reservas.harleygrill.com.br=harley-grill"` (vários: separados por vírgula). Nesse domínio, `/`,
+  `/reservar` e `/programacao` levam a `/harley-grill`.
+- **Configuração da casa** (nome, código, planta, tamanho das mesas): `src/config/casas.ts`.
+
+### Ativar (uma vez, nesta ordem)
+
+1. Supabase → SQL Editor: rodar `supabase/migracao-2026-10-20-multi-casa.sql` (não muda nada do que já existe; o site
+   atual continua funcionando com ela).
+2. Publicar o site novo na Vercel.
+3. Supabase → SQL Editor: rodar `supabase/seed-2026-10-20-harley-grill-mesas.sql` (as 93 mesas do Harley). **Só depois
+   do passo 2**: o site antigo não separa as casas e mostraria essas mesas no mapa da Quinta Hits.
+
+Reversão: `supabase/reverter-2026-10-20-multi-casa.sql` (apaga os dados do Harley; os da Quinta Hits ficam).
+
 ## Dinâmico
 
 - `/` e `/programacao` são regeneradas a cada 60 s (a próxima quinta e a contagem mudam sozinhas).

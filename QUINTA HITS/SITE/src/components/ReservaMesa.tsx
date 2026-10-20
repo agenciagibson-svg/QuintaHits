@@ -10,6 +10,7 @@ import MapaMesas, { LegendaMapa } from "./MapaMesas";
 import Turnstile, { TURNSTILE_SITE_KEY } from "./Turnstile";
 import ConfirmacaoWhatsapp, { type PedidoEnviado } from "./ConfirmacaoWhatsapp";
 import PedidoRecebido, { type PedidoManual } from "./PedidoRecebido";
+import { CASAS, CASA_PADRAO, type CasaId } from "@/config/casas";
 
 type Mapa = { mesas: MesaPublica[]; ocupadas: string[]; planta?: ElementoSalao[] };
 
@@ -34,8 +35,26 @@ function RegrasDaNoite({ r }: { r: RegrasPublicas }) {
   );
 }
 
-/** `manual`: WhatsApp ainda não conectado — o pedido vai para o painel e a equipe confirma. */
-export default function ReservaMesa({ edicoes, instagram, regras, manual = false }: { edicoes: Edicao[]; instagram: string; regras?: Record<string, RegrasPublicas>; manual?: boolean }) {
+/**
+ * `manual`: WhatsApp ainda não conectado — o pedido vai para o painel e a equipe confirma.
+ * `casa`: outra casa (ex.: Harley Grill) usa a planta e os textos dela. `instagram` vazio = sem botão do Instagram.
+ */
+export default function ReservaMesa({
+  edicoes,
+  instagram,
+  regras,
+  manual = false,
+  casa = CASA_PADRAO,
+}: {
+  edicoes: Edicao[];
+  instagram: string;
+  regras?: Record<string, RegrasPublicas>;
+  manual?: boolean;
+  casa?: CasaId;
+}) {
+  const configCasa = CASAS[casa];
+  const planta = configCasa.mapa.fundo ? configCasa.mapa : null;
+  const semAtracao = casa === CASA_PADRAO ? "line-up em breve" : "atração a confirmar";
   const [edicaoId, setEdicaoId] = useState(edicoes[0].id);
   const [mapa, setMapa] = useState<Mapa | null>(null);
   const [erroMapa, setErroMapa] = useState("");
@@ -157,7 +176,7 @@ export default function ReservaMesa({ edicoes, instagram, regras, manual = false
   return (
     <>
       {edicoes.length > 1 && (
-        <div className="reserva__edicoes" role="group" aria-label="Escolha a quinta">
+        <div className="reserva__edicoes" role="group" aria-label={`Escolha a ${configCasa.noite}`}>
           {edicoes.map((e) => (
             <button
               key={e.id}
@@ -167,29 +186,33 @@ export default function ReservaMesa({ edicoes, instagram, regras, manual = false
               onClick={() => setEdicaoId(e.id)}
             >
               {formatData(e.data)}
-              <small>{e.artista || "line-up em breve"}</small>
+              <small>{e.artista || semAtracao}</small>
             </button>
           ))}
         </div>
       )}
 
-      <div className="reserva">
+      <div className={planta ? "reserva reserva--larga" : "reserva"}>
         <div>
           {erroMapa && (
             <div className="vazio">
               <p className="reserva__erro">{erroMapa}</p>
-              <a className="btn btn--terracota" href={instagramUrl(instagram)} target="_blank" rel="noopener noreferrer">
-                Reserve pelo Instagram
-              </a>
+              {instagram && (
+                <a className="btn btn--terracota" href={instagramUrl(instagram)} target="_blank" rel="noopener noreferrer">
+                  Reserve pelo Instagram
+                </a>
+              )}
             </div>
           )}
           {!mapa && !erroMapa && <p className="muted">Carregando o mapa…</p>}
           {mapa && mapa.mesas.length === 0 && (
             <div className="vazio">
               <p>O mapa de mesas ainda não está disponível.</p>
-              <a className="btn btn--terracota" href={instagramUrl(instagram)} target="_blank" rel="noopener noreferrer">
-                Reserve pelo Instagram
-              </a>
+              {instagram && (
+                <a className="btn btn--terracota" href={instagramUrl(instagram)} target="_blank" rel="noopener noreferrer">
+                  Reserve pelo Instagram
+                </a>
+              )}
             </div>
           )}
           {mapa && mapa.mesas.length > 0 && (
@@ -197,20 +220,22 @@ export default function ReservaMesa({ edicoes, instagram, regras, manual = false
               <MapaMesas
                 mesas={mapa.mesas}
                 elementos={mapa.planta ?? []}
+                planta={planta}
                 estado={(m) => (m.id === mesa?.id ? "selecionada" : ocupadas.has(m.id) ? "ocupada" : "livre")}
                 onEscolher={(m) => {
                   setMesa(m);
                   setErro("");
                 }}
               />
-              <LegendaMapa />
+              <LegendaMapa destaque={planta?.destaque?.rotulo ?? null} />
+              {planta?.larguraMinima && <p className="mapa__dica-rolar">Arraste o mapa para o lado para ver o salão inteiro.</p>}
             </>
           )}
         </div>
 
         <div className="placa placa--p placa--vazada reserva__painel">
           <div className="eyebrow">{formatData(edicao.data, "longa")}</div>
-          <h2 className="display h-3">{edicao.artista || "Line-up em breve"}</h2>
+          <h2 className="display h-3">{edicao.artista || (casa === CASA_PADRAO ? "Line-up em breve" : configCasa.nome)}</h2>
           {regras?.[edicao.id] && <RegrasDaNoite r={regras[edicao.id]} />}
           {!mesa ? (
             <>

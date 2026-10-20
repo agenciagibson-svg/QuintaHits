@@ -19,6 +19,8 @@ export type Edicao = {
   local: string;
   status: Status;
   destaque: string;
+  /** Casa da edição (banco com a migração de 20/10/2026). Ausente = Quinta Hits. */
+  casa?: string;
 };
 
 export const GENEROS: Record<Exclude<Genero, "">, { rotulo: string; cor: "terracota" | "mostarda" | "preto" | "vazado" | "verde" }> = {

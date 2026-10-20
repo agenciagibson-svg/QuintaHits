@@ -3,23 +3,25 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { hojeISO, type Edicao } from "@/lib/edicao";
 import { type MesaPublica } from "@/lib/reserva";
 import { estoqueDaEdicao, mesasDoCanal } from "@/lib/disponibilidade";
+import { CASA_PADRAO, type CasaId } from "@/config/casas";
 
 // A expiração mora em lib/expiracao.ts (evita ciclo com a disponibilidade); segue exportada daqui.
 export { expirarPedidosVencidos } from "@/lib/expiracao";
 
-const CAMPOS_EDICAO = "id, data, artista, instagram, tema, genero, horario, local, status, destaque";
+const CAMPOS_EDICAO = "id, data, artista, instagram, tema, genero, horario, local, status, destaque, casa";
 
 /** Só dá para reservar edição cadastrada, de hoje em diante, que não foi cancelada nem já realizada. */
 function aceitaReserva(e: Edicao, hoje: string): boolean {
   return e.data >= hoje && (e.status === "confirmada" || e.status === "a_confirmar");
 }
 
-/** Edições abertas para reserva, da mais próxima para a mais distante. */
-export async function edicoesReservaveis(agora = new Date(), limite = 6): Promise<Edicao[]> {
+/** Edições da casa abertas para reserva, da mais próxima para a mais distante. */
+export async function edicoesReservaveis(agora = new Date(), limite = 6, casa: CasaId = CASA_PADRAO): Promise<Edicao[]> {
   const hoje = hojeISO(agora);
   const { data, error } = await supabaseAdmin()
     .from("edicoes")
     .select(CAMPOS_EDICAO)
+    .eq("casa", casa)
     .gte("data", hoje)
     .order("data", { ascending: true });
   if (error) throw new Error(`Erro ao buscar edições: ${error.message}`);

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { GENERO_VALORES, GENEROS, hojeISO, STATUS_VALORES, type Edicao } from "@/lib/edicao";
 import { cor, s, selo } from "./estilos";
 import { dataCurta, ROTULO_STATUS_EDICAO, TOM_STATUS_EDICAO } from "./util";
+import { CASAS, CASA_PADRAO, type CasaId } from "@/config/casas";
 
 const EDICAO_VAZIA = {
   data: "",
@@ -21,7 +22,8 @@ const EDICAO_VAZIA = {
 const rotuloGenero = (g: string) => (g ? GENEROS[g as keyof typeof GENEROS]?.rotulo ?? g : "—");
 
 /** Programação: criar, editar e excluir edições. */
-export default function ProgramacaoPainel({ edicoes, recarregar }: { edicoes: Edicao[]; recarregar: () => void }) {
+export default function ProgramacaoPainel({ edicoes, recarregar, casa = CASA_PADRAO }: { edicoes: Edicao[]; recarregar: () => void; casa?: CasaId }) {
+  const configCasa = CASAS[casa];
   const router = useRouter();
   const [novaAberta, setNovaAberta] = useState(false);
   const [nova, setNova] = useState({ ...EDICAO_VAZIA });
@@ -48,7 +50,7 @@ export default function ProgramacaoPainel({ edicoes, recarregar }: { edicoes: Ed
   async function criar(e: React.FormEvent) {
     e.preventDefault();
     if (!nova.data) return;
-    const res = await fetch("/api/admin/edicoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(nova) });
+    const res = await fetch("/api/admin/edicoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...nova, casa }) });
     if (await falhou(res, "Não foi possível criar a edição.")) return;
     setNova({ ...EDICAO_VAZIA });
     setNovaAberta(false);
@@ -99,7 +101,9 @@ export default function ProgramacaoPainel({ edicoes, recarregar }: { edicoes: Ed
       {novaAberta && (
         <section style={s.secao}>
           <h2 style={s.h2}>Nova edição</h2>
-          <p style={s.legenda}>Só a data é obrigatória. O resto pode ser completado depois.</p>
+          <p style={s.legenda}>
+            Só a data é obrigatória{configCasa.soQuinta ? " (sempre uma quinta-feira)" : ""}. O resto pode ser completado depois.
+          </p>
           <form onSubmit={criar} style={s.gridNova}>
             <label style={s.campo}><span>Data</span>
               <input style={s.input} type="date" value={nova.data} onChange={(e) => setNova({ ...nova, data: e.target.value })} required /></label>
@@ -116,7 +120,7 @@ export default function ProgramacaoPainel({ edicoes, recarregar }: { edicoes: Ed
             <label style={s.campo}><span>Horário</span>
               <input style={s.input} value={nova.horario} onChange={(e) => setNova({ ...nova, horario: e.target.value })} placeholder="20h" /></label>
             <label style={s.campo}><span>Local</span>
-              <input style={s.input} value={nova.local} onChange={(e) => setNova({ ...nova, local: e.target.value })} placeholder="Florindos Bar" /></label>
+              <input style={s.input} value={nova.local} onChange={(e) => setNova({ ...nova, local: e.target.value })} placeholder={configCasa.local} /></label>
             <label style={s.campo}><span>Status</span>
               <select style={s.input} value={nova.status} onChange={(e) => setNova({ ...nova, status: e.target.value as Edicao["status"] })}>
                 {STATUS_VALORES.map((st) => <option key={st} value={st}>{ROTULO_STATUS_EDICAO[st]}</option>)}

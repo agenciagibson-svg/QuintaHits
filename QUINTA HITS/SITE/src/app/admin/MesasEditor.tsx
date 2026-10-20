@@ -6,14 +6,16 @@ import MapaMesas from "@/components/MapaMesas";
 import type { Mesa, MesaPublica } from "@/lib/reserva";
 import { TIPOS_ELEMENTO, type ElementoSalao, type TipoElemento } from "@/lib/planta";
 import { s } from "./estilos";
+import { CASAS, CASA_PADRAO, type CasaId } from "@/config/casas";
 
 const NOVA_VAZIA = { numero: "", lugares: "4", area: "" };
 
 /** Margem para a mesa não ficar cortada na borda do mapa. */
 const limitar = (v: number) => Math.min(97, Math.max(3, Math.round(v * 10) / 10));
 
-export default function MesasEditor() {
+export default function MesasEditor({ casa = CASA_PADRAO }: { casa?: CasaId }) {
   const router = useRouter();
+  const plantaDaCasa = CASAS[casa].mapa.fundo ? CASAS[casa].mapa : null;
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -49,7 +51,7 @@ export default function MesasEditor() {
   }
 
   async function carregar() {
-    const [res, resP] = await Promise.all([fetch("/api/admin/mesas"), fetch("/api/admin/planta")]);
+    const [res, resP] = await Promise.all([fetch(`/api/admin/mesas?casa=${casa}`), fetch(`/api/admin/planta?casa=${casa}`)]);
     if (!(await falhou(res, "Não foi possível carregar as mesas."))) setMesas((await res.json()).mesas ?? []);
     if (resP.ok) {
       const p = await resP.json();
@@ -61,7 +63,7 @@ export default function MesasEditor() {
 
   async function salvarPlanta(lista: ElementoSalao[], aviso?: string) {
     setElementos(lista);
-    const res = await fetch("/api/admin/planta", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ elementos: lista }) });
+    const res = await fetch(`/api/admin/planta?casa=${casa}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ elementos: lista }) });
     if (await falhou(res, "Não foi possível salvar a planta.")) {
       carregar();
       return;
@@ -142,7 +144,7 @@ export default function MesasEditor() {
     const res = await fetch("/api/admin/mesas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numero: nova.numero, lugares: Number(nova.lugares), area: nova.area }),
+      body: JSON.stringify({ numero: nova.numero, lugares: Number(nova.lugares), area: nova.area, casa }),
     });
     if (await falhou(res, "Não foi possível criar a mesa.")) return;
     const { mesa } = await res.json();
@@ -243,6 +245,7 @@ export default function MesasEditor() {
               elementoSelecionado={elSelId}
               onPointerDownElemento={arrastarElemento}
               mesas={mesas}
+              planta={plantaDaCasa}
               desativarOcupadas={false}
               estado={(m) =>
                 m.id === selecionadaId ? "selecionada" : mesas.find((x) => x.id === m.id)?.ativa === false ? "inativa" : "livre"

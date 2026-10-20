@@ -1,12 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_NAME, sessaoValida } from "@/lib/adminAuth";
 import { COOKIE_CASA, sessaoCasaValida } from "@/lib/casaAuth";
+import { CASAS, CASA_PADRAO, casaDoDominio } from "@/config/casas";
 
 /** Do app da casa, só o que precisa abrir SEM login: a tela/API de login e os arquivos do app instalável. */
 const PUBLICOS_CASA = new Set(["/casa/login", "/api/casa/login", "/api/casa/logout", "/casa/manifest.webmanifest"]);
 
+/** Páginas públicas da Quinta Hits que, no domínio de OUTRA casa, levam à página de reserva dessa casa. */
+const PAGINAS_DA_QUINTA = new Set(["/", "/reservar", "/programacao"]);
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // ----- Domínio próprio de outra casa (ex.: Harley Grill): a raiz abre a reserva dela -----
+  const casaDoHost = casaDoDominio(req.headers.get("host") || req.nextUrl.host, process.env.DOMINIOS_CASAS);
+  if (casaDoHost && casaDoHost !== CASA_PADRAO && PAGINAS_DA_QUINTA.has(pathname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = CASAS[casaDoHost].pagina;
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
   // ----- App da casa (/casa): sessão própria, separada do painel -----
   if (pathname === "/casa" || pathname.startsWith("/casa/") || pathname.startsWith("/api/casa")) {
@@ -17,6 +30,11 @@ export async function middleware(req: NextRequest) {
     url.pathname = "/casa/login";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  // Daqui para baixo, só o painel exige login; as páginas públicas passam direto.
+  if (!(pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/api/admin"))) {
+    return NextResponse.next();
   }
 
   // ----- Painel (/admin) -----
@@ -41,5 +59,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*", "/casa", "/casa/:path*", "/api/casa/:path*"],
+  matcher: ["/", "/reservar", "/programacao", "/admin/:path*", "/api/admin/:path*", "/casa", "/casa/:path*", "/api/casa/:path*"],
 };

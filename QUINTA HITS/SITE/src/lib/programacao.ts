@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { site } from "@/config/site";
+import { CASA_PADRAO } from "@/config/casas";
 import { hojeISO, proximaQuintaISO, somaDias, temEdicaoNoDia, type Edicao } from "@/lib/edicao";
 
 // Tipos e helpers puros moram em lib/edicao.ts (seguro para client) e seguem disponíveis por aqui.
@@ -30,6 +31,8 @@ export const todasEdicoes = cache(async (): Promise<Edicao[]> => {
   const { data, error } = await supabaseAdmin()
     .from("edicoes")
     .select("id, data, artista, instagram, tema, genero, horario, local, status, destaque")
+    // O site público (home, programação, faixa de hoje) é só da Quinta Hits; as outras casas têm página própria.
+    .eq("casa", CASA_PADRAO)
     .order("data", { ascending: true });
 
   if (error) throw new Error(`Erro ao buscar edições: ${error.message}`);

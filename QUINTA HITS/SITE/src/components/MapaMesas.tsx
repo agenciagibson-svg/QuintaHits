@@ -3,6 +3,7 @@
 import type { PointerEvent, Ref } from "react";
 import type { MesaPublica } from "@/lib/reserva";
 import { TIPOS_ELEMENTO, type ElementoSalao } from "@/lib/planta";
+import type { MapaDaCasa } from "@/config/casas";
 
 /** `pendente`: só no painel, pedido esperando a equipe confirmar. */
 export type EstadoMesa = "livre" | "ocupada" | "selecionada" | "inativa" | "pendente";
@@ -27,6 +28,9 @@ const ROTULO: Record<EstadoMesa, string> = {
  * Planta do salão: elementos fixos (palco, bar, entrada...) ao fundo e as mesas por cima, cada uma um botão
  * posicionado em % (x/y = centro) com tampo e cadeiras conforme os lugares.
  * Usado no site (cliente escolhe) e no painel (equipe arrasta mesas e elementos para posicionar).
+ *
+ * `planta` (casa com planta própria, ex.: Harley Grill): a imagem da planta vai ao fundo, na proporção dela, e as mesas
+ * viram quadradinhos numerados do tamanho das mesas do desenho. Com largura mínima, o mapa rola para o lado no celular.
  */
 export default function MapaMesas({
   mesas,
@@ -38,6 +42,7 @@ export default function MapaMesas({
   elementos = [],
   elementoSelecionado,
   onPointerDownElemento,
+  planta = null,
 }: {
   mesas: MesaPublica[];
   estado: (mesa: MesaPublica) => EstadoMesa;
@@ -48,9 +53,19 @@ export default function MapaMesas({
   elementos?: ElementoSalao[];
   elementoSelecionado?: string | null;
   onPointerDownElemento?: (e: PointerEvent<HTMLDivElement>, elemento: ElementoSalao) => void;
+  planta?: MapaDaCasa | null;
 }) {
-  return (
-    <div className={onPointerDownMesa ? "mapa mapa--editavel" : "mapa"} ref={refMapa}>
+  const compacta = planta?.tamanhoMesa ?? null;
+  const mapa = (
+    <div
+      className={`mapa${onPointerDownMesa ? " mapa--editavel" : ""}${planta?.fundo ? " mapa--planta" : ""}`}
+      ref={refMapa}
+      style={
+        planta?.fundo
+          ? { aspectRatio: String(planta.proporcao), backgroundImage: `url(${planta.fundo})`, minWidth: planta.larguraMinima ?? undefined }
+          : undefined
+      }
+    >
       {elementos.map((el) => {
         const rotulo = el.rotulo || (el.tipo === "parede" ? "" : el.tipo === "banheiro" ? "WC" : TIPOS_ELEMENTO[el.tipo].nome);
         // Mapa é 4:3: compara os lados em pixels. Elemento em pé (ex.: balcão do bar na parede) escreve na vertical.
@@ -70,13 +85,13 @@ export default function MapaMesas({
       })}
       {mesas.map((m) => {
         const est = estado(m);
-        const cadeiras = Math.min(Math.max(m.lugares, 1), 12);
+        const cadeiras = compacta ? 0 : Math.min(Math.max(m.lugares, 1), 12);
         return (
           <button
             key={m.id}
             type="button"
-            className={`mapa__mesa mapa__mesa--${est}`}
-            style={{ left: `${m.x}%`, top: `${m.y}%`, ["--t" as string]: tamanho(m.lugares) }}
+            className={`mapa__mesa mapa__mesa--${est}${compacta ? " mapa__mesa--compacta" : ""}${planta?.destaque && m.area === planta.destaque.area ? " mapa__mesa--destaque" : ""}`}
+            style={{ left: `${m.x}%`, top: `${m.y}%`, ["--t" as string]: compacta ?? tamanho(m.lugares) }}
             disabled={desativarOcupadas && (est === "ocupada" || est === "inativa")}
             aria-pressed={est === "selecionada"}
             aria-label={`Mesa ${m.numero}, ${m.lugares} lugares${m.area ? `, ${m.area}` : ""} — ${ROTULO[est]}`}
@@ -84,11 +99,13 @@ export default function MapaMesas({
             onClick={onEscolher ? () => onEscolher(m) : undefined}
             onPointerDown={onPointerDownMesa ? (e) => onPointerDownMesa(e, m) : undefined}
           >
-            <span className="mapa__cadeiras" aria-hidden="true">
-              {Array.from({ length: cadeiras }, (_, i) => (
-                <i key={i} style={{ ["--a" as string]: `${(360 / cadeiras) * i + (cadeiras === 4 ? 45 : 0)}deg` }} />
-              ))}
-            </span>
+            {cadeiras > 0 && (
+              <span className="mapa__cadeiras" aria-hidden="true">
+                {Array.from({ length: cadeiras }, (_, i) => (
+                  <i key={i} style={{ ["--a" as string]: `${(360 / cadeiras) * i + (cadeiras === 4 ? 45 : 0)}deg` }} />
+                ))}
+              </span>
+            )}
             <span className="mapa__tampo">
               <span className="mapa__num">{m.numero}</span>
             </span>
@@ -97,10 +114,12 @@ export default function MapaMesas({
       })}
     </div>
   );
+  // Planta larga (muitas mesas): rola para o lado em tela estreita, sem encolher as mesas até ficarem intocáveis.
+  return planta?.larguraMinima ? <div className="mapa-rolagem">{mapa}</div> : mapa;
 }
 
 /** Legenda com as mesmas mesinhas do mapa. */
-export function LegendaMapa({ painel = false }: { painel?: boolean }) {
+export function LegendaMapa({ painel = false, destaque = null }: { painel?: boolean; destaque?: string | null }) {
   const itens: { est: EstadoMesa; texto: string }[] = painel
     ? [
         { est: "livre", texto: "Livre" },
@@ -120,6 +139,12 @@ export function LegendaMapa({ painel = false }: { painel?: boolean }) {
           {i.texto}
         </span>
       ))}
+      {destaque && (
+        <span>
+          <b className="mapa__legenda-mesa mapa__legenda-mesa--destaque" />
+          {destaque}
+        </span>
+      )}
       {!painel && <span className="mapa__legenda-dica">Toque numa mesa livre para escolher</span>}
     </div>
   );
