@@ -33,6 +33,9 @@ export const TIPOS_ELEMENTO: Record<TipoElemento, { nome: string; w: number; h: 
 
 export const MAX_ELEMENTOS = 30;
 
+/** Espessura mínima de uma parede, em % do mapa. */
+export const MIN_PAREDE = 0.3;
+
 const ehTipo = (v: unknown): v is TipoElemento => typeof v === "string" && v in TIPOS_ELEMENTO;
 const numeroEntre = (v: unknown, min: number, max: number): number | null =>
   typeof v === "number" && Number.isFinite(v) ? Math.round(Math.min(max, Math.max(min, v)) * 10) / 10 : null;
@@ -51,8 +54,10 @@ export function validarPlanta(v: unknown): { elementos: ElementoSalao[] } | { er
     ids.add(id);
     if (!ehTipo(e.tipo)) return { erro: "Tipo de elemento inválido." };
     const rotulo = typeof e.rotulo === "string" ? e.rotulo.trim().slice(0, 30) : "";
-    const w = numeroEntre(e.w, 2, 100);
-    const h = numeroEntre(e.h, 2, 100);
+    // Parede pode ser fina (divisão entre setores); os demais elementos têm tamanho mínimo de 2%.
+    const minimo = e.tipo === "parede" ? MIN_PAREDE : 2;
+    const w = numeroEntre(e.w, minimo, 100);
+    const h = numeroEntre(e.h, minimo, 100);
     const x = numeroEntre(e.x, 0, 100);
     const y = numeroEntre(e.y, 0, 100);
     if (w === null || h === null || x === null || y === null) return { erro: "Posição ou tamanho inválido." };

@@ -140,7 +140,7 @@ describe("ids, domínios e páginas por casa (puro)", () => {
     const validada = validarPlanta(planta.elementos);
     expect(validada).not.toHaveProperty("erro");
     expect((validada as { elementos: { tipo: string; rotulo: string }[] }).elementos.map((e) => e.rotulo)).toEqual(
-      expect.arrayContaining(["Palco", "Entrada", "Área Kids", "Deck", "Telão", "Bar Drinks"]),
+      expect.arrayContaining(["Palco", "Entrada", "Kids", "Deck", "Telão", "Bar Drinks"]),
     );
   });
 });
@@ -166,7 +166,8 @@ describe("banco: mesas e edições separadas por casa", () => {
     expect(porCasa).toEqual([{ casa: HG, n: 93 }, { casa: "quinta-hits", n: 1 }]);
     // O mapa do Harley entra uma vez; mudança feita depois no painel não é desfeita ao rodar o seed de novo.
     const [{ planta }] = await banco.sql<{ planta: { elementos: unknown[] } }>("select planta from casas where id = $1", [HG]);
-    expect(planta.elementos).toHaveLength(10);
+    expect(planta.elementos).toHaveLength(20);
+    expect((planta.elementos as { tipo: string }[]).filter((e) => e.tipo === "parede")).toHaveLength(10);
     await banco.sql("update casas set planta = '{\"elementos\": []}' where id = $1", [HG]);
     await banco.pg.exec(seed);
     expect((await banco.sql<{ planta: { elementos: unknown[] } }>("select planta from casas where id = $1", [HG]))[0].planta.elementos).toHaveLength(0);

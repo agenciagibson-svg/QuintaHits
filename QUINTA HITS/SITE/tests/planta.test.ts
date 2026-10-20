@@ -45,6 +45,13 @@ describe("validarPlanta (pura)", () => {
     expect(validarPlanta(Array.from({ length: MAX_ELEMENTOS + 1 }, (_, i) => ({ ...palco, id: `p${i}` })))).toHaveProperty("erro");
   });
 
+  it("parede pode ser fina (divisão entre setores); os outros elementos têm 2% de mínimo", () => {
+    const parede = { id: "parede-1", tipo: "parede", rotulo: "", x: 40, y: 50, w: 0.1, h: 60 };
+    expect(validarPlanta([parede])).toEqual({ elementos: [{ ...parede, w: 0.3 }] });
+    expect(validarPlanta([{ ...parede, w: 0.6 }])).toEqual({ elementos: [{ ...parede, w: 0.6 }] });
+    expect(validarPlanta([{ ...palco, h: 0.6 }])).toEqual({ elementos: [{ ...palco, h: 2 }] });
+  });
+
   it("o que vem do banco em formato inesperado vira lista vazia (o mapa nunca quebra)", () => {
     expect(plantaDoBanco(null)).toEqual([]);
     expect(plantaDoBanco({ elementos: "x" })).toEqual([]);

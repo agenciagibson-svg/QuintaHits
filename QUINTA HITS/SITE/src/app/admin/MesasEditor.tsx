@@ -266,11 +266,11 @@ export default function MesasEditor({ casa = CASA_PADRAO }: { casa?: CasaId }) {
               </label>
               <label style={s.campo}>
                 <span>Largura ({Math.round(elSel.w)}%)</span>
-                <input type="range" min={2} max={100} step={1} value={elSel.w} onChange={(e) => setElementos((es) => es.map((x) => (x.id === elSel.id ? { ...x, w: Number(e.target.value) } : x)))} onPointerUp={() => salvarPlanta(elementos)} onKeyUp={() => salvarPlanta(elementos)} />
+                <input type="range" min={elSel.tipo === "parede" ? 0.3 : 2} max={100} step={elSel.tipo === "parede" ? 0.1 : 1} value={elSel.w} onChange={(e) => setElementos((es) => es.map((x) => (x.id === elSel.id ? { ...x, w: Number(e.target.value) } : x)))} onPointerUp={() => salvarPlanta(elementos)} onKeyUp={() => salvarPlanta(elementos)} />
               </label>
               <label style={s.campo}>
                 <span>Altura ({Math.round(elSel.h)}%)</span>
-                <input type="range" min={2} max={100} step={1} value={elSel.h} onChange={(e) => setElementos((es) => es.map((x) => (x.id === elSel.id ? { ...x, h: Number(e.target.value) } : x)))} onPointerUp={() => salvarPlanta(elementos)} onKeyUp={() => salvarPlanta(elementos)} />
+                <input type="range" min={elSel.tipo === "parede" ? 0.3 : 2} max={100} step={elSel.tipo === "parede" ? 0.1 : 1} value={elSel.h} onChange={(e) => setElementos((es) => es.map((x) => (x.id === elSel.id ? { ...x, h: Number(e.target.value) } : x)))} onPointerUp={() => salvarPlanta(elementos)} onKeyUp={() => salvarPlanta(elementos)} />
               </label>
               <button type="button" style={s.botaoMiniOutline} onClick={() => setElSelId(null)}>Pronto</button>
               <button type="button" style={s.botaoMiniPerigo} onClick={() => { setElSelId(null); salvarPlanta(elementos.filter((x) => x.id !== elSel.id), "Elemento removido do mapa."); }}>

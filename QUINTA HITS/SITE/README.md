@@ -91,7 +91,8 @@ O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mes
 - **Edições do Harley:** qualquer dia da semana. O id é `AAAA-MM-DD_harley-grill` (a Quinta Hits continua `AAAA-MM-DD`).
   Para abrir: preencher horário em Programação e as regras + "Liberar esta edição para reservas pelo SITE" em Regras da noite.
 - **Mapa:** redesenhado a partir da planta da casa, só com o que importa a quem reserva: entrada, palco (onde ficava a
-  logo), Bar Entrada, Deck com o telão, Bar, Área Kids, Bar Drinks e banheiros; as 93 mesas por cima e a Pista VIP em
+  logo), Bar Entrada, Deck com o telão, Bar, Kids, Bar Drinks, banheiros e as paredes que dividem os setores, como na
+  planta; as 93 mesas por cima e a Pista VIP em
   azul. Mesas (número, lugares, área, posição) e setores (arrastar e redimensionar) se ajustam em **Mesas** com a casa
   Harley escolhida.
 - **Domínio próprio:** na Vercel, adicione o domínio ao projeto e a variável
