@@ -1,6 +1,6 @@
 "use client";
 
-import type { PointerEvent, Ref } from "react";
+import type { CSSProperties, PointerEvent, Ref } from "react";
 import type { MesaPublica } from "@/lib/reserva";
 import { TIPOS_ELEMENTO, type ElementoSalao } from "@/lib/planta";
 import type { MapaDaCasa } from "@/config/casas";
@@ -56,20 +56,21 @@ export default function MapaMesas({
   planta?: MapaDaCasa | null;
 }) {
   const compacta = planta?.tamanhoMesa ?? null;
+  const proporcao = planta?.proporcao ?? 4 / 3;
+  const estilo: CSSProperties = {};
+  if (proporcao !== 4 / 3) estilo.aspectRatio = String(proporcao);
+  if (planta?.fundo) estilo.backgroundImage = `url(${planta.fundo})`;
+  if (planta?.larguraMinima) estilo.minWidth = planta.larguraMinima;
   const mapa = (
     <div
       className={`mapa${onPointerDownMesa ? " mapa--editavel" : ""}${planta?.fundo ? " mapa--planta" : ""}`}
       ref={refMapa}
-      style={
-        planta?.fundo
-          ? { aspectRatio: String(planta.proporcao), backgroundImage: `url(${planta.fundo})`, minWidth: planta.larguraMinima ?? undefined }
-          : undefined
-      }
+      style={Object.keys(estilo).length ? estilo : undefined}
     >
       {elementos.map((el) => {
         const rotulo = el.rotulo || (el.tipo === "parede" ? "" : el.tipo === "banheiro" ? "WC" : TIPOS_ELEMENTO[el.tipo].nome);
-        // Mapa é 4:3: compara os lados em pixels. Elemento em pé (ex.: balcão do bar na parede) escreve na vertical.
-        const vertical = el.h * 3 > el.w * 4 * 1.4;
+        // Compara os lados em pixels (o mapa tem a proporção da casa). Elemento em pé (ex.: balcão na parede) escreve na vertical.
+        const vertical = el.h > el.w * proporcao * 1.4;
         return (
           <div
             key={el.id}

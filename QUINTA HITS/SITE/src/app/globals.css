@@ -446,3 +446,7 @@ button { font: inherit; cursor: pointer; }
 .mapa__legenda-mesa--destaque { background: #dbe7f3; border-color: #2f5f8f; border-radius: 4px; }
 .mapa__dica-rolar { display: none; margin: 6px 0 0; font-size: 13px; opacity: 0.65; }
 @media (max-width: 1060px) { .mapa__dica-rolar { display: block; } }
+/* Setores do salão (Deck, Área Kids...) e telão — usados no mapa redesenhado do Harley Grill, disponíveis para qualquer casa */
+.mapa__el--area { place-items: start center; background: rgba(23, 53, 43, 0.045); border: 2px dashed rgba(23, 53, 43, 0.28); color: rgba(23, 53, 43, 0.62); border-radius: 10px; }
+.mapa__el--area span { font-size: clamp(11px, 1.5cqw + 6px, 18px); padding-top: 6px; letter-spacing: 0.14em; }
+.mapa__el--telao { background: var(--preto); color: var(--creme); border-radius: 3px; box-shadow: inset 0 0 0 3px #3b3b3b; }

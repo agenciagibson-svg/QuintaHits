@@ -90,8 +90,10 @@ O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mes
   escolhida. O contador de pedidos mostra a casa de cada pedido. Atendimento e Dados da casa são só da Quinta Hits.
 - **Edições do Harley:** qualquer dia da semana. O id é `AAAA-MM-DD_harley-grill` (a Quinta Hits continua `AAAA-MM-DD`).
   Para abrir: preencher horário em Programação e as regras + "Liberar esta edição para reservas pelo SITE" em Regras da noite.
-- **Mapa:** a planta enviada pela casa fica ao fundo (`public/casas/harley-grill/planta.webp`) e as 93 mesas por cima.
-  Número, lugares, área e posição (arrastar) se ajustam em **Mesas** com a casa Harley escolhida.
+- **Mapa:** redesenhado a partir da planta da casa, só com o que importa a quem reserva: entrada, palco (onde ficava a
+  logo), Bar Entrada, Deck com o telão, Bar, Área Kids, Bar Drinks e banheiros; as 93 mesas por cima e a Pista VIP em
+  azul. Mesas (número, lugares, área, posição) e setores (arrastar e redimensionar) se ajustam em **Mesas** com a casa
+  Harley escolhida.
 - **Domínio próprio:** na Vercel, adicione o domínio ao projeto e a variável
   `DOMINIOS_CASAS="reservas.harleygrill.com.br=harley-grill"` (vários: separados por vírgula). Nesse domínio, `/`,
   `/reservar` e `/programacao` levam a `/harley-grill`.
@@ -102,7 +104,7 @@ O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mes
 1. Supabase → SQL Editor: rodar `supabase/migracao-2026-10-20-multi-casa.sql` (não muda nada do que já existe; o site
    atual continua funcionando com ela).
 2. Publicar o site novo na Vercel.
-3. Supabase → SQL Editor: rodar `supabase/seed-2026-10-20-harley-grill-mesas.sql` (as 93 mesas do Harley). **Só depois
+3. Supabase → SQL Editor: rodar `supabase/seed-2026-10-20-harley-grill-mesas.sql` (as 93 mesas e o mapa do Harley). **Só depois
    do passo 2**: o site antigo não separa as casas e mostraria essas mesas no mapa da Quinta Hits.
 
 Reversão: `supabase/reverter-2026-10-20-multi-casa.sql` (apaga os dados do Harley; os da Quinta Hits ficam).

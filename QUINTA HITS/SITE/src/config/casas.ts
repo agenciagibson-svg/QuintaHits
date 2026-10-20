@@ -67,13 +67,14 @@ export const CASAS: Record<CasaId, Casa> = {
     noite: "noite",
     naCasa: "no Harley Grill",
     soQuinta: false,
-    // Planta enviada pela casa (1114 × 670 px), com as mesas apagadas: as mesas do sistema ficam por cima.
-    // As mesas azuis da planta são a Pista VIP (área "Pista VIP" no cadastro das mesas).
+    // Mapa redesenhado a partir da planta da casa, só com o que importa ao cliente (palco no lugar da logo, entrada,
+    // setores, bar, banheiros). Os setores são elementos do salão, editáveis no painel (Mesas). As mesas azuis da
+    // planta são a Pista VIP (área "Pista VIP" no cadastro das mesas).
     mapa: {
-      proporcao: 1114 / 670,
-      fundo: "/casas/harley-grill/planta.webp",
-      tamanhoMesa: 2.7,
-      larguraMinima: 1000,
+      proporcao: 1.4637,
+      fundo: null,
+      tamanhoMesa: 3,
+      larguraMinima: 900,
       destaque: { area: "Pista VIP", rotulo: "Pista VIP" },
     },
   },

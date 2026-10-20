@@ -53,7 +53,9 @@ export default function ReservaMesa({
   casa?: CasaId;
 }) {
   const configCasa = CASAS[casa];
-  const planta = configCasa.mapa.fundo ? configCasa.mapa : null;
+  // Mapa da casa (proporção, tamanho das mesas, área em destaque). Quinta Hits: o mapa de sempre (4:3).
+  const planta = configCasa.mapa;
+  const larga = planta.tamanhoMesa !== null;
   const semAtracao = casa === CASA_PADRAO ? "line-up em breve" : "atração a confirmar";
   const [edicaoId, setEdicaoId] = useState(edicoes[0].id);
   const [mapa, setMapa] = useState<Mapa | null>(null);
@@ -192,7 +194,7 @@ export default function ReservaMesa({
         </div>
       )}
 
-      <div className={planta ? "reserva reserva--larga" : "reserva"}>
+      <div className={larga ? "reserva reserva--larga" : "reserva"}>
         <div>
           {erroMapa && (
             <div className="vazio">
@@ -227,8 +229,8 @@ export default function ReservaMesa({
                   setErro("");
                 }}
               />
-              <LegendaMapa destaque={planta?.destaque?.rotulo ?? null} />
-              {planta?.larguraMinima && <p className="mapa__dica-rolar">Arraste o mapa para o lado para ver o salão inteiro.</p>}
+              <LegendaMapa destaque={planta.destaque?.rotulo ?? null} />
+              {planta.larguraMinima && <p className="mapa__dica-rolar">Arraste o mapa para o lado para ver o salão inteiro.</p>}
             </>
           )}
         </div>

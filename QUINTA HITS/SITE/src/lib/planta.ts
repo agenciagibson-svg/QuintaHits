@@ -3,7 +3,7 @@
  * Sem acesso a banco: tipos, rótulos e validação, usados pelo painel, pela API e pelo site.
  */
 
-export type TipoElemento = "palco" | "bar" | "entrada" | "banheiro" | "dj" | "pista" | "caixa" | "parede" | "texto";
+export type TipoElemento = "palco" | "bar" | "entrada" | "banheiro" | "dj" | "pista" | "caixa" | "parede" | "texto" | "area" | "telao";
 
 export type ElementoSalao = {
   id: string;
@@ -26,6 +26,9 @@ export const TIPOS_ELEMENTO: Record<TipoElemento, { nome: string; w: number; h: 
   banheiro: { nome: "Banheiros", w: 12, h: 10 },
   parede: { nome: "Parede", w: 30, h: 2 },
   texto: { nome: "Texto", w: 16, h: 6 },
+  // Setor do salão (Deck, Área Kids...): fundo claro tracejado, nome no alto, mesas por cima.
+  area: { nome: "Setor", w: 30, h: 30 },
+  telao: { nome: "Telão", w: 4, h: 20 },
 };
 
 export const MAX_ELEMENTOS = 30;

@@ -15,7 +15,7 @@ const limitar = (v: number) => Math.min(97, Math.max(3, Math.round(v * 10) / 10)
 
 export default function MesasEditor({ casa = CASA_PADRAO }: { casa?: CasaId }) {
   const router = useRouter();
-  const plantaDaCasa = CASAS[casa].mapa.fundo ? CASAS[casa].mapa : null;
+  const plantaDaCasa = CASAS[casa].mapa;
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");

@@ -47,6 +47,7 @@ import { _reiniciarLimites } from "@/lib/limiteTaxa";
 import { edicoesProntasParaAgente, situacaoDoSite } from "@/lib/regras";
 import { todasEdicoes } from "@/lib/programacao";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
+import { validarPlanta } from "@/lib/planta";
 
 let banco: BancoTeste;
 beforeAll(async () => { banco = await criarBancoTeste(); });
@@ -133,7 +134,14 @@ describe("ids, domínios e páginas por casa (puro)", () => {
       expect(Number(y)).toBeLessThan(100);
     }
     expect(linhas.filter((l) => l[3] === "Pista VIP")).toHaveLength(13);
-    expect(CASAS[HG].mapa.fundo).toBe("/casas/harley-grill/planta.webp");
+    // Mapa redesenhado: sem imagem de fundo, setores como elementos do salão (válidos e editáveis no painel).
+    expect(CASAS[HG].mapa.fundo).toBeNull();
+    const planta = JSON.parse(/set planta = '(.+)'::jsonb/.exec(sql)![1]);
+    const validada = validarPlanta(planta.elementos);
+    expect(validada).not.toHaveProperty("erro");
+    expect((validada as { elementos: { tipo: string; rotulo: string }[] }).elementos.map((e) => e.rotulo)).toEqual(
+      expect.arrayContaining(["Palco", "Entrada", "Área Kids", "Deck", "Telão", "Bar Drinks"]),
+    );
   });
 });
 
@@ -156,6 +164,12 @@ describe("banco: mesas e edições separadas por casa", () => {
     await banco.pg.exec(seed);
     const porCasa = await banco.sql<{ casa: string; n: number }>("select casa, count(*)::int as n from mesas group by casa order by casa");
     expect(porCasa).toEqual([{ casa: HG, n: 93 }, { casa: "quinta-hits", n: 1 }]);
+    // O mapa do Harley entra uma vez; mudança feita depois no painel não é desfeita ao rodar o seed de novo.
+    const [{ planta }] = await banco.sql<{ planta: { elementos: unknown[] } }>("select planta from casas where id = $1", [HG]);
+    expect(planta.elementos).toHaveLength(10);
+    await banco.sql("update casas set planta = '{\"elementos\": []}' where id = $1", [HG]);
+    await banco.pg.exec(seed);
+    expect((await banco.sql<{ planta: { elementos: unknown[] } }>("select planta from casas where id = $1", [HG]))[0].planta.elementos).toHaveLength(0);
   });
 
   it("o id da edição segue o formato da casa (o banco recusa o resto)", async () => {

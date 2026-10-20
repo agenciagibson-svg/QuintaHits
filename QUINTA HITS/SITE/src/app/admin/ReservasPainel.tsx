@@ -35,7 +35,8 @@ function edicaoPadrao(edicoes: Edicao[]): string {
 const botaoWhats: React.CSSProperties = { ...s.botaoMini, background: "#1f7a4d", borderColor: "#1f7a4d", textDecoration: "none", display: "inline-block" };
 
 export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa = CASA_PADRAO }: { edicoes: Edicao[]; pendentes?: PedidoPendente[]; onMudou?: () => void; casa?: CasaId }) {
-  const plantaDaCasa = CASAS[casa].mapa.fundo ? CASAS[casa].mapa : null;
+  const plantaDaCasa = CASAS[casa].mapa;
+  const mapaLargo = plantaDaCasa.tamanhoMesa !== null;
   const router = useRouter();
   const [edicaoId, setEdicaoId] = useState(() => edicaoPadrao(edicoes));
   const [reservas, setReservas] = useState<Reserva[]>([]);
@@ -172,7 +173,7 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
       </div>
 
       {mesas.length > 0 && (
-        <section style={{ ...s.secao, background: "#f1e7d2", padding: 16, maxWidth: plantaDaCasa ? undefined : 780 }}>
+        <section style={{ ...s.secao, background: "#f1e7d2", padding: 16, maxWidth: mapaLargo ? undefined : 780 }}>
           <MapaMesas
             mesas={mesas.map((m) => {
               const c = clienteDaMesa(m.id);
@@ -183,7 +184,7 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
             desativarOcupadas={false}
             estado={(m) => estadoNoMapa(m.id)}
           />
-          <div style={{ color: "#171717" }}><LegendaMapa painel destaque={plantaDaCasa?.destaque?.rotulo ?? null} /></div>
+          <div style={{ color: "#171717" }}><LegendaMapa painel destaque={plantaDaCasa.destaque?.rotulo ?? null} /></div>
         </section>
       )}
 
