@@ -7,6 +7,21 @@ import { CASAS, casaDaEdicaoId, dataDaEdicaoId, type Casa } from "@/config/casas
 import type { StatusReserva } from "@/lib/reserva";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Link curto da mensagem (/r/<12 hex>): os 12 primeiros caracteres do id, todos aleatórios (48 bits, impossível chutar). */
+const CURTO_RE = /^[0-9a-f]{12}$/i;
+
+/** "02a04ac5-9ebd-4065-…" → "02a04ac59ebd" (o que vai no link da mensagem). */
+export const idCurto = (id: string): string => id.replace(/-/g, "").slice(0, 12).toLowerCase();
+
+/** Id completo a partir do link curto (ou do id completo). Mais de uma reserva com o mesmo começo (nunca na prática): null. */
+async function resolverId(ref: string): Promise<string | null> {
+  if (UUID_RE.test(ref)) return ref.toLowerCase();
+  if (!CURTO_RE.test(ref)) return null;
+  const c = ref.toLowerCase();
+  const base = `${c.slice(0, 8)}-${c.slice(8, 12)}`;
+  const { data } = await supabaseAdmin().from("reservas").select("id").gte("id", `${base}-0000-0000-000000000000`).lte("id", `${base}-ffff-ffff-ffffffffffff`).limit(2);
+  return data && data.length === 1 ? (data[0] as { id: string }).id : null;
+}
 
 export type MinhaReserva = {
   id: string;
@@ -31,8 +46,9 @@ export type MinhaReserva = {
  * Dados da página do cliente (/minha-reserva/<id>) e da imagem dela (prévia no WhatsApp). Só o necessário: primeiro
  * nome, mesa, pessoas, noite e casa. Mesa travada pela equipe (sem WhatsApp) não é reserva de cliente: null.
  */
-export async function lerMinhaReserva(id: string): Promise<MinhaReserva | null> {
-  if (!UUID_RE.test(id)) return null;
+export async function lerMinhaReserva(ref: string): Promise<MinhaReserva | null> {
+  const id = await resolverId(ref);
+  if (!id) return null;
   await expirarPedidosVencidos().catch(() => undefined);
   const db = supabaseAdmin();
   const { data } = await db.from("reservas").select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, chegou_em").eq("id", id).maybeSingle();

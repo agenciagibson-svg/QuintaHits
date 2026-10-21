@@ -15,6 +15,7 @@ vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "www.q
 import { lerReferencia, marcarNaoComparecimentos, noitesEmAndamento, registrarChegada, _reiniciarPassadaNaoComparecimento } from "@/lib/checkin";
 import { POST as checkinCasa } from "@/app/api/casa/checkin/route";
 import MinhaReserva, { generateMetadata as metadadosDaReserva } from "@/app/minha-reserva/[id]/page";
+import ReservaCurta from "@/app/r/[curto]/page";
 import { _reiniciarLimites } from "@/lib/limiteTaxa";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 
@@ -51,8 +52,7 @@ describe("leitura do QR / código (puro)", () => {
   it("mensagem de confirmação leva o link do QR numa linha só dele (a prévia do WhatsApp mostra o QR)", () => {
     const url = linkWhatsappCliente({ id: "0b9c3c1e-4f2a-4d4e-9c1a-2b3c4d5e6f70", nome: "Junior Silva", whatsapp: "34999998888", pessoas: 4, status: "confirmada", codigo: "HG-957192" }, { data: "2026-11-06", horario: "20h", casa: "harley-grill" }, "33");
     const texto = decodeURIComponent(url.split("text=")[1]);
-    expect(texto).toContain("Código HG-957192.");
-    expect(texto).toMatch(/\n\nSeu QR de entrada \(mostre na porta\):\nhttps?:\/\/[^\s]+\/minha-reserva\/0b9c3c1e-4f2a-4d4e-9c1a-2b3c4d5e6f70\n\nTe esperamos!$/);
+    expect(texto).toMatch(/Código HG-957192\. Te esperamos!\n\nhttps?:\/\/[^\s]+\/r\/0b9c3c1e4f2a$/);
   });
 
   it("de madrugada a noite de ontem continua em andamento", () => {
@@ -173,6 +173,11 @@ describe("check-in na porta", () => {
       expect(html).toContain("QH-777777");
       expect(html).toContain("Bruna ·"); // só o primeiro nome
       expect(html).not.toContain("Silva");
+      // Link curto da mensagem (/r/<12 caracteres>): a mesma página; começo que não existe = sem página.
+      const curta = renderToStaticMarkup(await ReservaCurta({ params: Promise.resolve({ curto: id.replace(/-/g, "").slice(0, 12) }) }));
+      expect(curta).toContain("QH-777777");
+      await expect(ReservaCurta({ params: Promise.resolve({ curto: "000000000000" }) })).rejects.toThrow();
+      await expect(ReservaCurta({ params: Promise.resolve({ curto: "123" }) })).rejects.toThrow();
       // Prévia do link no WhatsApp: título com mesa, noite e casa (a imagem é o QR, opengraph-image.tsx).
       const meta = await metadadosDaReserva({ params: Promise.resolve({ id }) });
       expect(meta.openGraph?.title).toBe("Reserva confirmada · Mesa 5 · 07/01 · QUINTA HITS");

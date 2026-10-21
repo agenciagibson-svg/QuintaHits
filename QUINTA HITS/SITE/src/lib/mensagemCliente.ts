@@ -3,10 +3,13 @@ import type { StatusReserva } from "@/lib/reserva";
 import { CASAS, CASA_PADRAO, ehCasa } from "@/config/casas";
 import { site } from "@/config/site";
 
-/** Link da página da reserva com o QR de entrada (/minha-reserva/<id>). No navegador, o endereço onde a equipe está. */
+/**
+ * Link curto da reserva com o QR de entrada (/r/<12 caracteres do id>). No WhatsApp ele vira o cartão com o QR grande
+ * (prévia do link). No navegador, o endereço onde a equipe está.
+ */
 export function linkDoQr(id: string): string {
   const origem = typeof window !== "undefined" && window.location?.origin ? window.location.origin : site.url;
-  return `${origem}/minha-reserva/${id}`;
+  return `${origem}/r/${id.replace(/-/g, "").slice(0, 12).toLowerCase()}`;
 }
 
 /**
@@ -28,7 +31,7 @@ export function linkWhatsappCliente(
   const quando = `dia ${data}`;
   const texto =
     r.status === "confirmada"
-      ? `Olá, ${primeiroNome}! Sua reserva ${casa.naCasa} está confirmada: mesa ${mesa} para ${r.pessoas} pessoa(s), ${quando}${hora}${local}.${r.codigo ? ` Código ${r.codigo}.` : ""}${r.id ? `\n\nSeu QR de entrada (mostre na porta):\n${linkDoQr(r.id)}\n\n` : " "}Te esperamos!`
+      ? `Olá, ${primeiroNome}! Sua reserva ${casa.naCasa} está confirmada: mesa ${mesa} para ${r.pessoas} pessoa(s), ${quando}${hora}${local}.${r.codigo ? ` Código ${r.codigo}.` : ""} Te esperamos!${r.id ? `\n\n${linkDoQr(r.id)}` : ""}`
       : r.status === "nao_compareceu"
         ? `Olá, ${primeiroNome}! Sentimos sua falta ${casa.naCasa} em ${data}: a mesa ${mesa} foi liberada porque não registramos sua chegada até o fim da tolerância. Quando quiser, é só reservar de novo.`
       : r.status === "cancelada" || r.status === "expirada"

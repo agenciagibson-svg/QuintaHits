@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { formatData } from "@/lib/edicao";
-import { linkDoCheckin, lerMinhaReserva, origemDaRequisicao } from "@/lib/minhaReserva";
+import { idCurto, linkDoCheckin, lerMinhaReserva, origemDaRequisicao } from "@/lib/minhaReserva";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       siteName: r.casa.nome,
       type: "website",
       locale: "pt_BR",
-      url: `${origem}/minha-reserva/${r.id}`,
+      url: `${origem}/r/${idCurto(r.id)}`,
       images: [{ url: imagem, width: 1200, height: 630, alt: "QR code de entrada da reserva" }],
     },
     twitter: { card: "summary_large_image", title: titulo, description: descricao, images: [imagem] },
