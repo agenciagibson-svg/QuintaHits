@@ -15,9 +15,13 @@ export function ComoChegarCasa({ casa, dados }: { casa: CasaId; dados: DadosCasa
   return (
     <div className="wrap local local--outra">
       <div>
-        <div className="eyebrow">Também no</div>
+        <div className="eyebrow">Também</div>
         <h2 className="display h-1" style={{ margin: "6px 0 16px" }}>{c.nome}</h2>
-        <p className="lead">Eventos com reserva de mesa pelo mapa do salão: escolha a sua e a gente confirma pelo WhatsApp.</p>
+        <p className="lead">
+          {c.reservas
+            ? "Eventos com reserva de mesa pelo mapa do salão: escolha a sua e a gente confirma pelo WhatsApp."
+            : "Noites da QUINTA HITS também aqui. Veja as datas na agenda."}
+        </p>
       </div>
       <div className="placa placa--verde local__placa">
         <h3 className="display h-3">Como chegar</h3>
@@ -32,7 +36,11 @@ export function ComoChegarCasa({ casa, dados }: { casa: CasaId; dados: DadosCasa
         </dl>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           {mapa && <a className="btn btn--creme btn--p" href={mapa} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>}
-          <Link className="btn btn--vazado btn--p" href={c.pagina}>Reservar mesa</Link>
+          {c.reservas ? (
+            <Link className="btn btn--vazado btn--p" href={c.pagina}>Reservar mesa</Link>
+          ) : (
+            <Link className="btn btn--vazado btn--p" href="/programacao">Ver agenda</Link>
+          )}
         </div>
       </div>
     </div>

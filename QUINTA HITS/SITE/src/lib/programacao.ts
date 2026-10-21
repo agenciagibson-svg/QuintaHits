@@ -35,7 +35,8 @@ export async function datasComEvento(): Promise<string[]> {
 export async function reservaDasOutrasCasas(): Promise<Record<string, string>> {
   const r: Record<string, string> = {};
   for (const e of await todasEdicoes()) {
-    if (e.status !== "cancelada" && ehCasa(e.casa) && e.casa !== CASA_PADRAO) r[e.data] = CASAS[e.casa].pagina;
+    // Casa sem reserva pelo site (ex.: Solarium): a faixa leva à agenda.
+    if (e.status !== "cancelada" && ehCasa(e.casa) && e.casa !== CASA_PADRAO) r[e.data] = CASAS[e.casa].reservas ? CASAS[e.casa].pagina : "/programacao";
   }
   return r;
 }

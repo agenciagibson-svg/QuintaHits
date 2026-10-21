@@ -22,6 +22,7 @@ const MIGRACAO_ABERTURA = ler("migracao-2026-10-05-abertura-semanal.sql");
 const MIGRACAO_CASA = ler("migracao-2026-10-06-app-da-casa.sql");
 const MIGRACAO_MULTI_CASA = ler("migracao-2026-10-20-multi-casa.sql");
 const MIGRACAO_DADOS_CASAS = ler("migracao-2026-10-21-dados-das-casas.sql");
+const MIGRACAO_SOLARIUM = ler("migracao-2026-10-21-solarium.sql");
 
 export type ErroBanco = { code: string; message: string; details: string | null; hint: string | null };
 type Resposta<T> = { data: T; error: ErroBanco | null; count: number | null };
@@ -215,6 +216,7 @@ export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boo
   // Mesas e edições por casa: o código atual sempre filtra pela casa, então vem ligada em todo teste.
   if (opcoes.multiCasa !== false) await pg.exec(MIGRACAO_MULTI_CASA);
   if (opcoes.multiCasa !== false && opcoes.dadosCasas !== false) await pg.exec(MIGRACAO_DADOS_CASAS);
+  if (opcoes.multiCasa !== false) await pg.exec(MIGRACAO_SOLARIUM);
   const temMigracao = opcoes.migracao !== false;
 
   const supabase = { from: (tabela: string) => new Consulta(pg, tabela) } as unknown as SupabaseClient;

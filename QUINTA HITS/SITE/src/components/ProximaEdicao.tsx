@@ -12,7 +12,9 @@ export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: 
   // O evento pode ser em outra casa (local da edição); sem local, a casa padrão.
   const local = edicao.local || site.casa.nome;
   // Reserva da casa da noite: Quinta Hits/Florindos = /reservar (ou link cadastrado); outra casa = página dela.
-  const reserva = ehCasa(edicao.casa) && edicao.casa !== CASA_PADRAO ? CASAS[edicao.casa].pagina : reservaHrefFrom(site);
+  const casa = ehCasa(edicao.casa) ? CASAS[edicao.casa] : CASAS[CASA_PADRAO];
+  // Casa sem reserva pelo site (ex.: Solarium, ainda sem mapa): sem botão de reserva.
+  const reserva = !casa.reservas ? null : casa.id !== CASA_PADRAO ? casa.pagina : reservaHrefFrom(site);
   const textoShare = edicao.artista
     ? `${edicao.artista} na QUINTA HITS, ${formatData(edicao.data, "longa")}, no ${local}. ${site.assinatura}`
     : `QUINTA HITS, ${formatData(edicao.data, "longa")}, no ${local}. ${site.assinatura}`;
@@ -51,9 +53,11 @@ export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: 
           )}
         </div>
         <div className="proxima__acoes">
-          <a className="btn btn--terracota" href={reserva} {...alvoLink(reserva)}>
-            Reservar mesa
-          </a>
+          {reserva && (
+            <a className="btn btn--terracota" href={reserva} {...alvoLink(reserva)}>
+              Reservar mesa
+            </a>
+          )}
           <Compartilhar titulo={site.nome} texto={textoShare} url={site.url} />
         </div>
       </div>

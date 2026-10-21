@@ -6,7 +6,7 @@
  * (mapa, regras, prazos, painel), cada uma com as próprias mesas, edições e planta, e uma página própria.
  */
 
-export type CasaId = "quinta-hits" | "harley-grill";
+export type CasaId = "quinta-hits" | "harley-grill" | "solarium";
 
 export const CASA_PADRAO: CasaId = "quinta-hits";
 
@@ -41,6 +41,8 @@ export type Casa = {
   naCasa: string;
   /** Edição só pode cair numa quinta-feira? */
   soQuinta: boolean;
+  /** Reserva de mesa pelo site? false = a casa aparece no site (agenda e "Onde"), mas sem mapa nem botão de reserva. */
+  reservas: boolean;
   mapa: MapaDaCasa;
 };
 
@@ -56,6 +58,7 @@ export const CASAS: Record<CasaId, Casa> = {
     naCasa: "na QUINTA HITS",
     // A QUINTA HITS virou marca (out/2026): eventos em qualquer dia da semana.
     soQuinta: false,
+    reservas: true,
     mapa: { proporcao: 4 / 3, fundo: null, tamanhoMesa: null, larguraMinima: null, destaque: null },
   },
   "harley-grill": {
@@ -68,6 +71,7 @@ export const CASAS: Record<CasaId, Casa> = {
     noite: "noite",
     naCasa: "no Harley Grill",
     soQuinta: false,
+    reservas: true,
     // Mapa redesenhado a partir da planta da casa, só com o que importa ao cliente (palco no lugar da logo, entrada,
     // setores, bar, banheiros). Os setores são elementos do salão, editáveis no painel (Mesas). As mesas azuis da
     // planta são a Pista VIP (área "Pista VIP" no cadastro das mesas).
@@ -79,7 +83,25 @@ export const CASAS: Record<CasaId, Casa> = {
       destaque: { area: "Pista VIP", rotulo: "Pista VIP" },
     },
   },
+  solarium: {
+    id: "solarium",
+    nome: "Solarium Beach Bar",
+    rotulo: "Solarium Beach Bar",
+    local: "Solarium Beach Bar",
+    pagina: "/solarium",
+    prefixoCodigo: "SB",
+    noite: "noite",
+    naCasa: "no Solarium Beach Bar",
+    soQuinta: false,
+    // Ainda sem mapa (21/10/2026): entra na agenda e na seção "Onde", sem reserva pelo site. Quando o mapa chegar:
+    // reservas: true e criar src/app/solarium/page.tsx (igual ao do Harley).
+    reservas: false,
+    mapa: { proporcao: 4 / 3, fundo: null, tamanhoMesa: null, larguraMinima: null, destaque: null },
+  },
 };
+
+/** Outras casas além da padrão, na ordem em que aparecem no site ("Onde"). */
+export const OUTRAS_CASAS = (Object.keys(CASAS) as CasaId[]).filter((c) => c !== CASA_PADRAO);
 
 export const CASA_IDS = Object.keys(CASAS) as CasaId[];
 
@@ -141,7 +163,7 @@ export function casaDoDominio(host: string | null | undefined, config: string | 
 }
 
 /** Páginas próprias das outras casas (fora do site da Quinta Hits: sem o cabeçalho, a faixa e o rodapé dela). */
-export const PAGINAS_DE_OUTRAS_CASAS = CASA_IDS.filter((c) => c !== CASA_PADRAO).map((c) => CASAS[c].pagina);
+export const PAGINAS_DE_OUTRAS_CASAS = CASA_IDS.filter((c) => c !== CASA_PADRAO && CASAS[c].reservas).map((c) => CASAS[c].pagina);
 
 export const ehPaginaDeOutraCasa = (caminho: string | null | undefined): boolean =>
   !!caminho && PAGINAS_DE_OUTRAS_CASAS.some((p) => caminho === p || caminho.startsWith(`${p}/`));

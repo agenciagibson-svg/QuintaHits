@@ -1,7 +1,7 @@
 import "server-only";
 import { reservasSiteLigadoPorEnv, reservasSiteManualPorEnv } from "@/lib/agente/ambiente";
 import { whatsappConfigurado } from "@/lib/whatsapp";
-import { CASA_PADRAO, dataDaEdicaoId, type CasaId } from "@/config/casas";
+import { CASAS, CASA_PADRAO, dataDaEdicaoId, type CasaId } from "@/config/casas";
 
 /**
  * A reserva pelo site está aberta? Nesta ordem:
@@ -18,7 +18,7 @@ export type EstadoReservasSite = { aberto: boolean; motivo: "chave_desligada" | 
 
 export function estadoDasReservasDoSite(casa: CasaId = CASA_PADRAO): EstadoReservasSite {
   if (!reservasSiteLigadoPorEnv()) return { aberto: false, motivo: "chave_desligada" };
-  if (casa !== CASA_PADRAO) return { aberto: true, motivo: "manual" };
+  if (casa !== CASA_PADRAO) return CASAS[casa].reservas ? { aberto: true, motivo: "manual" } : { aberto: false, motivo: "chave_desligada" };
   if (whatsappConfigurado()) return { aberto: true, motivo: "ok" };
   if (reservasSiteManualPorEnv()) return { aberto: true, motivo: "manual" };
   return { aberto: false, motivo: "whatsapp_nao_configurado" };

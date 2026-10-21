@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { instagramUrl, site } from "@/config/site";
 import { cnpjValido } from "@/lib/cnpj";
+import { CASAS, OUTRAS_CASAS } from "@/config/casas";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade",
@@ -39,7 +40,7 @@ export default function Privacidade() {
           <p>
             A {site.nome} é uma label da <strong>{site.empresa}</strong>
             {p.razaoSocial ? ` (${p.razaoSocial})` : ""}
-            {cnpj ? `, CNPJ ${cnpj}` : ""}, com eventos em {site.cidade}/{site.uf} (como no {site.casa.nome} e no Harley Grill).
+            {cnpj ? `, CNPJ ${cnpj}` : ""}, com eventos em {site.cidade}/{site.uf} (como no {[site.casa.nome, ...OUTRAS_CASAS.map((c) => CASAS[c].nome)].join(", ")}).
             A {site.empresa} é a controladora dos dados tratados por este site e pelo atendimento de reservas.
             {p.endereco ? ` Endereço: ${p.endereco}.` : ""} Não há encarregado de dados designado: os pedidos de privacidade são atendidos pelo contato da seção 12.
           </p>

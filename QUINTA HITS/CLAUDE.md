@@ -47,7 +47,7 @@ relatórios e conversa — em **português do Brasil**.
 ## Atualização 21/10/2026 — QUINTA HITS virou marca
 
 A QUINTA HITS deixou de ser só "a noite de quinta": é a **marca**, com eventos em **qualquer dia da semana** e em mais
-de uma casa (Florindos Bar e Harley Grill). Nada novo deve amarrar a marca à quinta-feira. Assinaturas em uso no site:
+de uma casa (Florindos Bar, Harley Grill e Solarium Beach Bar — este ainda sem reserva pelo site). Nada novo deve amarrar a marca à quinta-feira. Assinaturas em uso no site:
 **A noite oficial de Uberlândia.** · **Tem Hits, tem noite.** · **A noite começa aqui.** (substituem as da tabela abaixo,
 que ficam como histórico). O selo gráfico antigo ("Se é quinta, tem Hits") ainda não foi redesenhado.
 

@@ -9,6 +9,7 @@ import ProximaEdicao from "@/components/ProximaEdicao";
 import EdicaoCard from "@/components/EdicaoCard";
 import Vinil from "@/components/Vinil";
 import { ComoChegarCasa } from "@/components/OutraCasa";
+import { OUTRAS_CASAS } from "@/config/casas";
 import { dadosDaCasa } from "@/lib/casasDados";
 
 // A página é regenerada a cada minuto: a "próxima noite" e a contagem mudam sozinhas.
@@ -29,9 +30,9 @@ export default async function Home() {
   const proximas = await proximasEdicoes(agora, 4);
   const anteriores = await edicoesAnteriores(agora);
   const temHoje = await temEdicaoHoje(agora);
-  // Harley Grill: "como chegar" na seção Onde (erro de banco = "Em breve", sem derrubar a home). As noites dele entram
-  // na agenda única, junto com as do Florindos.
-  const harley = await dadosDaCasa("harley-grill");
+  // Outras casas (Harley Grill, Solarium...): "como chegar" na seção Onde (erro de banco = "Em breve", sem derrubar a
+  // home). As noites delas entram na agenda única, junto com as do Florindos.
+  const outras = await Promise.all(OUTRAS_CASAS.map(async (c) => ({ casa: c, dados: await dadosDaCasa(c) })));
   // Contagem até o próximo evento cadastrado (canceladas puladas). Sem data futura na agenda, sem contagem.
   const alvo = proxima ? inicioDaEdicao(proxima.data, proxima.horario, site.horarioPadrao).toISOString() : null;
 
@@ -205,7 +206,7 @@ export default async function Home() {
             </div>
           </div>
         </div>
-        <ComoChegarCasa casa="harley-grill" dados={harley} />
+        {outras.map(({ casa, dados }) => <ComoChegarCasa key={casa} casa={casa} dados={dados} />)}
       </section>
 
       {/* INSTAGRAM */}

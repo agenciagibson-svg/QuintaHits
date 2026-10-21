@@ -459,3 +459,50 @@ describe("agenda única: card de noite em outra casa", () => {
     expect(qh).not.toContain("card__casa");
   });
 });
+
+describe("terceira casa: Solarium Beach Bar", () => {
+  beforeEach(async () => {
+    sessao.autenticado = true;
+    definirBanco(banco);
+    await banco.limpar();
+  });
+
+  it("id de edição e cadastro pelo painel funcionam como no Harley (ainda sem página de reserva)", async () => {
+    expect(edicaoIdValido("2099-01-09_solarium")).toBe(true);
+    expect(casaDaEdicaoId("2099-01-09_solarium")).toBe("solarium");
+    expect(ehPaginaDeOutraCasa("/solarium")).toBe(false); // sem página de reserva enquanto não tem mapa
+    const r = await criarEdicaoApi(new Request("http://localhost/api/admin/edicoes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: "2099-01-09", casa: "solarium", artista: "[TESTE]" }) }));
+    expect(r.status).toBe(201);
+    expect((await r.json()).edicao).toMatchObject({ id: "2099-01-09_solarium", casa: "solarium", local: "Solarium Beach Bar" });
+    expect((await criarMesaApi(new Request("http://localhost/api/admin/mesas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ numero: "1", lugares: 4, casa: "solarium" }) }))).status).toBe(201);
+    const qh = await (await listarMesas(new Request("http://localhost/api/admin/mesas"))).json();
+    expect(qh.mesas).toHaveLength(0);
+  });
+});
+
+describe("Solarium sem reserva pelo site (ainda sem mapa)", () => {
+  it("site fechado para reserva, card sem link de reserva e 'Onde' com 'Ver agenda'", async () => {
+    const { estadoDasReservasDoSite } = await import("@/lib/reservasSite");
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    expect(estadoDasReservasDoSite("solarium").aberto).toBe(false);
+    expect(estadoDasReservasDoSite(HG).aberto).toBe(true);
+    const { default: EdicaoCard } = await import("@/components/EdicaoCard");
+    const card = renderToStaticMarkup(EdicaoCard({ edicao: { id: "2099-01-09_solarium", data: "2099-01-09", artista: "Voo Livre", instagram: "", tema: "", genero: "", horario: "", local: "Solarium Beach Bar", status: "confirmada", destaque: "", casa: "solarium" } }));
+    expect(card).toContain("Solarium Beach Bar");
+    expect(card).not.toContain("card__reservar");
+    const onde = renderToStaticMarkup(ComoChegarCasa({ casa: "solarium", dados: { endereco: "Rodovia 452, km 9", bairro: "Represa de Miranda", cidade: "", quando: "", instagram: "" } }));
+    expect(onde).toContain("Ver agenda");
+    expect(onde).not.toContain("Reservar mesa");
+  });
+
+  it("a migração do Solarium cria a casa, o endereço e a data de 26/12 sem duplicar", async () => {
+    definirBanco(banco);
+    await banco.limpar();
+    const mig = readFileSync(new URL("../supabase/migracao-2026-10-21-solarium.sql", import.meta.url), "utf8");
+    await banco.pg.exec(mig);
+    await banco.pg.exec(mig);
+    expect((await dadosDaCasa("solarium")).bairro).toBe("Represa de Miranda");
+    const eds = await banco.sql<{ id: string; artista: string }>("select id, artista from edicoes where casa = 'solarium'");
+    expect(eds).toEqual([{ id: "2026-12-26_solarium", artista: "Voo Livre" }]);
+  });
+});
