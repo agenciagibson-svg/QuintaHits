@@ -450,3 +450,7 @@ button { font: inherit; cursor: pointer; }
 .mapa__el--area { place-items: start center; background: rgba(23, 53, 43, 0.045); border: 2px dashed rgba(23, 53, 43, 0.28); color: rgba(23, 53, 43, 0.62); border-radius: 10px; }
 .mapa__el--area span { font-size: clamp(11px, 1.5cqw + 6px, 18px); padding-top: 6px; letter-spacing: 0.14em; }
 .mapa__el--telao { background: var(--preto); color: var(--creme); border-radius: 3px; box-shadow: inset 0 0 0 3px #3b3b3b; }
+/* Outra casa na seção "Onde" (ex.: Harley Grill), abaixo do Florindos Bar */
+.local--outra { margin-top: clamp(56px, 8vw, 104px); padding-top: clamp(40px, 6vw, 72px); border-top: 2px solid rgba(23, 23, 23, 0.12); }
+.pagina-casa__endereco { margin: 14px 0 0; font-size: 16px; opacity: 0.8; }
+.pagina-casa__endereco a { text-decoration: underline; text-underline-offset: 2px; }

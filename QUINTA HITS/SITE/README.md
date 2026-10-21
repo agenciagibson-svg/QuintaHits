@@ -98,15 +98,19 @@ O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mes
 - **Domínio próprio:** na Vercel, adicione o domínio ao projeto e a variável
   `DOMINIOS_CASAS="reservas.harleygrill.com.br=harley-grill"` (vários: separados por vírgula). Nesse domínio, `/`,
   `/reservar` e `/programacao` levam a `/harley-grill`.
+- **No site da Quinta Hits:** a seção "Onde" da home mostra o Harley Grill abaixo do Florindos Bar (endereço, mapa e
+  "Reservar mesa" → `/harley-grill`), e a home e a `/programacao` ganham a agenda do Harley, separada das quintas
+  (só aparece quando há evento futuro). Endereço, cidade, "quando" e Instagram: painel → **Casa**, com o Harley escolhido.
 - **Configuração da casa** (nome, código, planta, tamanho das mesas): `src/config/casas.ts`.
 
 ### Ativar (uma vez, nesta ordem)
 
 1. Supabase → SQL Editor: rodar `supabase/migracao-2026-10-20-multi-casa.sql` (não muda nada do que já existe; o site
    atual continua funcionando com ela).
-2. Publicar o site novo na Vercel.
-3. Supabase → SQL Editor: rodar `supabase/seed-2026-10-20-harley-grill-mesas.sql` (as 93 mesas e o mapa do Harley). **Só depois
-   do passo 2**: o site antigo não separa as casas e mostraria essas mesas no mapa da Quinta Hits.
+2. Supabase → SQL Editor: rodar `supabase/migracao-2026-10-21-dados-das-casas.sql` (endereço do Harley).
+3. Publicar o site novo na Vercel.
+4. Supabase → SQL Editor: rodar `supabase/seed-2026-10-20-harley-grill-mesas.sql` (as 93 mesas e o mapa do Harley). **Só depois
+   do passo 3**: o site antigo não separa as casas e mostraria essas mesas no mapa da Quinta Hits.
 
 Reversão: `supabase/reverter-2026-10-20-multi-casa.sql` (apaga os dados do Harley; os da Quinta Hits ficam).
 

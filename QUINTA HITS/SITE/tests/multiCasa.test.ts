@@ -39,6 +39,10 @@ import { GET as lerPlanta, PUT as gravarPlanta } from "@/app/api/admin/planta/ro
 import { GET as regrasDaEdicao } from "@/app/api/admin/edicoes/[id]/regras/route";
 import { GET as reservasDaEdicao } from "@/app/api/admin/reservas/route";
 import { GET as appCasaListar } from "@/app/api/casa/reservas/route";
+import { GET as lerDadosCasa, PUT as gravarDadosCasa } from "@/app/api/admin/casas/route";
+import { dadosDaCasa, proximosEventosDaCasa } from "@/lib/casasDados";
+import { ComoChegarCasa } from "@/components/OutraCasa";
+import { renderToStaticMarkup } from "react-dom/server";
 import { PUT as appCasaMudar } from "@/app/api/casa/reservas/[id]/route";
 import { middleware } from "@/middleware";
 import { notificarCasa } from "@/lib/pushCasa";
@@ -367,5 +371,55 @@ describe("middleware: domínio próprio do Harley", () => {
     }
     expect((await middleware(req("https://www.quintahits.com.br/api/admin/mesas"))).status).toBe(401);
     expect((await middleware(req("https://reservas.harleygrill.com.br/api/admin/mesas"))).status).toBe(401);
+  });
+});
+
+describe("Harley Grill no site da Quinta Hits (Onde e agenda separada)", () => {
+  beforeEach(async () => {
+    sessao.autenticado = true;
+    definirBanco(banco);
+    await banco.limpar();
+  });
+  const put = (corpo: unknown, casa = HG) =>
+    gravarDadosCasa(new Request(`http://localhost/api/admin/casas?casa=${casa}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) }));
+
+  it("a migração grava o endereço do Harley uma vez e não desfaz mudança feita no painel", async () => {
+    const mig = readFileSync(new URL("../supabase/migracao-2026-10-21-dados-das-casas.sql", import.meta.url), "utf8");
+    await banco.pg.exec(mig);
+    expect(await dadosDaCasa(HG)).toMatchObject({ endereco: "Av. Anselmo Alves dos Santos, 1096", bairro: "Santa Mônica", cidade: "Uberlândia/MG" });
+    await banco.sql("update casas set endereco = 'Outro, 1' where id = $1", [HG]);
+    await banco.pg.exec(mig);
+    expect((await dadosDaCasa(HG)).endereco).toBe("Outro, 1");
+  });
+
+  it("painel grava e lê os dados da casa; Instagram sem @; Quinta Hits e texto grande recusados", async () => {
+    const r = await put({ endereco: " Av. Teste, 10 ", quando: "Sábados, 20h", instagram: "@harleygrill" });
+    expect(r.status).toBe(200);
+    expect((await r.json()).dados).toMatchObject({ endereco: "Av. Teste, 10", quando: "Sábados, 20h", instagram: "harleygrill" });
+    expect((await (await lerDadosCasa(new Request(`http://localhost/api/admin/casas?casa=${HG}`))).json()).dados.endereco).toBe("Av. Teste, 10");
+    expect((await put({ endereco: "x" }, "quinta-hits")).status).toBe(400);
+    expect((await put({ endereco: "x".repeat(121) })).status).toBe(400);
+    sessao.autenticado = false;
+    expect((await put({ endereco: "y" })).status).toBe(401);
+  });
+
+  it("agenda do Harley: só eventos dele, de hoje em diante e sem os cancelados", async () => {
+    await criarEdicao(banco, { id: DATA });
+    await criarEdicaoHarley(DATA);
+    await criarEdicaoHarley("2099-01-09");
+    await banco.sql("update edicoes set status = 'cancelada' where id = $1", ["2099-01-09_harley-grill"]);
+    await criarEdicaoHarley("2000-01-01");
+    expect((await proximosEventosDaCasa(HG, new Date("2098-12-30T15:00:00Z"))).map((e) => e.id)).toEqual([ED_HG]);
+  });
+
+  it("Como chegar: com endereço mostra o mapa e a reserva do Harley; sem endereço, 'Em breve' e sem mapa", () => {
+    const com = renderToStaticMarkup(ComoChegarCasa({ casa: HG, dados: { endereco: "Av. Anselmo Alves dos Santos, 1096", bairro: "Santa Mônica", cidade: "Uberlândia/MG", quando: "", instagram: "" } }));
+    expect(com).toContain("Av. Anselmo Alves dos Santos, 1096 — Santa Mônica");
+    expect(com).toContain("google.com/maps");
+    expect(com).toContain('href="/harley-grill"');
+    expect(com).not.toContain("Quando");
+    const sem = renderToStaticMarkup(ComoChegarCasa({ casa: HG, dados: { endereco: "", bairro: "", cidade: "", quando: "", instagram: "" } }));
+    expect(sem).toContain("Em breve");
+    expect(sem).not.toContain("google.com/maps");
   });
 });

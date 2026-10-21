@@ -5,6 +5,7 @@ import { regrasPublicas } from "@/lib/regrasEdicao";
 import { formatData } from "@/lib/edicao";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import ReservaMesa from "@/components/ReservaMesa";
+import { dadosDaCasa, mapsUrlDe } from "@/lib/casasDados";
 
 /**
  * Página de reserva de uma casa que não é a Quinta Hits (ex.: Harley Grill em /harley-grill e no domínio próprio).
@@ -29,6 +30,9 @@ export default async function PaginaReservaCasa({ casa }: { casa: CasaId }) {
   const estado = estadoDasReservasDoSite(casa);
   const { prontas, proximaAbertura } = estado.aberto ? await situacaoDoSite(new Date(), 6, casa) : { prontas: [], proximaAbertura: null };
   const edicoes = prontas.map((p) => p.edicao);
+  const dados = await dadosDaCasa(casa);
+  const mapa = mapsUrlDe(dados, c.nome);
+  const endereco = [dados.endereco, dados.bairro, dados.cidade].filter(Boolean).join(" — ");
 
   return (
     <div className="pagina-casa">
@@ -44,6 +48,17 @@ export default async function PaginaReservaCasa({ casa }: { casa: CasaId }) {
             <div>
               <div className="eyebrow">{c.nome}</div>
               <h1 className="display h-1" style={{ margin: "6px 0 0" }}>Escolha sua mesa.</h1>
+              {(endereco || dados.quando) && (
+                <p className="pagina-casa__endereco">
+                  {[endereco, dados.quando].filter(Boolean).join(" · ")}
+                  {mapa && (
+                    <>
+                      {" · "}
+                      <a href={mapa} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
+                    </>
+                  )}
+                </p>
+              )}
             </div>
           </div>
           {edicoes.length === 0 ? (

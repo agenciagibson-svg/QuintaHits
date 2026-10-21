@@ -6,6 +6,7 @@ import { cssAdmin, s } from "./estilos";
 import AtendimentoPainel from "./AtendimentoPainel";
 import AuditoriaPainel from "./AuditoriaPainel";
 import CasaPainel from "./CasaPainel";
+import DadosCasaPainel from "./DadosCasaPainel";
 import IntegracoesPainel from "./IntegracoesPainel";
 import MesasEditor from "./MesasEditor";
 import ProgramacaoPainel from "./ProgramacaoPainel";
@@ -38,8 +39,8 @@ const MENU: ItemMenu[] = [
 ];
 
 const ABAS = MENU.map((m) => m.aba);
-/** Abas que valem só para a Quinta Hits (WhatsApp e dados do site): somem quando outra casa está escolhida. */
-const SO_DA_QUINTA: Aba[] = ["atendimento", "casa"];
+/** Abas que valem só para a Quinta Hits (WhatsApp): somem quando outra casa está escolhida. */
+const SO_DA_QUINTA: Aba[] = ["atendimento"];
 const ehAba = (v: string): v is Aba => (ABAS as string[]).includes(v);
 
 export default function AdminDashboard() {
@@ -212,7 +213,7 @@ export default function AdminDashboard() {
                 {painel("programacao", <ProgramacaoPainel key={casa} casa={casa} edicoes={edicoes} recarregar={carregarEdicoes} />)}
                 {painel("regras", <RegrasEdicaoPainel key={casa} casa={casa} edicoes={edicoes} />)}
                 {painel("mesas", <MesasEditor key={casa} casa={casa} />)}
-                {painel("casa", <CasaPainel />)}
+                {painel("casa", casa === CASA_PADRAO ? <CasaPainel /> : <DadosCasaPainel key={casa} casa={casa} />)}
                 {painel("sistema", <><IntegracoesPainel /><AuditoriaPainel /></>)}
               </>
             )}

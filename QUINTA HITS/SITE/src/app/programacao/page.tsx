@@ -4,6 +4,8 @@ import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 import { edicoesAnteriores, proximasEdicoes, temEdicaoHoje } from "@/lib/programacao";
 import ProgramacaoFiltro from "@/components/ProgramacaoFiltro";
 import Marquee from "@/components/Marquee";
+import { AgendaDaCasa } from "@/components/OutraCasa";
+import { proximosEventosDaCasa } from "@/lib/casasDados";
 
 export const revalidate = 60;
 
@@ -19,6 +21,7 @@ export default async function Programacao() {
   const proximas = await proximasEdicoes(agora, 6);
   const anteriores = await edicoesAnteriores(agora);
   const temHoje = await temEdicaoHoje(agora);
+  const eventosHarley = await proximosEventosDaCasa("harley-grill", agora, 6);
 
   return (
     <>
@@ -36,6 +39,8 @@ export default async function Programacao() {
           <ProgramacaoFiltro proximas={proximas} anteriores={anteriores} />
         </div>
       </section>
+      {/* Harley Grill: agenda separada das quintas, com a reserva pelo mapa do Harley. */}
+      <AgendaDaCasa casa="harley-grill" eventos={eventosHarley} titulo="Agenda do Harley Grill" />
       {/* Só afirma "hoje é quinta" quando hoje é mesmo quinta com edição. */}
       <Marquee texto={temHoje ? "Hoje é quinta. Tem Quinta Hits." : cfg.assinatura} />
     </>
