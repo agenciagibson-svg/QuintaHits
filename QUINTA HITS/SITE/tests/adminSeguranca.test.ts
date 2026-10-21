@@ -30,7 +30,10 @@ describe("cookie de sessão do painel", () => {
     const outroEmail = Buffer.from("admin@x.com").toString("base64url");
     expect(await lerSessao(`${expira}.${outroEmail}.${assinatura}`)).toBeNull();
     const original = (await criarSessao("a@x.com")).split(".");
-    expect(await lerSessao(`${original[0]}.${original[1]}.${original[2].slice(0, -2)}AA`)).toBeNull();
+    // Troca o começo da assinatura por algo garantidamente diferente (trocar o fim por "AA" falhava 1 vez em ~1000,
+    // quando a assinatura sorteada já terminava assim).
+    const trocado = original[2][0] === "A" ? "B" : "A";
+    expect(await lerSessao(`${original[0]}.${original[1]}.${trocado}${original[2].slice(1)}`)).toBeNull();
   });
 
   it("formato antigo (sem e-mail), lixo e cookie vazio são recusados", async () => {
