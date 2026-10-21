@@ -138,7 +138,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
     (async () => {
       if (!("serviceWorker" in navigator)) return setAvisos("indisponivel");
       try {
-        await navigator.serviceWorker.register("/casa-sw.js", { scope: "/casa" });
+        await navigator.serviceWorker.register("/casa-sw.js", { scope: "/casa", updateViaCache: "none" });
       } catch {
         return setAvisos("indisponivel");
       }

@@ -11,7 +11,7 @@ export type PedidoManual = { mesa: string; data: string; codigo: string; nome: s
 export default function PedidoRecebido({ pedido, onNovaReserva }: { pedido: PedidoManual; onNovaReserva: () => void }) {
   const primeiroNome = pedido.nome.split(" ")[0];
   return (
-    <div className="placa placa--verde reserva__painel" role="status" aria-live="polite">
+    <div data-manter-tela className="placa placa--verde reserva__painel" role="status" aria-live="polite">
       <div className="eyebrow">Pedido recebido</div>
       <h2 className="display h-2">Mesa {pedido.mesa} · {formatData(pedido.data, "numerica")}</h2>
       <p>

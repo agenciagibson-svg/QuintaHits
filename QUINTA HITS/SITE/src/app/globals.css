@@ -462,3 +462,12 @@ button { font: inherit; cursor: pointer; }
 .pagina-casa__voltar { white-space: nowrap; }
 .card__casa { opacity: 1; color: var(--mostarda); }
 .card__reservar { align-self: flex-start; margin-top: 4px; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Faixa "Nova versão" (atualização automática depois de deploy) — por cima de tudo, no rodapé da tela */
+.atualizacao {
+  position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1000;
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 999px;
+  background: #171717; color: #F1E7D2; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); font: 500 14px/1.3 "DM Sans", system-ui, sans-serif;
+  max-width: calc(100vw - 32px);
+}
+.atualizacao button { border: 0; border-radius: 999px; padding: 7px 14px; background: #D5A62A; color: #171717; font: 700 13px/1 "DM Sans", system-ui, sans-serif; cursor: pointer; }

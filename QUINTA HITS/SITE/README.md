@@ -77,6 +77,14 @@ Precisa de um número de telefone **só para o sistema** — enquanto estiver na
 
 Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas na Meta.
 
+## Atualização automática depois do deploy
+
+Cada `vercel --prod` gera uma versão nova (`VERCEL_DEPLOYMENT_ID`, fixada no build em `NEXT_PUBLIC_VERSAO`). Site, páginas
+das casas e app da casa (PWA `/casa`) conferem `/api/versao` a cada minuto, ao voltar para a tela e ao voltar a internet:
+saiu versão nova, a página recarrega sozinha. Se alguém estiver preenchendo um formulário (ou com o pedido de mesa
+recém-enviado na tela), aparece a faixa "Nova versão do site no ar · Atualizar" e a recarga espera o formulário ficar livre.
+No painel `/admin` só aparece a faixa (sem recarga automática). Código: `src/components/AtualizacaoAutomatica.tsx`.
+
 ## Várias casas: Harley Grill (`/harley-grill`)
 
 O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mesas, edições, regras e planta**. A Quinta Hits

@@ -7,6 +7,7 @@ import ForaDoAdmin from "@/components/ForaDoAdmin";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HojeBanner from "@/components/HojeBanner";
+import AtualizacaoAutomatica from "@/components/AtualizacaoAutomatica";
 
 const GOOGLE_FONTS =
   "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap";
@@ -73,6 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ForaDoAdmin>
           <Footer />
         </ForaDoAdmin>
+        <AtualizacaoAutomatica />
       </body>
     </html>
   );

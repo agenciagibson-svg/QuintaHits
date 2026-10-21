@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
+/**
+ * Versão deste deploy (muda a cada publicação na Vercel): o navegador compara com /api/versao e recarrega sozinho
+ * quando sai versão nova (components/AtualizacaoAutomatica.tsx). Fora da Vercel, o horário do build.
+ */
+const VERSAO = process.env.VERCEL_DEPLOYMENT_ID || process.env.VERCEL_GIT_COMMIT_SHA || `build-${Date.now()}`;
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  env: { NEXT_PUBLIC_VERSAO: process.env.NODE_ENV === "production" ? VERSAO : "" },
   images: { formats: ["image/avif", "image/webp"] },
   headers: async () => [
     {
@@ -23,6 +30,9 @@ const nextConfig: NextConfig = {
     { source: "/casa", headers: [{ key: "Cache-Control", value: "no-store" }] },
     { source: "/casa/login", headers: [{ key: "Cache-Control", value: "no-store" }] },
     { source: "/api/casa/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+    // Versão no ar e service worker do app: sempre a última (a atualização automática depende disso).
+    { source: "/api/versao", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
+    { source: "/casa-sw.js", headers: [{ key: "Cache-Control", value: "no-cache, max-age=0" }] },
   ],
 };
 

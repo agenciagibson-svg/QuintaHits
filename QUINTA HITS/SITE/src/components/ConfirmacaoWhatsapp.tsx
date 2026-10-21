@@ -49,7 +49,7 @@ export default function ConfirmacaoWhatsapp({ pedido, onNovaReserva }: { pedido:
 
   if (statusVisivel === "confirmada") {
     return (
-      <div className="placa placa--verde reserva__painel" role="status">
+      <div data-manter-tela className="placa placa--verde reserva__painel" role="status">
         <div className="eyebrow">Reserva confirmada</div>
         <h2 className="display h-2">Mesa {pedido.mesa} · {formatData(pedido.data, "numerica")}</h2>
         <p>Pronto! Sua mesa está garantida. A confirmação também chegou no seu WhatsApp.</p>
@@ -60,7 +60,7 @@ export default function ConfirmacaoWhatsapp({ pedido, onNovaReserva }: { pedido:
 
   if (statusVisivel !== "aguardando") {
     return (
-      <div className="placa placa--preto reserva__painel" role="status">
+      <div data-manter-tela className="placa placa--preto reserva__painel" role="status">
         <div className="eyebrow">Prazo encerrado</div>
         <h2 className="display h-2">A mesa {pedido.mesa} foi liberada.</h2>
         <p>Não recebemos a mensagem de confirmação a tempo. Você pode escolher a mesa de novo.</p>
