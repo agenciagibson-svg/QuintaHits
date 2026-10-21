@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { diaSemana, formatData, hojeISO } from "@/lib/edicao";
 
 const SEMANA_CURTA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
-import { formatarWhatsapp, type StatusReserva } from "@/lib/reserva";
+import { ehTravada, formatarWhatsapp, type StatusReserva } from "@/lib/reserva";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 
 type EdicaoCasa = { id: string; data: string; artista: string; horario: string; local: string; status: string; casa: string };
@@ -19,6 +19,8 @@ type ReservaCasa = {
   status: StatusReserva;
   codigo: string | null;
   created_at: string;
+  origem_reserva?: string;
+  observacoes?: string;
 };
 type MesaCasa = { id: string; numero: string; lugares: number; area: string };
 type CasaDoApp = { id: string; nome: string };
@@ -229,7 +231,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
       }
       setDados((d) => (d ? { ...d, reservas: d.reservas.map((x) => (x.id === r.id ? { ...x, status } : x)) } : d));
       setAvisar((a) => ({ ...a, [r.id]: true }));
-      mostrarToast(status === "confirmada" ? "Reserva aprovada. Agora avise o cliente no WhatsApp." : "Pedido recusado. A mesa voltou a ficar livre.");
+      mostrarToast(ehTravada(r) ? "Mesa destravada. Ela voltou a ficar livre." : status === "confirmada" ? "Reserva aprovada. Agora avise o cliente no WhatsApp." : "Pedido recusado. A mesa voltou a ficar livre.");
     } catch {
       mostrarToast("Sem conexão. Tente de novo.");
     } finally {
@@ -251,8 +253,10 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
   const numeroMesa = useCallback((id: string) => dados?.mesas.find((m) => m.id === id)?.numero ?? "?", [dados]);
   const daNoite = useMemo(() => (dados?.reservas ?? []).filter((r) => r.edicao_id === edicaoId), [dados, edicaoId]);
   const aguardando = daNoite.filter((r) => r.status === "aguardando");
-  const confirmadas = daNoite.filter((r) => r.status === "confirmada");
-  const encerradas = daNoite.filter((r) => r.status === "cancelada" || r.status === "expirada");
+  // Mesa travada pela equipe no painel: não é cliente (sem WhatsApp); aparece à parte e pode ser destravada.
+  const travadas = daNoite.filter((r) => r.status === "confirmada" && ehTravada(r));
+  const confirmadas = daNoite.filter((r) => r.status === "confirmada" && !ehTravada(r));
+  const encerradas = daNoite.filter((r) => (r.status === "cancelada" || r.status === "expirada") && !ehTravada(r));
   const pessoas = confirmadas.reduce((t, r) => t + r.pessoas, 0);
 
   /** Cartão de um pedido (função de renderização, não componente: não remonta a cada atualização da lista). */
@@ -409,6 +413,27 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
               <>
                 <h2 className="cs-secao-titulo">Confirmadas <small>{confirmadas.length}</small></h2>
                 {confirmadas.map(cartao)}
+              </>
+            )}
+            {travadas.length > 0 && (
+              <>
+                <h2 className="cs-secao-titulo">Mesas travadas <small>{travadas.length}</small></h2>
+                {travadas.map((r) => {
+                  const mesa = numeroMesa(r.mesa_id);
+                  return (
+                    <article key={r.id} className="cs-cartao cs-apagado" aria-label={`Mesa ${mesa} travada`}>
+                      <div className="cs-mesa" aria-hidden="true">
+                        <small>MESA</small>
+                        {mesa}
+                      </div>
+                      <div className="cs-nome">Travada pela equipe</div>
+                      <div className="cs-detalhes">{r.observacoes || "Ninguém reserva esta mesa nesta noite."}</div>
+                      <div className="cs-acoes">
+                        <button className="cs-btn cs-btn-neutro" disabled={ocupados.has(r.id)} onClick={() => mudarStatus(r, "cancelada")}>Destravar</button>
+                      </div>
+                    </article>
+                  );
+                })}
               </>
             )}
             {encerradas.length > 0 && (

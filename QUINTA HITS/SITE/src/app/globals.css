@@ -378,6 +378,9 @@ button { font: inherit; cursor: pointer; }
 /* reservada: vermelho da marca, bem visível */
 .mapa__mesa--ocupada { --tampo: var(--terracota); --texto: #fff; --cadeira: #e9a896; --contorno: #7d2f1f; cursor: not-allowed; }
 .mapa__mesa--pendente { --tampo: var(--mostarda); --texto: var(--preto); --cadeira: #f0d58c; --contorno: #7a5c0c; }
+/* travada pela equipe (só no painel): preta, com a borda tracejada */
+.mapa__mesa--travada { --tampo: var(--preto); --texto: var(--creme); --cadeira: #555; --contorno: #000; }
+.mapa__mesa--travada .mapa__tampo { background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(241, 231, 210, 0.16) 5px 7px); }
 .mapa__mesa--inativa { --tampo: transparent; --texto: rgba(23, 23, 23, 0.4); --cadeira: transparent; --contorno: rgba(23, 23, 23, 0.3); }
 .mapa__mesa--inativa .mapa__tampo, .mapa__mesa--inativa .mapa__cadeiras i { border-style: dashed; box-shadow: none; }
 .mapa__mesa:focus-visible { outline: none; }
@@ -391,6 +394,7 @@ button { font: inherit; cursor: pointer; }
 .mapa__legenda-mesa--selecionada { background: var(--verde); box-shadow: 0 0 0 3px rgba(213, 166, 42, 0.6); }
 .mapa__legenda-mesa--ocupada { background: var(--terracota); border-color: #7d2f1f; }
 .mapa__legenda-mesa--pendente { background: var(--mostarda); border-color: #7a5c0c; }
+.mapa__legenda-mesa--travada { background: var(--preto); border-color: #000; }
 .mapa__legenda-dica { margin-left: auto; font-size: 13px; opacity: 0.6; font-weight: 400; }
 @media (max-width: 640px) { .mapa__legenda-dica { display: none; } }
 @media (prefers-reduced-motion: reduce) { .mapa__mesa, .mapa__tampo, .mapa__cadeiras i { transition: none; } }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Edicao } from "@/lib/edicao";
 import type { EstadoIntegracoes } from "@/lib/integracoes";
-import type { Mesa, Reserva } from "@/lib/reserva";
+import { ehTravada, type Mesa, type Reserva } from "@/lib/reserva";
 import type { Prontidao } from "@/lib/regrasEdicao";
 import { cor, s, selo } from "./estilos";
 import { dataLonga, dia, edicoesFuturas, mes, proximaEdicao, ROTULO_STATUS_EDICAO, TOM_STATUS_EDICAO } from "./util";
@@ -57,8 +57,9 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara,
     return () => { vivo = false; };
   }, [proxima, router, casa]);
 
-  const ativas = (reservas ?? []).filter((r) => r.status === "aguardando" || r.status === "confirmada");
-  const pessoas = (reservas ?? []).filter((r) => r.status === "confirmada").reduce((t, r) => t + r.pessoas, 0);
+  // Mesa travada pela equipe não é reserva de cliente: fica fora das contas.
+  const ativas = (reservas ?? []).filter((r) => (r.status === "aguardando" || r.status === "confirmada") && !ehTravada(r));
+  const pessoas = (reservas ?? []).filter((r) => r.status === "confirmada" && !ehTravada(r)).reduce((t, r) => t + r.pessoas, 0);
   const mesasAtivas = (mesas ?? []).filter((m) => m.ativa);
   const lugares = mesasAtivas.reduce((t, m) => t + m.lugares, 0);
   const futuras = edicoesFuturas(edicoes).slice(0, 5);

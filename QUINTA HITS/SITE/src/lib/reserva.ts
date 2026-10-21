@@ -35,7 +35,18 @@ export type Reserva = {
   codigo: string | null;
   expira_em: string | null;
   created_at: string;
+  /** 'site', 'whatsapp_agent', 'admin' (feita ou travada no painel), 'manual'. */
+  origem_reserva?: string;
+  observacoes?: string;
 };
+
+/**
+ * Mesa TRAVADA: a equipe bloqueou a mesa numa noite pelo painel (ex.: dono, convidado, mesa quebrada). É uma linha em
+ * `reservas` com origem 'admin', status 'confirmada' e SEM WhatsApp: segura a mesa em todos os canais pelo mesmo índice
+ * único (o site mostra "reservada"). Destravar = cancelar.
+ */
+export const NOME_MESA_TRAVADA = "Mesa travada";
+export const ehTravada = (r: { origem_reserva?: string | null; whatsapp: string }): boolean => r.origem_reserva === "admin" && r.whatsapp === "";
 
 export const STATUS_RESERVA: readonly StatusReserva[] = ["aguardando", "confirmada", "expirada", "cancelada"];
 /** Status que seguram a mesa: com um deles, ninguém mais consegue pedir a mesma mesa na edição. */

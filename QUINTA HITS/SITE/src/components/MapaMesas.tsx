@@ -5,8 +5,8 @@ import type { MesaPublica } from "@/lib/reserva";
 import { TIPOS_ELEMENTO, type ElementoSalao } from "@/lib/planta";
 import type { MapaDaCasa } from "@/config/casas";
 
-/** `pendente`: só no painel, pedido esperando a equipe confirmar. */
-export type EstadoMesa = "livre" | "ocupada" | "selecionada" | "inativa" | "pendente";
+/** `pendente` e `travada`: só no painel (pedido esperando a equipe; mesa bloqueada pela equipe na noite). */
+export type EstadoMesa = "livre" | "ocupada" | "selecionada" | "inativa" | "pendente" | "travada";
 
 /** Tamanho da mesa (tampo + cadeiras) em % da largura do mapa, conforme os lugares. */
 function tamanho(lugares: number): number {
@@ -22,6 +22,7 @@ const ROTULO: Record<EstadoMesa, string> = {
   selecionada: "sua escolha",
   inativa: "desativada",
   pendente: "pedido para confirmar",
+  travada: "travada",
 };
 
 /**
@@ -126,6 +127,7 @@ export function LegendaMapa({ painel = false, destaque = null }: { painel?: bool
         { est: "livre", texto: "Livre" },
         { est: "pendente", texto: "Para confirmar" },
         { est: "ocupada", texto: "Reservada" },
+        { est: "travada", texto: "Travada" },
       ]
     : [
     { est: "livre", texto: "Livre" },

@@ -38,7 +38,8 @@ import { GET as listarEdicoes, POST as criarEdicaoApi } from "@/app/api/admin/ed
 import { GET as listarMesas, POST as criarMesaApi } from "@/app/api/admin/mesas/route";
 import { GET as lerPlanta, PUT as gravarPlanta } from "@/app/api/admin/planta/route";
 import { GET as regrasDaEdicao } from "@/app/api/admin/edicoes/[id]/regras/route";
-import { GET as reservasDaEdicao } from "@/app/api/admin/reservas/route";
+import { GET as reservasDaEdicao, POST as ocuparPeloPainel } from "@/app/api/admin/reservas/route";
+import { PUT as mudarPeloPainel } from "@/app/api/admin/reservas/[id]/route";
 import { GET as appCasaListar } from "@/app/api/casa/reservas/route";
 import { GET as lerDadosCasa, PUT as gravarDadosCasa } from "@/app/api/admin/casas/route";
 import { dadosDaCasa, proximosEventosDaCasa } from "@/lib/casasDados";
@@ -529,5 +530,77 @@ describe("Solarium sem reserva pelo site (ainda sem mapa)", () => {
     expect((await dadosDaCasa("solarium")).bairro).toBe("Represa de Miranda");
     const eds = await banco.sql<{ id: string; artista: string }>("select id, artista from edicoes where casa = 'solarium'");
     expect(eds).toEqual([{ id: "2026-12-26_solarium", artista: "Voo Livre" }]);
+  });
+});
+
+describe("painel: reservar para cliente e travar mesa pelo mapa (Harley)", () => {
+  let mesaHg: string;
+  let mesaQh: string;
+  const ocupar = (c: Record<string, unknown>) =>
+    ocuparPeloPainel(new Request("http://localhost/api/admin/reservas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(c) }));
+  const site = (c: Record<string, unknown>) =>
+    reservar(new Request("http://localhost/api/reservas", { method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": "10.0.0.9" }, body: JSON.stringify({ nome: "Ana Teste", whatsapp: "(34) 99999-8888", pessoas: 2, edicao_id: ED_HG, turnstile: "ok", politica: true, ...c }) }));
+
+  beforeEach(async () => {
+    sessao.autenticado = true;
+    definirBanco(banco);
+    _reiniciarCacheDeCanais();
+    _reiniciarLimites();
+    await banco.limpar();
+    await criarEdicao(banco, { id: DATA });
+    mesaQh = await criarMesa(banco, "T1");
+    await criarEdicaoHarley();
+    mesaHg = await criarMesaHarley("12");
+    await liberarEdicaoParaSite(banco, ED_HG);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "chave-ficticia");
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+  });
+
+  it("travar: segura a mesa (site recusa e mostra ocupada), não conta como cliente; destravar libera", async () => {
+    const r = await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, travar: true, motivo: "Mesa do dono" });
+    expect(r.status).toBe(201);
+    const { id, codigo } = await r.json();
+    expect(codigo).toBeNull();
+    const [linha] = await banco.sql<{ status: string; whatsapp: string; origem_reserva: string; nome: string; observacoes: string }>("select status, whatsapp, origem_reserva, nome, observacoes from reservas where id = $1", [id]);
+    expect(linha).toMatchObject({ status: "confirmada", whatsapp: "", origem_reserva: "admin", nome: "Mesa travada", observacoes: "Mesa do dono" });
+
+    const m = await (await mapa(new Request(`http://localhost/api/reservas/mapa?edicao=${ED_HG}`))).json();
+    expect(m.ocupadas).toContain(mesaHg);
+    expect((await site({ mesa_id: mesaHg })).status).toBe(409);
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, travar: true })).status).toBe(409); // já travada
+
+    const lista = await (await reservasDaEdicao(new Request(`http://localhost/api/admin/reservas?edicao=${ED_HG}`))).json();
+    expect(lista.reservas[0]).toMatchObject({ origem_reserva: "admin", whatsapp: "", observacoes: "Mesa do dono" });
+
+    const d = await mudarPeloPainel(new Request("http://x", { method: "PUT", body: JSON.stringify({ status: "cancelada" }) }), { params: Promise.resolve({ id }) });
+    expect(d.status).toBe(200);
+    expect((await site({ mesa_id: mesaHg })).status).toBe(201);
+  });
+
+  it("reserva de cliente pelo painel: já confirmada, com código HG, sem depender da chave do site", async () => {
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "");
+    const r = await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, nome: "Bruno", whatsapp: "(34) 98888-7777", pessoas: 3 });
+    expect(r.status).toBe(201);
+    const j = await r.json();
+    expect(j).toMatchObject({ ok: true, mesa: "12" });
+    expect(j.codigo).toMatch(/^HG-\d{6}$/);
+    expect(await statusDaReserva(banco, j.id)).toBe("confirmada");
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, nome: "Carla", whatsapp: "34977776666", pessoas: 2 })).status).toBe(409);
+  });
+
+  it("recusa: mesa de outra casa, mais pessoas que lugares, dados faltando, noite passada e sem login", async () => {
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaQh, travar: true })).status).toBe(404);
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, nome: "Bruno", whatsapp: "34988887777", pessoas: 9 })).status).toBe(400);
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, nome: "B", whatsapp: "34988887777", pessoas: 2 })).status).toBe(400);
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, nome: "Bruno", whatsapp: "123", pessoas: 2 })).status).toBe(400);
+    expect((await ocupar({ edicao_id: "xx", mesa_id: mesaHg, travar: true })).status).toBe(400);
+    const passada = await criarEdicaoHarley("2020-01-02");
+    expect((await ocupar({ edicao_id: passada, mesa_id: mesaHg, travar: true })).status).toBe(409);
+    sessao.autenticado = false;
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, travar: true })).status).toBe(401);
+    sessao.autenticado = true;
+    expect((await banco.sql("select 1 from reservas")).length).toBe(0);
   });
 });

@@ -102,6 +102,10 @@ O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mes
   "Reservar mesa" → `/harley-grill`). As noites do Harley entram na **agenda única** (home e `/programacao`), em ordem
   de data junto com as do Florindos; o card mostra "Harley Grill" e o link "Reservar mesa" leva ao mapa do Harley.
   Endereço, cidade, "quando" e Instagram: painel → **Casa**, com o Harley escolhido.
+- **Reservar e travar pelo painel:** em **Reservas**, toque numa mesa do mapa. Livre: *Reservar para um cliente* (nome,
+  WhatsApp, pessoas → já confirmada, com código) ou *Travar mesa* (motivo opcional): ninguém reserva e o site mostra a mesa
+  como reservada. Travada aparece em preto no mapa; *Destravar* libera. Vale para qualquer casa e não depende da chave do
+  site nem das regras da noite. (Trava = linha em `reservas` com origem 'admin' e sem WhatsApp; não entra nas contas.)
 - **App da casa (PWA `/casa`):** cada pessoa vê as casas que atende. A equipe (`ADMIN_EMAILS`) vê todas as casas com
   reserva pelo site, com o nome da casa em cada noite, aprova/recusa e recebe o aviso de pedido novo de todas. O dono do
   Florindos (`CASA_EMAILS`) continua vendo e recebendo só a Quinta Hits. Para dar acesso só ao Harley a alguém da casa:

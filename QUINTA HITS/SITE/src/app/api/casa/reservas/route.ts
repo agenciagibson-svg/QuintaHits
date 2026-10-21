@@ -51,7 +51,7 @@ export async function GET() {
       ids.length
         ? db
             .from("reservas")
-            .select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, created_at")
+            .select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, created_at, origem_reserva, observacoes")
             .in("edicao_id", ids)
             .order("created_at", { ascending: true })
         : Promise.resolve({ data: [], error: null }),
