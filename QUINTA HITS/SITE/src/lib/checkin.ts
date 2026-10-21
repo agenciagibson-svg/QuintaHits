@@ -11,7 +11,6 @@ import type { StatusReserva } from "@/lib/reserva";
  * check-in, quem não chegar até o fim da tolerância vira "não compareceu" e solta a mesa (marcarNaoComparecimentos).
  */
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UUID_EM_TEXTO = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 /** Prefixo opcional (QH, HG...) e os 6 dígitos. Aceita "HG-482193", "hg 482193", "482193". */
 const CODIGO_RE = /^\s*(?:([a-z]{2})\s*-?\s*)?(\d{6})\s*$/i;
