@@ -170,7 +170,7 @@ export default function VisaoGeral({ edicoes, aguardando, pendentes = 0, irPara,
 
         <section style={s.secao}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-            <h2 style={s.h2}>{quinta ? "Próximas quintas" : "Próximos eventos"}</h2>
+            <h2 style={s.h2}>Próximas noites</h2>
             <button type="button" style={{ ...s.botaoMiniOutline, marginRight: 0 }} onClick={() => irPara("programacao")}>Ver todas</button>
           </div>
           {futuras.length === 0 ? (

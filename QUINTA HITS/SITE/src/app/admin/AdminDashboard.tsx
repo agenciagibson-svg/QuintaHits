@@ -28,10 +28,10 @@ export type Aba = "inicio" | "atendimento" | "reservas" | "programacao" | "regra
 type ItemMenu = { aba: Aba; rotulo: string; icone: ReactNode; titulo: string; descricao: string; grupo: "Operação" | "Configuração" };
 
 const MENU: ItemMenu[] = [
-  { aba: "inicio", rotulo: "Início", icone: <IconeInicio />, grupo: "Operação", titulo: "Visão geral", descricao: "O que importa para a próxima quinta, num relance." },
+  { aba: "inicio", rotulo: "Início", icone: <IconeInicio />, grupo: "Operação", titulo: "Visão geral", descricao: "O que importa para a próxima noite, num relance." },
   { aba: "atendimento", rotulo: "Atendimento", icone: <IconeConversa />, grupo: "Operação", titulo: "Atendimento", descricao: "Conversas do WhatsApp que o agente passou para a equipe. Enquanto uma pessoa cuida, o agente não responde." },
   { aba: "reservas", rotulo: "Reservas", icone: <IconeReserva />, grupo: "Operação", titulo: "Reservas", descricao: "Pedidos de mesa de cada noite. Confirme ou recuse e avise o cliente pelo WhatsApp com a mensagem pronta." },
-  { aba: "programacao", rotulo: "Programação", icone: <IconeCalendario />, grupo: "Operação", titulo: "Programação", descricao: "As quintas da agenda: atração, horário, local e status. É o que aparece em /programacao." },
+  { aba: "programacao", rotulo: "Programação", icone: <IconeCalendario />, grupo: "Operação", titulo: "Programação", descricao: "As noites da agenda (qualquer dia da semana): atração, horário, local e status. É o que aparece em /programacao." },
   { aba: "regras", rotulo: "Regras da noite", icone: <IconeRegras />, grupo: "Configuração", titulo: "Regras da noite", descricao: "Prazos, valores e canais de cada edição. A reserva só abre quando tudo está preenchido e liberado." },
   { aba: "mesas", rotulo: "Mesas", icone: <IconeMesas />, grupo: "Configuração", titulo: "Mesas", descricao: "O mapa que o cliente vê em /reservar. Mesa desativada some do site." },
   { aba: "casa", rotulo: "Casa", icone: <IconeCasa />, grupo: "Configuração", titulo: "Dados da casa", descricao: "Endereço, Instagram e link de reserva usados em todo o site." },

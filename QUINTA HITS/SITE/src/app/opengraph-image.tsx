@@ -7,7 +7,7 @@ import { formatData, proximaEdicao } from "@/lib/programacao";
 export const runtime = "nodejs";
 // A programação muda pelo painel, sem deploy: a imagem de compartilhamento é refeita a cada hora.
 export const revalidate = 3600;
-export const alt = "QUINTA HITS — A quinta oficial de Uberlândia";
+export const alt = "QUINTA HITS — A noite oficial de Uberlândia";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -35,9 +35,9 @@ export default async function Image() {
           <div style={{ display: "flex", fontSize: 26, letterSpacing: 4, textTransform: "uppercase", opacity: 0.85 }}>
             {site.slogan}
           </div>
-          <div style={{ display: "flex", fontSize: 64, fontWeight: 700, lineHeight: 1.05 }}>Quinta já é quase sexta.</div>
+          <div style={{ display: "flex", fontSize: 64, fontWeight: 700, lineHeight: 1.05 }}>{site.pontoDePartida}</div>
           <div style={{ display: "flex", fontSize: 28, opacity: 0.9 }}>
-            {`Toda quinta · ${site.casa.nome} · ${site.cidade}`}
+            {`${site.assinatura} · ${site.cidade}`}
           </div>
           <div
             style={{
@@ -52,7 +52,7 @@ export default async function Image() {
               textTransform: "uppercase",
             }}
           >
-            {prox.artista ? `${formatData(prox.data)} · ${prox.artista}` : `Próxima: ${formatData(prox.data)}`}
+            {!prox ? "Agenda e reservas" : prox.artista ? `${formatData(prox.data)} · ${prox.artista}` : `Próxima: ${formatData(prox.data)}`}
           </div>
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}

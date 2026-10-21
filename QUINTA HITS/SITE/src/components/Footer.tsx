@@ -14,7 +14,7 @@ export default async function Footer() {
           <div className="footer__marca">
             <Image src="/brand/wordmark-horizontal.svg" alt={site.nome} width={868} height={170} unoptimized />
             <p>
-              {site.slogan} Música, amigos, drinks e encontros. Toda quinta, no {site.casa.nome}, em {site.cidade}.
+              {site.slogan} Música ao vivo, amigos, drinks e encontros em {site.cidade}. {site.assinatura}
             </p>
           </div>
           <div className="footer__col">

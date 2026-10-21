@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { site } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
-import { datasCanceladas } from "@/lib/programacao";
+import { datasComEvento } from "@/lib/programacao";
 import ForaDoAdmin from "@/components/ForaDoAdmin";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: `${site.nome} — ${site.slogan}`, template: `%s — ${site.nome}` },
   description: site.descricao,
-  keywords: ["Quinta Hits", "Uberlândia", "quinta-feira", "música ao vivo", "bar", "Florindos Bar", "nightlife", "HITS PRODUÇÕES"],
+  keywords: ["Quinta Hits", "Uberlândia", "música ao vivo", "agenda", "bar", "Florindos Bar", "Harley Grill", "nightlife", "HITS PRODUÇÕES"],
   openGraph: {
     type: "website",
     locale: "pt_BR",
@@ -39,8 +39,8 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cfg = await getSiteConfig();
-  // Falha do banco não derruba o layout (login do admin, 404): a faixa só deixa de filtrar canceladas.
-  const canceladas = await datasCanceladas().catch(() => [] as string[]);
+  // Falha do banco não derruba o layout (login do admin, 404): a faixa "hoje tem" só não aparece.
+  const comEvento = await datasComEvento().catch(() => [] as string[]);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "EventSeries",
@@ -53,7 +53,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       name: site.casa.nome,
       address: { "@type": "PostalAddress", addressLocality: site.cidade, addressRegion: site.uf, addressCountry: "BR" },
     },
-    eventSchedule: { "@type": "Schedule", byDay: "https://schema.org/Thursday", repeatFrequency: "P1W" },
   };
 
   return (
@@ -66,7 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <ForaDoAdmin>
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-          <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasCanceladas={canceladas} />
+          <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasComEvento={comEvento} />
           <Header />
         </ForaDoAdmin>
         <main>{children}</main>

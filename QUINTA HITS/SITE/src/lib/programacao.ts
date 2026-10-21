@@ -1,26 +1,10 @@
 import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { site } from "@/config/site";
 import { CASA_PADRAO } from "@/config/casas";
-import { hojeISO, proximaQuintaISO, somaDias, temEdicaoNoDia, type Edicao } from "@/lib/edicao";
+import { hojeISO, temEdicaoNoDia, type Edicao } from "@/lib/edicao";
 
 // Tipos e helpers puros moram em lib/edicao.ts (seguro para client) e seguem disponíveis por aqui.
 export * from "@/lib/edicao";
-
-function placeholder(iso: string, casaNome = site.casa.nome): Edicao {
-  return {
-    id: iso,
-    data: iso,
-    artista: "",
-    instagram: "",
-    tema: "",
-    genero: "",
-    horario: "",
-    local: casaNome,
-    status: "a_confirmar",
-    destaque: "",
-  };
-}
 
 /**
  * Busca todas as edições cadastradas no banco, ordenadas por data (uma vez por render).
@@ -31,7 +15,7 @@ export const todasEdicoes = cache(async (): Promise<Edicao[]> => {
   const { data, error } = await supabaseAdmin()
     .from("edicoes")
     .select("id, data, artista, instagram, tema, genero, horario, local, status, destaque")
-    // O site público (home, programação, faixa de hoje) é só da Quinta Hits; as outras casas têm página própria.
+    // O site público (home, programação, faixa de hoje) é da QUINTA HITS; as outras casas têm agenda própria.
     .eq("casa", CASA_PADRAO)
     .order("data", { ascending: true });
 
@@ -39,35 +23,24 @@ export const todasEdicoes = cache(async (): Promise<Edicao[]> => {
   return (data ?? []) as Edicao[];
 });
 
-/** Datas com registro "cancelada" — quintas em que não existe Quinta Hits. */
-export async function datasCanceladas(): Promise<string[]> {
-  return (await todasEdicoes()).filter((e) => e.status === "cancelada").map((e) => e.data);
+/** Datas (AAAA-MM-DD) com evento cadastrado e não cancelado — qualquer dia da semana. */
+export async function datasComEvento(): Promise<string[]> {
+  return (await todasEdicoes()).filter((e) => e.status !== "cancelada").map((e) => e.data);
 }
 
-/** Hoje tem Quinta Hits? Quinta-feira em Uberlândia e a data não está cancelada. */
+/** Hoje tem evento da QUINTA HITS? Só se a data estiver na agenda (e não cancelada). */
 export async function temEdicaoHoje(agora = new Date()): Promise<boolean> {
-  return temEdicaoNoDia(agora, await datasCanceladas());
+  return temEdicaoNoDia(agora, await datasComEvento());
 }
 
 /**
- * Próximas edições. Se uma quinta não tiver nenhum registro, cria um placeholder "a confirmar".
- * Uma quinta com registro "cancelada" (ex.: não vai ter Quinta Hits naquela semana) é pulada:
- * não aparece na lista e também não vira placeholder — ela conta como "já tratada".
+ * Próximos eventos: SÓ as datas cadastradas, de hoje em diante e sem as canceladas, em qualquer dia da semana.
+ * (Antes o site inventava um card "a confirmar" para toda quinta sem registro; a marca agora faz eventos em outros
+ * dias, então a agenda mostra apenas o que a equipe cadastrou.)
  */
 export async function proximasEdicoes(agora = new Date(), limite = 4): Promise<Edicao[]> {
   const hoje = hojeISO(agora);
-  const futuras = (await todasEdicoes()).filter((e) => e.data >= hoje);
-  const semCanceladas = futuras.filter((e) => e.status !== "cancelada");
-  const temRegistro = (iso: string) => futuras.some((e) => e.data === iso);
-  const proxQuinta = proximaQuintaISO(agora);
-  const lista = temRegistro(proxQuinta) ? semCanceladas : [placeholder(proxQuinta), ...semCanceladas];
-  // completa a lista com as quintas seguintes, sem nenhum registro, até o limite
-  let cursor = proxQuinta;
-  while (lista.length < limite) {
-    cursor = somaDias(cursor, 7);
-    if (!temRegistro(cursor)) lista.push(placeholder(cursor));
-  }
-  return lista.sort((a, b) => a.data.localeCompare(b.data)).slice(0, limite);
+  return (await todasEdicoes()).filter((e) => e.data >= hoje && e.status !== "cancelada").slice(0, limite);
 }
 
 /**
@@ -83,8 +56,8 @@ export async function edicoesAnteriores(agora = new Date()): Promise<Edicao[]> {
     .reverse();
 }
 
-/** A próxima EDIÇÃO real — quintas canceladas são puladas. */
-export async function proximaEdicao(agora = new Date()): Promise<Edicao> {
+/** O próximo evento cadastrado (canceladas puladas); null se a agenda ainda não tem data futura. */
+export async function proximaEdicao(agora = new Date()): Promise<Edicao | null> {
   const [e] = await proximasEdicoes(agora, 1);
-  return e;
+  return e ?? null;
 }

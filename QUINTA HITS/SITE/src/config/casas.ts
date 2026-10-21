@@ -35,7 +35,7 @@ export type Casa = {
   pagina: string;
   /** Prefixo do código do pedido (ex.: QH-482193). Só o QH confirma pelo WhatsApp automático. */
   prefixoCodigo: string;
-  /** Como a casa chama cada data no texto ("quinta", "noite"). */
+  /** Como a casa chama cada data no texto ("noite"). */
   noite: string;
   /** O nome com a preposição, para as mensagens ("na QUINTA HITS", "no Harley Grill"). */
   naCasa: string;
@@ -52,9 +52,10 @@ export const CASAS: Record<CasaId, Casa> = {
     local: "Florindos Bar",
     pagina: "/reservar",
     prefixoCodigo: "QH",
-    noite: "quinta",
+    noite: "noite",
     naCasa: "na QUINTA HITS",
-    soQuinta: true,
+    // A QUINTA HITS virou marca (out/2026): eventos em qualquer dia da semana.
+    soQuinta: false,
     mapa: { proporcao: 4 / 3, fundo: null, tamanhoMesa: null, larguraMinima: null, destaque: null },
   },
   "harley-grill": {

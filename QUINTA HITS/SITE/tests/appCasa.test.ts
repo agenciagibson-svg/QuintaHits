@@ -259,7 +259,7 @@ describe("app instalável e mensagem do WhatsApp", () => {
     const ed = { data: "2026-10-08", horario: "19h", local: "Florindos Bar" };
     const ok = decodeURIComponent(linkWhatsappCliente({ ...r, status: "confirmada" }, ed, "05"));
     expect(ok).toContain("https://wa.me/5534997107006?text=");
-    expect(ok).toContain("Olá, Junior! Sua reserva na QUINTA HITS está confirmada: mesa 05 para 4 pessoa(s), quinta 08/10, a partir das 19h no Florindos Bar. Código QH-123456.");
+    expect(ok).toContain("Olá, Junior! Sua reserva na QUINTA HITS está confirmada: mesa 05 para 4 pessoa(s), dia 08/10, a partir das 19h no Florindos Bar. Código QH-123456.");
     expect(decodeURIComponent(linkWhatsappCliente({ ...r, status: "cancelada" }, ed, "05"))).toContain("não conseguimos confirmar a mesa 05");
     expect(decodeURIComponent(linkWhatsappCliente({ ...r, status: "aguardando" }, ed, "05"))).toContain("Recebemos seu pedido da mesa 05");
   });

@@ -35,7 +35,7 @@ export async function mudarStatusReserva(
     if (opcoes.somenteDaCasa && casaDaEdicaoId(edicaoId) !== opcoes.somenteDaCasa) return { ok: false, status: 404, erro: "Reserva não encontrada." };
     // O id da edição começa pela data (AAAA-MM-DD…): a comparação com hoje vale para qualquer casa.
     if (opcoes.somenteDeHojeEmDiante && edicaoId < hojeISO(opcoes.agora)) {
-      return { ok: false, status: 403, erro: "Essa quinta já passou: a reserva não pode mais ser alterada por aqui." };
+      return { ok: false, status: 403, erro: "Essa noite já passou: a reserva não pode mais ser alterada por aqui." };
     }
   }
 

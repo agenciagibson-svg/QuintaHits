@@ -11,14 +11,14 @@ import Vinil from "@/components/Vinil";
 import { AgendaDaCasa, ComoChegarCasa } from "@/components/OutraCasa";
 import { dadosDaCasa, proximosEventosDaCasa } from "@/lib/casasDados";
 
-// A página é regenerada a cada minuto: a "próxima quinta" e a contagem mudam sozinhas.
+// A página é regenerada a cada minuto: a "próxima noite" e a contagem mudam sozinhas.
 export const revalidate = 60;
 
 const PILARES = [
-  { n: "01", t: "Música ao vivo", p: "Rock, pop rock, hits, anos 2000, DJs, música brasileira. A programação muda toda semana. A quinta, não." },
+  { n: "01", t: "Música ao vivo", p: "Rock, pop rock, hits, anos 2000, DJs, música brasileira. A programação muda a cada noite. A energia, não." },
   { n: "02", t: "Bar e drinks", p: "Boteco gourmet contemporâneo: bebida boa, mesa boa e aquela história que era pra ser “só uma”." },
-  { n: "03", t: "Amigos e encontros", p: "Ponto de encontro de quem quer começar o fim de semana antes. Chama a turma, chega junto." },
-  { n: "04", t: "Quinta que vira sexta", p: "A noite de Uberlândia começa aqui. Se é quinta, tem Hits — e o resto da semana que se ajeite." },
+  { n: "03", t: "Amigos e encontros", p: "Ponto de encontro de quem não espera o fim de semana pra sair. Chama a turma, chega junto." },
+  { n: "04", t: "Noite que vira história", p: "A noite de Uberlândia começa aqui. Tem Hits, tem noite — e o resto da semana que se ajeite." },
 ];
 
 export default async function Home() {
@@ -31,11 +31,10 @@ export default async function Home() {
   const temHoje = await temEdicaoHoje(agora);
   // Harley Grill: agenda separada das quintas e "como chegar" na seção Onde (erro de banco = some, sem derrubar a home).
   const [harley, eventosHarley] = await Promise.all([dadosDaCasa("harley-grill"), proximosEventosDaCasa("harley-grill", agora, 4)]);
-  // Contagem até a próxima EDIÇÃO real (pula quintas canceladas), não até a próxima quinta do calendário.
-  const alvo = inicioDaEdicao(proxima.data, proxima.horario, site.horarioPadrao).toISOString();
+  // Contagem até o próximo evento cadastrado (canceladas puladas). Sem data futura na agenda, sem contagem.
+  const alvo = proxima ? inicioDaEdicao(proxima.data, proxima.horario, site.horarioPadrao).toISOString() : null;
 
-  // Dados estruturados da agenda real. O JSON-LD do layout diz "toda quinta";
-  // aqui entram as datas que de fato existem, com artista confirmado.
+  // Dados estruturados da agenda real: as datas que de fato existem, com artista confirmado.
   const agendaLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -56,7 +55,7 @@ export default async function Home() {
           url: `${site.url}/programacao`,
           location: {
             "@type": "Place",
-            name: site.casa.nome,
+            name: e.local || site.casa.nome,
             address: {
               "@type": "PostalAddress",
               streetAddress: [site.casa.endereco, site.casa.bairro].filter(Boolean).join(" — "),
@@ -83,7 +82,7 @@ export default async function Home() {
             <div className="eyebrow">{site.slogan}</div>
             <h1 className="display h-hero">{site.pontoDePartida}</h1>
             <p className="lead">
-              Música, amigos, drinks e encontros. Toda quinta, no {site.casa.nome}, em {site.cidade}.
+              Música ao vivo, amigos, drinks e encontros. As melhores noites de {site.cidade}, uma de cada vez — escolha a sua.
             </p>
             <div className="hero__acoes">
               <a className="btn btn--terracota" href={reserva} {...alvoLink(reserva)}>
@@ -91,19 +90,21 @@ export default async function Home() {
               </a>
               <Link className="btn btn--vazado" href="/programacao">Ver programação</Link>
             </div>
-            <Countdown alvoISO={alvo} dataISO={proxima.data} />
+            {proxima && alvo && <Countdown alvoISO={alvo} dataISO={proxima.data} />}
           </div>
         </div>
       </section>
 
       <Marquee />
 
-      {/* PRÓXIMA EDIÇÃO */}
-      <section className="secao secao--verde" id="proxima">
-        <div className="wrap">
-          <ProximaEdicao edicao={proxima} site={site} />
-        </div>
-      </section>
+      {/* PRÓXIMA NOITE (só com data futura na agenda) */}
+      {proxima && (
+        <section className="secao secao--verde" id="proxima">
+          <div className="wrap">
+            <ProximaEdicao edicao={proxima} site={site} />
+          </div>
+        </section>
+      )}
 
       {/* PROGRAMAÇÃO */}
       <section className="secao secao--creme" id="programacao">
@@ -111,17 +112,21 @@ export default async function Home() {
           <div className="cabeca">
             <div>
               <div className="eyebrow">Programação</div>
-              <h2 className="display h-2" style={{ margin: "6px 0 0" }}>As próximas quintas</h2>
+              <h2 className="display h-2" style={{ margin: "6px 0 0" }}>As próximas noites</h2>
             </div>
             <Link className="btn btn--vazado btn--p" href="/programacao">Calendário completo</Link>
           </div>
-          <div className="edicoes">
-            {proximas.map((e) => <EdicaoCard key={e.id} edicao={e} />)}
-          </div>
+          {proximas.length > 0 ? (
+            <div className="edicoes">
+              {proximas.map((e) => <EdicaoCard key={e.id} edicao={e} />)}
+            </div>
+          ) : (
+            <p className="vazio">A próxima noite sai primeiro no Instagram. Fica de olho: @{site.instagram}.</p>
+          )}
         </div>
       </section>
 
-      {/* HARLEY GRILL: agenda própria, separada das quintas */}
+      {/* HARLEY GRILL: agenda própria, separada */}
       <AgendaDaCasa casa="harley-grill" eventos={eventosHarley} />
 
       {/* EXPERIÊNCIA */}
@@ -130,10 +135,10 @@ export default async function Home() {
           <div className="cabeca">
             <div>
               <div className="eyebrow">A experiência</div>
-              <h2 className="display h-2" style={{ margin: "6px 0 0" }}>O lugar para estar na quinta</h2>
+              <h2 className="display h-2" style={{ margin: "6px 0 0" }}>O lugar para estar à noite</h2>
             </div>
             <p className="muted" style={{ maxWidth: "36ch" }}>
-              A programação traz o público. A experiência faz voltar. A quinta vira hábito.
+              A programação traz o público. A experiência faz voltar. A noite vira hábito.
             </p>
           </div>
           <div className="grade-4">
@@ -154,13 +159,13 @@ export default async function Home() {
           <Vinil />
           <div className="manifesto__texto">
             <p><strong>{site.pontoDePartida}</strong></p>
-            <p>E agora, em {site.cidade}, quinta tem nome: {site.nome}.</p>
-            <p>A programação muda. Os encontros mudam. As histórias também. A quinta permanece.</p>
-            <p><strong>{temHoje ? "Hoje é quinta. Tem Quinta Hits." : site.assinatura}</strong></p>
+            <p>E agora, em {site.cidade}, a noite tem nome: {site.nome}.</p>
+            <p>A programação muda. Os encontros mudam. As histórias também. Os Hits permanecem.</p>
+            <p><strong>{temHoje ? "Hoje tem Quinta Hits." : site.assinatura}</strong></p>
 
             {anteriores.length > 0 && (
               <div className="anteriores">
-                <div className="eyebrow" style={{ marginBottom: 12 }}>Já passaram pela Quinta</div>
+                <div className="eyebrow" style={{ marginBottom: 12 }}>Já passaram pela Quinta Hits</div>
                 <ul>
                   {anteriores.map((e) => (
                     <li key={e.id}>
@@ -182,7 +187,7 @@ export default async function Home() {
             <div className="eyebrow">Onde</div>
             <h2 className="display h-1" style={{ margin: "6px 0 16px" }}>{site.casa.nome}</h2>
             <p className="lead">
-              A casa da {site.nome} em {site.cidade}. Toda quinta, a partir do fim da tarde, até a noite virar.
+              A casa da {site.nome} em {site.cidade}. Do fim da tarde até a noite virar.
             </p>
           </div>
           <div className="placa placa--verde local__placa">
@@ -194,7 +199,7 @@ export default async function Home() {
                 <div><dt>Instagram</dt><dd><a href={instagramUrl(site.casa.instagram)} target="_blank" rel="noopener noreferrer">@{site.casa.instagram}</a></dd></div>
               )}
               <div><dt>Cidade</dt><dd>{site.cidade}/{site.uf}</dd></div>
-              <div><dt>Quando</dt><dd>Toda quinta-feira{site.horarioPadrao ? `, a partir das ${site.horarioPadrao}` : ""}</dd></div>
+              <div><dt>Quando</dt><dd>Nas datas da agenda{site.horarioPadrao ? `, a partir das ${site.horarioPadrao}` : ""}</dd></div>
             </dl>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <a className="btn btn--creme btn--p" href={site.casa.mapsUrl} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>

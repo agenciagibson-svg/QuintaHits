@@ -44,6 +44,13 @@ relatórios e conversa — em **português do Brasil**.
 9. **A casa é o FLORINDOS BAR** (desde set/2026). O Tatu Bola foi a casa das edições de 27/08 e 10/09 e
    **não faz mais parte do projeto** — nenhuma peça nova o cita como casa da QUINTA HITS (DEC-009).
 
+## Atualização 21/10/2026 — QUINTA HITS virou marca
+
+A QUINTA HITS deixou de ser só "a noite de quinta": é a **marca**, com eventos em **qualquer dia da semana** e em mais
+de uma casa (Florindos Bar e Harley Grill). Nada novo deve amarrar a marca à quinta-feira. Assinaturas em uso no site:
+**A noite oficial de Uberlândia.** · **Tem Hits, tem noite.** · **A noite começa aqui.** (substituem as da tabela abaixo,
+que ficam como histórico). O selo gráfico antigo ("Se é quinta, tem Hits") ainda não foi redesenhado.
+
 ## Posicionamento
 
 Território mental: **o lugar para estar na quinta-feira.**

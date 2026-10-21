@@ -38,7 +38,7 @@ Banco: rode `supabase/schema.sql` no SQL Editor do Supabase (bancos antigos: rod
 
 | Campo | Exemplo |
 |---|---|
-| `data` | `2026-09-24` — sempre uma quinta; é a chave da edição e não muda depois de criada |
+| `data` | `2026-10-24` — qualquer dia da semana; é a chave da edição e não muda depois de criada |
 | `artista` / `instagram` | `NETO FOG` / `netofog` (sem @) |
 | `tema` | `Quinta Hits Pop Rock` |
 | `horario` | `20h` ou `20h30` |
@@ -49,13 +49,13 @@ Banco: rode `supabase/schema.sql` no SQL Editor do Supabase (bancos antigos: rod
 Vertentes fixas: NETO FOG = `pop-rock` · Jhean Marcell = `2000s` · DJ Jabá = `dj`
 `status`: `confirmada` · `a_confirmar` · `realizada` · `cancelada`
 
-Quintas sem registro aparecem automaticamente como "line-up em breve".
-**Quinta que NÃO vai ter edição precisa de um registro com `status: "cancelada"`** — sem
-registro, o site assume que a quinta existe e cria o card sozinho.
+**A QUINTA HITS é uma marca (desde 21/10/2026), com eventos em qualquer dia da semana.** O site mostra só as
+datas cadastradas no painel (sem "cards automáticos" para quinta-feira). Evento que não vai acontecer: mude o status
+para `cancelada` (ou exclua, se não tiver reservas).
 
 ## Reserva de mesa (`/reservar`)
 
-1. Cliente escolhe a quinta e uma mesa livre no mapa, informa nome, WhatsApp e pessoas, e passa pela verificação "não sou robô" (Cloudflare Turnstile).
+1. Cliente escolhe a noite e uma mesa livre no mapa, informa nome, WhatsApp e pessoas, e passa pela verificação "não sou robô" (Cloudflare Turnstile).
 2. O pedido nasce **aguardando**, com um código (ex.: `QH-482193`), e segura a mesa por **15 minutos**.
 3. O cliente toca em "Enviar pelo WhatsApp" e manda o código para o número da casa.
 4. A Meta avisa o site (`/api/whatsapp/webhook`). Se a mensagem veio **do mesmo número informado**, a reserva vira **confirmada** e o cliente recebe a resposta automática. Número falso nunca consegue mandar a mensagem.
@@ -116,14 +116,17 @@ Reversão: `supabase/reverter-2026-10-20-multi-casa.sql` (apaga os dados do Harl
 
 ## Dinâmico
 
-- `/` e `/programacao` são regeneradas a cada 60 s (a próxima quinta e a contagem mudam sozinhas).
-- A contagem regressiva aponta para a próxima EDIÇÃO real, pulando quintas canceladas.
-- Faixa "Hoje é quinta. Tem Quinta Hits." aparece só nas quintas que têm edição (fuso de Uberlândia).
+- `/` e `/programacao` são regeneradas a cada 60 s (a próxima noite e a contagem mudam sozinhas).
+- A contagem regressiva aponta para o próximo evento cadastrado, pulando os cancelados. Sem evento futuro, não aparece.
+- Faixa "Hoje tem Quinta Hits." aparece só nos dias com evento cadastrado (fuso de Uberlândia).
 - `GET /api/proxima` — próxima edição, contagem em segundos, link de reserva.
 - `GET /api/programacao?limite=6` — próximas e anteriores em JSON.
 - `/opengraph-image` — imagem de compartilhamento gerada com a próxima edição.
 
 ## Regras de marca que o código respeita
+
+- A QUINTA HITS é marca, não dia da semana: nenhum texto do site amarra a marca à quinta-feira. Assinaturas do site
+  (desde 21/10/2026): **A noite oficial de Uberlândia.** · **Tem Hits, tem noite.** · **A noite começa aqui.**
 
 - Nome da empresa no site: **HITS PRODUÇÕES** (desde 07/10/2026; antes GIBSON PROMOÇÕES).
 - Paleta: `#17352B` `#F1E7D2` `#B84A32` `#D5A62A` `#171717`.

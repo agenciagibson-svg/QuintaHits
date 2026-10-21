@@ -120,9 +120,9 @@ describe("ids, domínios e páginas por casa (puro)", () => {
     const r = { nome: "Ana Teste", whatsapp: "34999998888", pessoas: 2, status: "confirmada" as const, codigo: "HG-123456" };
     const hg = decodeURIComponent(linkWhatsappCliente(r, { data: DATA, horario: "20h", local: "Harley Grill", casa: HG }, "12"));
     expect(hg).toContain("Sua reserva no Harley Grill está confirmada: mesa 12 para 2 pessoa(s), dia 07/01, a partir das 20h. Código HG-123456.");
-    expect(hg).not.toMatch(/QUINTA HITS|quinta 07/);
+    expect(hg).not.toMatch(/QUINTA HITS/);
     const qh = decodeURIComponent(linkWhatsappCliente({ ...r, codigo: "QH-1" }, { data: DATA, horario: "20h", local: "Florindos Bar" }, "12"));
-    expect(qh).toContain("Sua reserva na QUINTA HITS está confirmada: mesa 12 para 2 pessoa(s), quinta 07/01, a partir das 20h no Florindos Bar.");
+    expect(qh).toContain("Sua reserva na QUINTA HITS está confirmada: mesa 12 para 2 pessoa(s), dia 07/01, a partir das 20h no Florindos Bar.");
   });
 
   it("as mesas do seed do Harley: 93, todas de 4 lugares, números únicos e dentro do mapa", () => {
@@ -311,13 +311,15 @@ describe("painel por casa", () => {
     const r = await criarEdicaoApi(json("http://localhost/api/admin/edicoes", { data: sabado, casa: HG, local: "" }));
     expect(r.status).toBe(201);
     expect((await r.json()).edicao).toMatchObject({ id: `${sabado}_${HG}`, casa: HG, local: "Harley Grill" });
-    // Quinta Hits continua exigindo quinta-feira.
-    expect((await criarEdicaoApi(json("http://localhost/api/admin/edicoes", { data: sabado }))).status).toBe(400);
+    // A Quinta Hits virou marca: também aceita qualquer dia da semana (id continua sendo a data).
+    const qhSabado = await criarEdicaoApi(json("http://localhost/api/admin/edicoes", { data: sabado }));
+    expect(qhSabado.status).toBe(201);
+    expect((await qhSabado.json()).edicao).toMatchObject({ id: sabado, casa: "quinta-hits" });
     expect((await criarEdicaoApi(json("http://localhost/api/admin/edicoes", { data: sabado, casa: "outra" }))).status).toBe(400);
 
     const qh = await (await listarEdicoes(new Request("http://localhost/api/admin/edicoes"))).json();
     const hg = await (await listarEdicoes(new Request(`http://localhost/api/admin/edicoes?casa=${HG}`))).json();
-    expect(qh.edicoes.map((e: { id: string }) => e.id)).toEqual([DATA]);
+    expect(qh.edicoes.map((e: { id: string }) => e.id)).toEqual([sabado, DATA]);
     expect(hg.edicoes.map((e: { id: string }) => e.id)).toEqual([`${sabado}_${HG}`]);
   });
 
@@ -421,5 +423,25 @@ describe("Harley Grill no site da Quinta Hits (Onde e agenda separada)", () => {
     const sem = renderToStaticMarkup(ComoChegarCasa({ casa: HG, dados: { endereco: "", bairro: "", cidade: "", quando: "", instagram: "" } }));
     expect(sem).toContain("Em breve");
     expect(sem).not.toContain("google.com/maps");
+  });
+});
+
+describe("Quinta Hits como marca: agenda só com as datas cadastradas, em qualquer dia", () => {
+  beforeEach(async () => {
+    definirBanco(banco);
+    await banco.limpar();
+  });
+
+  it("sem placeholders: só o que foi cadastrado, de hoje em diante, sem canceladas; sábado entra normalmente", async () => {
+    const { proximasEdicoes, proximaEdicao, temEdicaoHoje } = await import("@/lib/programacao");
+    const agora = new Date("2099-01-05T15:00:00Z"); // segunda
+    expect(await proximasEdicoes(agora, 4)).toEqual([]);
+    expect(await proximaEdicao(agora)).toBeNull();
+    await criarEdicao(banco, { id: "2099-01-10" }); // sábado
+    await criarEdicao(banco, { id: "2099-01-07", status: "cancelada" }); // quinta cancelada
+    expect((await proximasEdicoes(agora, 4)).map((e) => e.id)).toEqual(["2099-01-10"]);
+    expect(await temEdicaoHoje(new Date("2099-01-10T22:00:00Z"))).toBe(true); // sábado com evento
+    expect(await temEdicaoHoje(new Date("2099-01-07T22:00:00Z"))).toBe(false); // quinta cancelada
+    expect(await temEdicaoHoje(new Date("2099-01-14T22:00:00Z"))).toBe(false); // quinta sem evento cadastrado
   });
 });

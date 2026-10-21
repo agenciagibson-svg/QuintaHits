@@ -73,7 +73,7 @@ describe("/reservar: formulário escondido enquanto a reserva do site não estiv
       proximaAbertura: { edicao: { id: "2026-10-08", data: "2026-10-08" } as never, abreEm: "2026-10-05T15:00:00.000Z", descricao: "segunda, 05/10, às 12h" },
     });
     const html = await renderizar();
-    expect(html).toContain("As reservas da quinta 08/10 abrem segunda, 05/10, às 12h.");
+    expect(html).toContain("As reservas do dia 08/10 abrem segunda, 05/10, às 12h.");
     expect(html).not.toContain("FORMULARIO_DE_RESERVA");
   });
 });

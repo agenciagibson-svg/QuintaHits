@@ -39,7 +39,7 @@ export default function Privacidade() {
           <p>
             A {site.nome} é uma label da <strong>{site.empresa}</strong>
             {p.razaoSocial ? ` (${p.razaoSocial})` : ""}
-            {cnpj ? `, CNPJ ${cnpj}` : ""}, e acontece toda quinta-feira no {site.casa.nome}, em {site.cidade}/{site.uf}.
+            {cnpj ? `, CNPJ ${cnpj}` : ""}, com eventos em {site.cidade}/{site.uf} (como no {site.casa.nome} e no Harley Grill).
             A {site.empresa} é a controladora dos dados tratados por este site e pelo atendimento de reservas.
             {p.endereco ? ` Endereço: ${p.endereco}.` : ""} Não há encarregado de dados designado: os pedidos de privacidade são atendidos pelo contato da seção 12.
           </p>

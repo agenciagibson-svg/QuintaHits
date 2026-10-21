@@ -34,18 +34,18 @@ export default function ProgramacaoFiltro({ proximas, anteriores }: Props) {
         ))}
       </div>
 
-      <h3 className="display h-3" style={{ margin: "0 0 18px" }}>Próximas quintas</h3>
+      <h3 className="display h-3" style={{ margin: "0 0 18px" }}>Próximas noites</h3>
       {prox.length ? (
         <div className="edicoes">
           {prox.map((e) => <EdicaoCard key={e.id} edicao={e} />)}
         </div>
       ) : (
-        <p className="vazio">Nenhuma quinta desse estilo anunciada ainda. Volte em breve.</p>
+        <p className="vazio">Nenhuma noite desse estilo anunciada ainda. Volte em breve.</p>
       )}
 
       {ant.length > 0 && (
         <>
-          <h3 className="display h-3" style={{ margin: "56px 0 18px" }}>Já passaram pela Quinta</h3>
+          <h3 className="display h-3" style={{ margin: "56px 0 18px" }}>Já passaram pela Quinta Hits</h3>
           <div className="edicoes">
             {ant.map((e) => <EdicaoCard key={e.id} edicao={e} passada />)}
           </div>

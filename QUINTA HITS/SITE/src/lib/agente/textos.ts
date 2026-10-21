@@ -29,7 +29,7 @@ export const BOTOES_MENU: Botao[] = [
 ];
 
 export const boasVindas = (): Mensagem =>
-  botoes(`Olá! Aqui é o atendimento de reservas da *${site.nome}*. Toda quinta, no ${LOCAL}. Como posso ajudar?`, BOTOES_MENU);
+  botoes(`Olá! Aqui é o atendimento de reservas da *${site.nome}*, no ${LOCAL}. Como posso ajudar?`, BOTOES_MENU);
 
 export const menu = (prefixo = ""): Mensagem => botoes(`${prefixo}${prefixo ? " " : ""}Posso ajudar com mais alguma coisa?`, BOTOES_MENU);
 
@@ -50,7 +50,7 @@ export function escolherEdicao(edicoes: EdicaoOferecida[]): { mensagem: Mensagem
   }));
   return {
     itens,
-    mensagem: { tipo: "lista", corpo: "Para qual quinta você quer reservar? Toque em uma opção ou responda com o número.", rotuloBotao: "Escolher quinta", itens },
+    mensagem: { tipo: "lista", corpo: "Para qual noite você quer reservar? Toque em uma opção ou responda com o número.", rotuloBotao: "Escolher noite", itens },
   };
 }
 
@@ -63,7 +63,7 @@ export const perguntarPessoas = (e: EdicaoOferecida): Mensagem =>
 export const pessoasInvalido = (): string => "Me diga só o número de pessoas, por exemplo: 4.";
 
 export const semMesa = (pessoas: number): Mensagem =>
-  botoes(`Não encontrei mesa livre para ${pessoas} ${pessoas === 1 ? "pessoa" : "pessoas"} nessa quinta. Posso te ajudar com outra data ou chamar a equipe.`, [
+  botoes(`Não encontrei mesa livre para ${pessoas} ${pessoas === 1 ? "pessoa" : "pessoas"} nessa noite. Posso te ajudar com outra data ou chamar a equipe.`, [
     { id: "reservar", titulo: "Outra data" },
     { id: "humano", titulo: "Falar com a equipe" },
   ]);

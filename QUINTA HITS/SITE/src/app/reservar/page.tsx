@@ -37,8 +37,8 @@ export default async function Reservar() {
               {!reservaAberta
                 ? "As reservas pelo site abrem em breve. Por enquanto, fale com a gente no Instagram."
                 : proximaAbertura
-                  ? `As reservas da quinta ${formatData(proximaAbertura.edicao.data, "numerica")} abrem ${proximaAbertura.descricao}.`
-                  : "Ainda não abrimos reservas para as próximas quintas."}
+                  ? `As reservas do dia ${formatData(proximaAbertura.edicao.data, "numerica")} abrem ${proximaAbertura.descricao}.`
+                  : "Ainda não abrimos reservas para as próximas noites."}
             </p>
             <a className="btn btn--terracota" href={instagramUrl(site.instagram)} target="_blank" rel="noopener noreferrer">
               Fale com a gente no Instagram

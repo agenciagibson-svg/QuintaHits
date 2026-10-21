@@ -79,7 +79,7 @@ export default function CasaPainel() {
             </div>
           )}
           <p style={s.legenda}>
-            Cada edição só aparece para reserva a partir do último dia escolhido antes dela (ou no próprio dia), no horário de Uberlândia. Ex.: segunda às 12h → a quinta abre na segunda da mesma semana. Ela também precisa estar completa e liberada em Regras da noite.
+            Cada edição só aparece para reserva a partir do último dia escolhido antes dela (ou no próprio dia), no horário de Uberlândia. Ex.: segunda às 12h → um evento de sábado abre na segunda da mesma semana. Ela também precisa estar completa e liberada em Regras da noite.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <label style={{ ...s.campo, minWidth: 220 }}><span>Dia</span>

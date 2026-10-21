@@ -7,11 +7,11 @@ import { CASA_PADRAO } from "@/config/casas";
 
 export const dynamic = "force-dynamic";
 
-/** Quantas quintas à frente o app da casa mostra. */
-const QUINTAS = 6;
+/** Quantas noites à frente o app da casa mostra. */
+const NOITES = 6;
 
 /**
- * GET /api/casa/reservas — tudo o que o app da casa mostra, numa chamada só: as próximas quintas (de hoje em diante,
+ * GET /api/casa/reservas — tudo o que o app da casa mostra, numa chamada só: as próximas noites (de hoje em diante,
  * sem as canceladas), os pedidos de cada uma e o número das mesas. Só o necessário para atender: nada de regras internas,
  * configuração, auditoria ou WhatsApp oficial. Só a Quinta Hits (Florindos): as outras casas ficam no painel.
  */
@@ -29,7 +29,7 @@ export async function GET() {
       .gte("data", hojeISO())
       .neq("status", "cancelada")
       .order("data", { ascending: true })
-      .limit(QUINTAS);
+      .limit(NOITES);
     if (ed.error) throw ed.error;
     const edicoes = ed.data ?? [];
     const ids = edicoes.map((e) => e.id as string);

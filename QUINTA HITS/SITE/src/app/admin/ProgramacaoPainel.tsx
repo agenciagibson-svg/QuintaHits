@@ -125,7 +125,7 @@ export default function ProgramacaoPainel({ edicoes, recarregar, casa = CASA_PAD
               <select style={s.input} value={nova.status} onChange={(e) => setNova({ ...nova, status: e.target.value as Edicao["status"] })}>
                 {STATUS_VALORES.map((st) => <option key={st} value={st}>{ROTULO_STATUS_EDICAO[st]}</option>)}
               </select></label>
-            <label style={{ ...s.campo, gridColumn: "1 / -1" }}><span>Destaque (ex.: &quot;primeira quinta no Florindos Bar&quot;)</span>
+            <label style={{ ...s.campo, gridColumn: "1 / -1" }}><span>Destaque (ex.: &quot;edição especial de sábado&quot;)</span>
               <input style={s.input} value={nova.destaque} onChange={(e) => setNova({ ...nova, destaque: e.target.value })} /></label>
             <button type="submit" style={s.botaoSalvar}>Criar edição</button>
           </form>

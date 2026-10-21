@@ -4,19 +4,22 @@ import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/proxima — a próxima edição real (pula quintas canceladas), com contagem em segundos e link de reserva. */
+/**
+ * GET /api/proxima — o próximo evento cadastrado (canceladas puladas), com contagem em segundos e link de reserva.
+ * Sem evento futuro na agenda: `edicao: null` (e sem contagem).
+ */
 export async function GET() {
   const agora = new Date();
   const site = await getSiteConfig();
   const edicao = await proximaEdicao(agora);
-  const inicio = inicioDaEdicao(edicao.data, edicao.horario, site.horarioPadrao);
+  const inicio = edicao ? inicioDaEdicao(edicao.data, edicao.horario, site.horarioPadrao) : null;
   return NextResponse.json(
     {
       hoje: hojeISO(agora),
-      ehHoje: hojeISO(agora) === edicao.data,
+      ehHoje: !!edicao && hojeISO(agora) === edicao.data,
       edicao,
-      inicio: inicio.toISOString(),
-      segundosRestantes: Math.max(0, Math.floor((inicio.getTime() - agora.getTime()) / 1000)),
+      inicio: inicio ? inicio.toISOString() : null,
+      segundosRestantes: inicio ? Math.max(0, Math.floor((inicio.getTime() - agora.getTime()) / 1000)) : null,
       casa: site.casa.nome,
       reserva: new URL(reservaHrefFrom(site), site.url).toString(),
       assinatura: site.assinatura,

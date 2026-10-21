@@ -246,7 +246,7 @@ describe("POST /api/reservas com o site aberto (ambiente de teste, tudo simulado
     // O dono do bar recebe UM aviso (do pedido que deu certo), sem nome nem telefone do cliente.
     expect(notificarCasa).toHaveBeenCalledTimes(1);
     const aviso = vi.mocked(notificarCasa).mock.calls[0][0];
-    expect(aviso).toEqual({ titulo: "Novo pedido de mesa", corpo: expect.stringMatching(/^Mesa T1 · \d+ pessoas? · quinta 07\/01$/), url: `/casa?edicao=${ed}` });
+    expect(aviso).toEqual({ titulo: "Novo pedido de mesa", corpo: expect.stringMatching(/^Mesa T1 · \d+ pessoas? · dia 07\/01$/), url: `/casa?edicao=${ed}` });
     expect(JSON.stringify(aviso)).not.toMatch(/Teste|9\d{4}/);
   });
 

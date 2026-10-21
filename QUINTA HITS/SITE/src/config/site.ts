@@ -4,11 +4,12 @@
  */
 export const site = {
   nome: "QUINTA HITS",
-  slogan: "A quinta oficial de Uberlândia.",
-  assinatura: "Se é quinta, tem Hits.",
-  pontoDePartida: "Quinta já é quase sexta.",
+  // A QUINTA HITS virou marca (out/2026): eventos em qualquer dia da semana. Nenhum texto amarra a marca à quinta-feira.
+  slogan: "A noite oficial de Uberlândia.",
+  assinatura: "Tem Hits, tem noite.",
+  pontoDePartida: "A noite começa aqui.",
   descricao:
-    "Música, amigos, drinks e encontros. Toda quinta, no Florindos Bar, em Uberlândia. Programação e reservas.",
+    "Música ao vivo, amigos, drinks e encontros em Uberlândia. Programação, agenda e reserva de mesa.",
   cidade: "Uberlândia",
   uf: "MG",
 
@@ -43,14 +44,14 @@ export const site = {
 
   // Política de privacidade (/privacidade). Campos vazios NÃO aparecem na página.
   privacidade: {
-    atualizadaEm: "7 de outubro de 2026",
+    atualizadaEm: "21 de outubro de 2026",
     razaoSocial: "K. L & F PRODUÇÕES E PROMOÇÕES ARTÍSTICAS LTDA",
     cnpj: "58.824.097/0001-37", // confirmado pelo responsável em 22/09/2026 (substitui o número anterior, com dígito inválido)
     endereco: "Av. dos Vinhedos, 70, Sala 109 – Uberlândia/MG – CEP 38411-217",
     emailContato: "agenciagibson@gmail.com", // contato de privacidade e exercício de direitos (não há encarregado/DPO designado)
   },
   hashtagEmpresa: "#HitsProduções",
-  hashtags: ["#QuintaHits", "#Uberlândia", "#MúsicaAoVivo", "#QuintaFeira"],
+  hashtags: ["#QuintaHits", "#Uberlândia", "#MúsicaAoVivo", "#TemHitsTemNoite"],
 } as const;
 
 export const instagramUrl = (handle: string) => `https://instagram.com/${handle.replace(/^@/, "")}`;

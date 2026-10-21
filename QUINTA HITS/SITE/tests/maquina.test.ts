@@ -157,7 +157,7 @@ describe("fluxo de reserva completo", () => {
     const final = corpo(passos[6].mensagens[0]);
     expect(final).toContain("QH-482193");
     expect(final).toContain("Instruções de chegada de teste.");
-    expect(final).toContain("Se é quinta, tem Hits.");
+    expect(final).toContain("Tem Hits, tem noite.");
     expect(passos[6].contexto).toEqual({});
   });
 

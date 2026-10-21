@@ -18,7 +18,7 @@ export function linkWhatsappCliente(
   const hora = edicao?.horario ? `, a partir das ${edicao.horario}` : "";
   // Na Quinta Hits o local muda (Florindos Bar); nas outras casas o local é a própria casa, já citada na mensagem.
   const local = quinta && edicao?.local ? ` no ${edicao.local}` : "";
-  const quando = quinta ? `quinta ${data}` : `dia ${data}`;
+  const quando = `dia ${data}`;
   const texto =
     r.status === "confirmada"
       ? `Olá, ${primeiroNome}! Sua reserva ${casa.naCasa} está confirmada: mesa ${mesa} para ${r.pessoas} pessoa(s), ${quando}${hora}${local}.${r.codigo ? ` Código ${r.codigo}.` : ""} Te esperamos!`

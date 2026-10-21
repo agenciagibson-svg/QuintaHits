@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/programacao?limite=6
- * Próximas quintas (com placeholders para as sem line-up) e edições anteriores.
+ * Próximos eventos cadastrados (qualquer dia da semana) e edições anteriores.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);

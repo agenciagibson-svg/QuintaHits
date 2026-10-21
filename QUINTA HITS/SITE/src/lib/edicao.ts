@@ -96,12 +96,11 @@ export function inicioDaEdicao(iso: string, horario = "", horarioPadrao: string 
 }
 
 /**
- * Hoje tem Quinta Hits? É quinta-feira em Uberlândia e a data não está cancelada.
- * Quinta sem registro nenhum conta como "tem" — a quinta é garantida, o line-up é que não.
+ * Hoje tem Quinta Hits? Hoje (Uberlândia) é uma das datas com evento cadastrado e não cancelado.
+ * A marca faz eventos em qualquer dia da semana: só vale o que está na agenda.
  */
-export function temEdicaoNoDia(agora: Date, datasCanceladas: readonly string[]): boolean {
-  const hoje = hojeISO(agora);
-  return ehQuinta(hoje) && !datasCanceladas.includes(hoje);
+export function temEdicaoNoDia(agora: Date, datasComEvento: readonly string[]): boolean {
+  return datasComEvento.includes(hojeISO(agora));
 }
 
 const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
@@ -110,7 +109,7 @@ export function mesCurto(iso: string): string {
   return MESES[Number(iso.split("-")[1]) - 1];
 }
 
-/** "17 SET" / "quinta-feira, 17 de setembro" / "17/09" */
+/** "17 SET" / "sábado, 17 de outubro" / "17/10" */
 export function formatData(iso: string, estilo: "curta" | "longa" | "numerica" = "curta"): string {
   const [y, m, d] = iso.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d, 12));

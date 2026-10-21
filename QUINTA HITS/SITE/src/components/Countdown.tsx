@@ -14,7 +14,7 @@ function partes(ms: number) {
   };
 }
 
-/** Contagem regressiva até a próxima quinta, com fuso de Uberlândia resolvido no servidor. */
+/** Contagem regressiva até o próximo evento, com fuso de Uberlândia resolvido no servidor. */
 export default function Countdown({ alvoISO, dataISO }: Props) {
   const [agora, setAgora] = useState<number | null>(null);
 
@@ -29,7 +29,7 @@ export default function Countdown({ alvoISO, dataISO }: Props) {
   const ehHoje = hojeUberlandia === dataISO;
 
   if (ehHoje) {
-    return <p className="contagem--hoje">É hoje. Se é quinta, tem Hits.</p>;
+    return <p className="contagem--hoje">É hoje. Tem Hits, tem noite.</p>;
   }
 
   const p = partes(agora === null ? alvo - Date.now() : alvo - agora);
@@ -37,7 +37,7 @@ export default function Countdown({ alvoISO, dataISO }: Props) {
 
   return (
     <div>
-      <p className="contagem__titulo">Falta pouco pra próxima quinta</p>
+      <p className="contagem__titulo">Falta pouco pra próxima noite</p>
       <div className="contagem" aria-live="off">
         {[
           [p.d, "dias"],

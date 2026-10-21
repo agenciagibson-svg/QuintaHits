@@ -131,7 +131,7 @@ export async function POST(req: Request) {
           agendarDepois(() =>
             notificarCasa({
               titulo: "Novo pedido de mesa",
-              corpo: `Mesa ${mesa.numero} · ${pessoas} pessoa${pessoas > 1 ? "s" : ""} · quinta ${formatData(dataDaEdicaoId(edicaoId), "numerica")}`,
+              corpo: `Mesa ${mesa.numero} · ${pessoas} pessoa${pessoas > 1 ? "s" : ""} · dia ${formatData(dataDaEdicaoId(edicaoId), "numerica")}`,
               url: `/casa?edicao=${edicaoId}`,
             }),
           );

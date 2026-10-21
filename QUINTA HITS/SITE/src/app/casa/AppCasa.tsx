@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatData, hojeISO } from "@/lib/edicao";
+import { diaSemana, formatData, hojeISO } from "@/lib/edicao";
+
+const SEMANA_CURTA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 import { formatarWhatsapp, type StatusReserva } from "@/lib/reserva";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 
@@ -331,12 +333,12 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
       </header>
 
       {dados && dados.edicoes.length > 0 && (
-        <nav className="cs-quintas" aria-label="Quintas">
+        <nav className="cs-quintas" aria-label="Próximas noites">
           {dados.edicoes.map((e) => {
             const n = dados.reservas.filter((r) => r.edicao_id === e.id && r.status === "aguardando").length;
             return (
               <button key={e.id} className="cs-quinta" aria-pressed={e.id === edicaoId} onClick={() => setEdicaoId(e.id)}>
-                <span className="cs-quinta-data">QUI {formatData(e.data, "numerica")}</span>
+                <span className="cs-quinta-data">{SEMANA_CURTA[diaSemana(e.data)]} {formatData(e.data, "numerica")}</span>
                 <span className="cs-quinta-artista">{e.artista || "Line-up em breve"}</span>
                 {n > 0 && <span className="cs-contador" aria-label={`${n} para aprovar`}>{n}</span>}
               </button>
@@ -371,7 +373,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
         {!dados ? (
           <p className="cs-vazio">Carregando…</p>
         ) : dados.edicoes.length === 0 ? (
-          <p className="cs-vazio">Nenhuma quinta programada por enquanto.</p>
+          <p className="cs-vazio">Nenhuma noite programada por enquanto.</p>
         ) : (
           <>
             {edicao && (
@@ -387,7 +389,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
               <div><strong>{pessoas}</strong><span>pessoas</span></div>
             </div>
 
-            {daNoite.length === 0 && <p className="cs-vazio">Nenhum pedido para esta quinta ainda. Os pedidos do site aparecem aqui na hora.</p>}
+            {daNoite.length === 0 && <p className="cs-vazio">Nenhum pedido para esta noite ainda. Os pedidos do site aparecem aqui na hora.</p>}
 
             {aguardando.length > 0 && (
               <>
@@ -416,7 +418,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
             <button onClick={desativarAvisos} style={{ background: "none", border: 0, padding: 0, textDecoration: "underline", color: "inherit", fontSize: 12 }}>desligar</button>
           </p>
         )}
-        <p className="cs-rodape">A lista se atualiza sozinha a cada 30 segundos. Pedido sem resposta expira no fim do dia da quinta.</p>
+        <p className="cs-rodape">A lista se atualiza sozinha a cada 30 segundos. Pedido sem resposta expira no fim do dia do evento.</p>
       </div>
 
       {toast && <div className="cs-toast" role="status">{toast}</div>}
