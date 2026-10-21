@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { site } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
-import { datasComEvento } from "@/lib/programacao";
+import { datasComEvento, reservaDasOutrasCasas } from "@/lib/programacao";
 import ForaDoAdmin from "@/components/ForaDoAdmin";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -41,6 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cfg = await getSiteConfig();
   // Falha do banco não derruba o layout (login do admin, 404): a faixa "hoje tem" só não aparece.
   const comEvento = await datasComEvento().catch(() => [] as string[]);
+  const outrasCasas = await reservaDasOutrasCasas().catch(() => ({}) as Record<string, string>);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "EventSeries",
@@ -65,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <ForaDoAdmin>
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-          <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasComEvento={comEvento} />
+          <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasComEvento={comEvento} reservaPorData={outrasCasas} />
           <Header />
         </ForaDoAdmin>
         <main>{children}</main>

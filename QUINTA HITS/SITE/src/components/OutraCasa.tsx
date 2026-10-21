@@ -2,37 +2,11 @@ import Link from "next/link";
 import { instagramUrl } from "@/config/site";
 import { CASAS, type CasaId } from "@/config/casas";
 import { mapsUrlDe, type DadosCasa } from "@/lib/casasDados";
-import type { Edicao } from "@/lib/edicao";
-import EdicaoCard from "./EdicaoCard";
 
 /**
- * Outra casa (ex.: Harley Grill) no site da Quinta Hits: a agenda dela, separada das quintas, e o "como chegar".
- * A reserva sempre leva à página da casa (mapa e regras dela).
+ * Outra casa (ex.: Harley Grill) no site da Quinta Hits: o "como chegar" na seção Onde. As noites dela entram na
+ * agenda única (EdicaoCard mostra a casa e o link de reserva). A reserva sempre leva à página da casa.
  */
-
-/** Seção com os próximos eventos da casa. Sem evento futuro, não aparece. */
-export function AgendaDaCasa({ casa, eventos, titulo = "Próximos eventos", tom = "preto" }: { casa: CasaId; eventos: Edicao[]; titulo?: string; tom?: "preto" | "creme" }) {
-  if (eventos.length === 0) return null;
-  const c = CASAS[casa];
-  return (
-    <section className={`secao secao--${tom}`} id={casa}>
-      <div className="wrap">
-        <div className="cabeca">
-          <div>
-            <div className="eyebrow">{c.nome}</div>
-            <h2 className="display h-2" style={{ margin: "6px 0 0" }}>{titulo}</h2>
-          </div>
-          <Link className={`btn ${tom === "preto" ? "btn--creme" : "btn--terracota"} btn--p`} href={c.pagina}>
-            Reservar mesa no {c.nome}
-          </Link>
-        </div>
-        <div className="edicoes">
-          {eventos.map((e) => <EdicaoCard key={e.id} edicao={e} />)}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 /** Bloco "Como chegar" da casa, no mesmo desenho do Florindos Bar. Campo vazio não aparece; sem endereço, "Em breve". */
 export function ComoChegarCasa({ casa, dados }: { casa: CasaId; dados: DadosCasa }) {

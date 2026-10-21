@@ -99,8 +99,9 @@ O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mes
   `DOMINIOS_CASAS="reservas.harleygrill.com.br=harley-grill"` (vários: separados por vírgula). Nesse domínio, `/`,
   `/reservar` e `/programacao` levam a `/harley-grill`.
 - **No site da Quinta Hits:** a seção "Onde" da home mostra o Harley Grill abaixo do Florindos Bar (endereço, mapa e
-  "Reservar mesa" → `/harley-grill`), e a home e a `/programacao` ganham a agenda do Harley, separada das quintas
-  (só aparece quando há evento futuro). Endereço, cidade, "quando" e Instagram: painel → **Casa**, com o Harley escolhido.
+  "Reservar mesa" → `/harley-grill`). As noites do Harley entram na **agenda única** (home e `/programacao`), em ordem
+  de data junto com as do Florindos; o card mostra "Harley Grill" e o link "Reservar mesa" leva ao mapa do Harley.
+  Endereço, cidade, "quando" e Instagram: painel → **Casa**, com o Harley escolhido.
 - **Configuração da casa** (nome, código, planta, tamanho das mesas): `src/config/casas.ts`.
 
 ### Ativar (uma vez, nesta ordem)

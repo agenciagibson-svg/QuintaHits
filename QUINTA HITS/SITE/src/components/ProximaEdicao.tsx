@@ -3,6 +3,7 @@ import { alvoLink, instagramUrl, type site as siteType } from "@/config/site";
 import { reservaHrefFrom } from "@/lib/siteConfig";
 import Aba from "./Aba";
 import Compartilhar from "./Compartilhar";
+import { CASAS, CASA_PADRAO, ehCasa } from "@/config/casas";
 
 export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: typeof siteType }) {
   const [, , dia] = edicao.data.split("-");
@@ -10,6 +11,8 @@ export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: 
   const horario = edicao.horario || site.horarioPadrao;
   // O evento pode ser em outra casa (local da edição); sem local, a casa padrão.
   const local = edicao.local || site.casa.nome;
+  // Reserva da casa da noite: Quinta Hits/Florindos = /reservar (ou link cadastrado); outra casa = página dela.
+  const reserva = ehCasa(edicao.casa) && edicao.casa !== CASA_PADRAO ? CASAS[edicao.casa].pagina : reservaHrefFrom(site);
   const textoShare = edicao.artista
     ? `${edicao.artista} na QUINTA HITS, ${formatData(edicao.data, "longa")}, no ${local}. ${site.assinatura}`
     : `QUINTA HITS, ${formatData(edicao.data, "longa")}, no ${local}. ${site.assinatura}`;
@@ -48,7 +51,7 @@ export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: 
           )}
         </div>
         <div className="proxima__acoes">
-          <a className="btn btn--terracota" href={reservaHrefFrom(site)} {...alvoLink(reservaHrefFrom(site))}>
+          <a className="btn btn--terracota" href={reserva} {...alvoLink(reserva)}>
             Reservar mesa
           </a>
           <Compartilhar titulo={site.nome} texto={textoShare} url={site.url} />

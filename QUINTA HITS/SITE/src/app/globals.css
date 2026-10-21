@@ -456,3 +456,5 @@ button { font: inherit; cursor: pointer; }
 .pagina-casa__endereco a { text-decoration: underline; text-underline-offset: 2px; }
 .pagina-casa__topo-in { align-items: center; }
 .pagina-casa__voltar { white-space: nowrap; }
+.card__casa { opacity: 1; color: var(--mostarda); }
+.card__reservar { align-self: flex-start; margin-top: 4px; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }

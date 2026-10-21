@@ -206,7 +206,7 @@ describe("site e WhatsApp: nada do Harley vaza para a Quinta Hits", () => {
     await banco.limpar();
   });
 
-  it("programação pública, situação do /reservar e agente do WhatsApp só enxergam a Quinta Hits", async () => {
+  it("agenda pública traz as duas casas; /reservar e agente do WhatsApp só enxergam a Quinta Hits", async () => {
     const edQh = await criarEdicao(banco, { id: DATA });
     await criarMesa(banco, "T1");
     await liberarEdicaoParaSite(banco, edQh);
@@ -220,7 +220,8 @@ describe("site e WhatsApp: nada do Harley vaza para a Quinta Hits", () => {
     await banco.sql("update edicoes_regras set atendimento_automatico = true where edicao_id = $1", [edHg]);
 
     const agora = new Date("2098-12-30T15:00:00Z");
-    expect((await todasEdicoes()).map((e) => e.id)).toEqual([edQh]);
+    // Agenda pública é única (todas as casas, em ordem de data); reserva pelo site e WhatsApp seguem separados por casa.
+    expect((await todasEdicoes()).map((e) => e.id)).toEqual([edQh, edHg]);
     expect((await situacaoDoSite(agora)).prontas.map((p) => p.edicao.id)).toEqual([edQh]);
     expect((await situacaoDoSite(agora, 6, HG)).prontas.map((p) => p.edicao.id)).toEqual([edHg]);
     expect((await edicoesProntasParaAgente(agora)).map((p) => p.edicao.id)).toEqual([edQh]);
@@ -443,5 +444,18 @@ describe("Quinta Hits como marca: agenda só com as datas cadastradas, em qualqu
     expect(await temEdicaoHoje(new Date("2099-01-10T22:00:00Z"))).toBe(true); // sábado com evento
     expect(await temEdicaoHoje(new Date("2099-01-07T22:00:00Z"))).toBe(false); // quinta cancelada
     expect(await temEdicaoHoje(new Date("2099-01-14T22:00:00Z"))).toBe(false); // quinta sem evento cadastrado
+  });
+});
+
+describe("agenda única: card de noite em outra casa", () => {
+  it("mostra a casa e o link de reserva dela; noite da Quinta Hits não ganha esses extras", async () => {
+    const { default: EdicaoCard } = await import("@/components/EdicaoCard");
+    const base = { data: "2099-01-09", artista: "Voo Livre", instagram: "", tema: "", genero: "" as const, horario: "20h", local: "Harley Grill", status: "confirmada" as const, destaque: "" };
+    const hg = renderToStaticMarkup(EdicaoCard({ edicao: { ...base, id: "2099-01-09_harley-grill", casa: HG } }));
+    expect(hg).toContain("Harley Grill");
+    expect(hg).toContain('href="/harley-grill"');
+    const qh = renderToStaticMarkup(EdicaoCard({ edicao: { ...base, id: "2099-01-09", casa: "quinta-hits", local: "Florindos Bar" } }));
+    expect(qh).not.toContain("card__reservar");
+    expect(qh).not.toContain("card__casa");
   });
 });

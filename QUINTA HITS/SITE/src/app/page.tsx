@@ -8,8 +8,8 @@ import Marquee from "@/components/Marquee";
 import ProximaEdicao from "@/components/ProximaEdicao";
 import EdicaoCard from "@/components/EdicaoCard";
 import Vinil from "@/components/Vinil";
-import { AgendaDaCasa, ComoChegarCasa } from "@/components/OutraCasa";
-import { dadosDaCasa, proximosEventosDaCasa } from "@/lib/casasDados";
+import { ComoChegarCasa } from "@/components/OutraCasa";
+import { dadosDaCasa } from "@/lib/casasDados";
 
 // A página é regenerada a cada minuto: a "próxima noite" e a contagem mudam sozinhas.
 export const revalidate = 60;
@@ -29,8 +29,9 @@ export default async function Home() {
   const proximas = await proximasEdicoes(agora, 4);
   const anteriores = await edicoesAnteriores(agora);
   const temHoje = await temEdicaoHoje(agora);
-  // Harley Grill: agenda separada das quintas e "como chegar" na seção Onde (erro de banco = some, sem derrubar a home).
-  const [harley, eventosHarley] = await Promise.all([dadosDaCasa("harley-grill"), proximosEventosDaCasa("harley-grill", agora, 4)]);
+  // Harley Grill: "como chegar" na seção Onde (erro de banco = "Em breve", sem derrubar a home). As noites dele entram
+  // na agenda única, junto com as do Florindos.
+  const harley = await dadosDaCasa("harley-grill");
   // Contagem até o próximo evento cadastrado (canceladas puladas). Sem data futura na agenda, sem contagem.
   const alvo = proxima ? inicioDaEdicao(proxima.data, proxima.horario, site.horarioPadrao).toISOString() : null;
 
@@ -125,9 +126,6 @@ export default async function Home() {
           )}
         </div>
       </section>
-
-      {/* HARLEY GRILL: agenda própria, separada */}
-      <AgendaDaCasa casa="harley-grill" eventos={eventosHarley} />
 
       {/* EXPERIÊNCIA */}
       <section className="secao secao--verde" id="experiencia">

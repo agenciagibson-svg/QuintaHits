@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { CASA_PADRAO } from "@/config/casas";
 import { hojeISO, temEdicaoNoDia, type Edicao } from "@/lib/edicao";
+import { CASAS, CASA_PADRAO, ehCasa } from "@/config/casas";
 
 // Tipos e helpers puros moram em lib/edicao.ts (seguro para client) e seguem disponíveis por aqui.
 export * from "@/lib/edicao";
@@ -14,9 +14,9 @@ export * from "@/lib/edicao";
 export const todasEdicoes = cache(async (): Promise<Edicao[]> => {
   const { data, error } = await supabaseAdmin()
     .from("edicoes")
-    .select("id, data, artista, instagram, tema, genero, horario, local, status, destaque")
-    // O site público (home, programação, faixa de hoje) é da QUINTA HITS; as outras casas têm agenda própria.
-    .eq("casa", CASA_PADRAO)
+    .select("id, data, artista, instagram, tema, genero, horario, local, status, destaque, casa")
+    // Uma agenda só: as noites da marca em todas as casas (Florindos Bar, Harley Grill...), em ordem de data.
+    // Cada card mostra a casa e a reserva leva à página dela.
     .order("data", { ascending: true });
 
   if (error) throw new Error(`Erro ao buscar edições: ${error.message}`);
@@ -26,6 +26,18 @@ export const todasEdicoes = cache(async (): Promise<Edicao[]> => {
 /** Datas (AAAA-MM-DD) com evento cadastrado e não cancelado — qualquer dia da semana. */
 export async function datasComEvento(): Promise<string[]> {
   return (await todasEdicoes()).filter((e) => e.status !== "cancelada").map((e) => e.data);
+}
+
+/**
+ * Páginas de reserva das datas com evento em OUTRA casa ({ "2026-11-06": "/harley-grill" }): a faixa "Hoje tem" leva
+ * à reserva da casa certa. Datas da casa padrão não entram (usam o link de reserva de sempre).
+ */
+export async function reservaDasOutrasCasas(): Promise<Record<string, string>> {
+  const r: Record<string, string> = {};
+  for (const e of await todasEdicoes()) {
+    if (e.status !== "cancelada" && ehCasa(e.casa) && e.casa !== CASA_PADRAO) r[e.data] = CASAS[e.casa].pagina;
+  }
+  return r;
 }
 
 /** Hoje tem evento da QUINTA HITS? Só se a data estiver na agenda (e não cancelada). */
