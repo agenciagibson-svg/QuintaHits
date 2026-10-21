@@ -30,6 +30,9 @@ export default function EdicaoCard({ edicao, passada = false }: { edicao: Edicao
           @{edicao.instagram}
         </a>
       )}
+      {!passada && edicao.status !== "cancelada" && (
+        <a className="card__ver" href={`/noite/${edicao.id}`}>Ver a noite →</a>
+      )}
       {!passada && ehCasa(edicao.casa) && edicao.casa !== CASA_PADRAO && CASAS[edicao.casa].reservas && (
         <a className="card__reservar" href={CASAS[edicao.casa].pagina}>Reservar mesa →</a>
       )}

@@ -58,7 +58,8 @@ export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: 
               Reservar mesa
             </a>
           )}
-          <Compartilhar titulo={site.nome} texto={textoShare} url={site.url} />
+          <a className="btn btn--vazado" href={`/noite/${edicao.id}`}>Ver a noite</a>
+          <Compartilhar titulo={site.nome} texto={textoShare} url={`${site.url}/noite/${edicao.id}`} />
         </div>
       </div>
     </div>

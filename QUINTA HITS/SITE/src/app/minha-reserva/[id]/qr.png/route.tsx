@@ -36,6 +36,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       <div style={{ width: "100%", height: "100%", display: "flex", background: "#17352B", color: "#F1E7D2", fontFamily: "sans-serif" }}>
         <div style={{ width: 630, height: 630, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff" }}>
           {qr ? (
+            // eslint-disable-next-line @next/next/no-img-element -- imagem gerada (ImageResponse), não página
             <img src={qr} width={560} height={560} alt="" style={{ display: "flex" }} />
           ) : (
             <div style={{ display: "flex", color: "#171717", fontSize: 44, fontWeight: 700, textAlign: "center", padding: 40 }}>{aviso}</div>

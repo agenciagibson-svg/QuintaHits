@@ -58,8 +58,8 @@ describe("página /privacidade", () => {
 });
 
 describe("acesso à política", () => {
-  it("está no sitemap", () => {
-    expect(sitemap().map((i) => i.url)).toContain(`${site.url}/privacidade`);
+  it("está no sitemap", async () => {
+    expect((await sitemap()).map((i) => i.url)).toContain(`${site.url}/privacidade`);
   });
 
   it("está linkada no rodapé e no aviso do formulário de reserva", () => {

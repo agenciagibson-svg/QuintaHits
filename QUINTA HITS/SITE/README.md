@@ -77,6 +77,14 @@ Precisa de um número de telefone **só para o sistema** — enquanto estiver na
 
 Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas na Meta.
 
+## Página de cada noite (`/noite/<id da edição>`)
+
+O link para divulgar uma noite (stories, WhatsApp, bio), de qualquer casa: data, atração, tema, destaque, onde (endereço e
+mapa), contagem regressiva, **Reservar mesa** (só com a noite aberta; leva a `/reservar?edicao=<id>`), **Adicionar à
+agenda** (Google Agenda ou `.ics` com lembrete 3 h antes) e **Chamar a turma**. A prévia do link usa a arte gerada em
+`/noite/<id>/imagem.png`. Os cards da agenda têm "Ver a noite →" e as noites futuras entram no sitemap.
+Código: `src/app/noite/[id]/`, `src/lib/noite.ts`.
+
 ## Check-in na entrada (QR code)
 
 - **Cliente:** cada reserva tem a página `/minha-reserva/<id>` com o QR de entrada (só primeiro nome, mesa, noite e casa).
