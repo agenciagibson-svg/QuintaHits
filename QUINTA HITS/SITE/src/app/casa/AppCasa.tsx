@@ -7,6 +7,7 @@ import { diaSemana, formatData, hojeISO } from "@/lib/edicao";
 const SEMANA_CURTA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 import { ehTravada, formatarWhatsapp, type StatusReserva } from "@/lib/reserva";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
+import LeitorPorta, { fazerCheckin } from "./Porta";
 
 type EdicaoCasa = { id: string; data: string; artista: string; horario: string; local: string; status: string; casa: string };
 type ReservaCasa = {
@@ -21,6 +22,7 @@ type ReservaCasa = {
   created_at: string;
   origem_reserva?: string;
   observacoes?: string;
+  chegou_em?: string | null;
 };
 type MesaCasa = { id: string; numero: string; lugares: number; area: string };
 type CasaDoApp = { id: string; nome: string };
@@ -31,7 +33,7 @@ type EstadoAvisos = "carregando" | "indisponivel" | "precisa-instalar" | "desati
 /** Evento de instalação do Chrome/Android (não tipado no DOM padrão). */
 type EventoInstalar = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
-const ROTULO: Record<StatusReserva, string> = { aguardando: "Para aprovar", confirmada: "Confirmada", cancelada: "Recusada", expirada: "Expirada" };
+const ROTULO: Record<StatusReserva, string> = { aguardando: "Para aprovar", confirmada: "Confirmada", cancelada: "Recusada", expirada: "Expirada", nao_compareceu: "Não veio" };
 const ATUALIZAR_A_CADA_MS = 30_000;
 
 function quando(iso: string): string {
@@ -81,6 +83,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
   const [avisos, setAvisos] = useState<EstadoAvisos>("carregando");
   const [instalar, setInstalar] = useState<EventoInstalar | null>(null);
   const [mostrarInstalar, setMostrarInstalar] = useState(false);
+  const [leitor, setLeitor] = useState(false);
   const chavePush = useRef<string | null>(null);
   const timerToast = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -256,8 +259,26 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
   // Mesa travada pela equipe no painel: não é cliente (sem WhatsApp); aparece à parte e pode ser destravada.
   const travadas = daNoite.filter((r) => r.status === "confirmada" && ehTravada(r));
   const confirmadas = daNoite.filter((r) => r.status === "confirmada" && !ehTravada(r));
-  const encerradas = daNoite.filter((r) => (r.status === "cancelada" || r.status === "expirada") && !ehTravada(r));
+  const encerradas = daNoite.filter((r) => (r.status === "cancelada" || r.status === "expirada" || r.status === "nao_compareceu") && !ehTravada(r));
   const pessoas = confirmadas.reduce((t, r) => t + r.pessoas, 0);
+  const chegaram = confirmadas.filter((r) => r.chegou_em);
+  // Check-in só na noite em andamento (hoje; de madrugada, a de ontem — a API decide e avisa se não for).
+  const noiteDeHoje = !!edicao && edicao.data <= hojeISO();
+
+  /** Chegada marcada no cartão (sem QR): mesmo registro da leitura na porta. */
+  async function marcarChegada(r: ReservaCasa, acao: "chegou" | "desfazer" | "nao_veio") {
+    ultimaConsulta.current++;
+    setOcupados((o) => new Set(o).add(r.id));
+    const x = await fazerCheckin(r.id, acao);
+    if (x.status === 401) return router.replace("/casa/login");
+    setOcupados((o) => {
+      const n = new Set(o);
+      n.delete(r.id);
+      return n;
+    });
+    mostrarToast(x.ok ? (acao === "chegou" ? `Mesa ${x.reserva?.mesa ?? ""}: chegada registrada.` : acao === "desfazer" ? "Chegada desfeita." : "Marcada como não veio. A mesa ficou livre.") : x.erro || "Não foi possível registrar.");
+    carregar();
+  }
 
   /** Cartão de um pedido (função de renderização, não componente: não remonta a cada atualização da lista). */
   function cartao(r: ReservaCasa) {
@@ -280,6 +301,12 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
           {r.pessoas} pessoa{r.pessoas > 1 ? "s" : ""} · {formatarWhatsapp(r.whatsapp)}
           <br />
           Pedido {quando(r.created_at)}
+          {r.status === "confirmada" && r.chegou_em && (
+            <>
+              <br />
+              <span className="cs-chegou">Chegou {new Date(r.chegou_em).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}</span>
+            </>
+          )}
         </div>
 
         {aqui ? (
@@ -294,6 +321,16 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
           </>
         ) : (
           <div className="cs-acoes">
+            {noiteDeHoje && (r.status === "confirmada" || r.status === "nao_compareceu") && !r.chegou_em && (
+              <button className="cs-btn cs-btn-aprovar" style={{ flexBasis: "100%" }} disabled={trabalhando} onClick={() => marcarChegada(r, "chegou")}>
+                Chegou
+              </button>
+            )}
+            {noiteDeHoje && r.status === "confirmada" && r.chegou_em && (
+              <button className="cs-btn cs-btn-neutro" disabled={trabalhando} onClick={() => marcarChegada(r, "desfazer")}>
+                Desfazer chegada
+              </button>
+            )}
             {r.status === "aguardando" && (
               <>
                 <button className="cs-btn cs-btn-recusar" disabled={trabalhando} onClick={() => setPergunta({ id: r.id, status: "cancelada", texto: `Recusar o pedido de ${r.nome}? A mesa ${mesa} volta a ficar livre no site.` })}>
@@ -304,7 +341,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
                 </button>
               </>
             )}
-            {r.status !== "aguardando" && (
+            {r.status !== "aguardando" && r.status !== "nao_compareceu" && (
               <a className="cs-btn cs-btn-whats" href={whats} target="_blank" rel="noopener noreferrer">
                 {avisar[r.id] ? "Avisar cliente no WhatsApp" : "WhatsApp"}
               </a>
@@ -314,7 +351,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
                 Cancelar
               </button>
             )}
-            {(r.status === "cancelada" || r.status === "expirada") && !avisar[r.id] && (
+            {(r.status === "cancelada" || r.status === "expirada" || (r.status === "nao_compareceu" && !noiteDeHoje)) && !avisar[r.id] && (
               <button className="cs-btn cs-btn-neutro" disabled={trabalhando} onClick={() => setPergunta({ id: r.id, status: "confirmada", texto: `Confirmar a mesa ${mesa} para ${r.nome}?` })}>
                 Confirmar
               </button>
@@ -358,6 +395,15 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
         </nav>
       )}
 
+      {dados && dados.edicoes.length > 0 && (
+        <div className="cs-porta-botao">
+          <button type="button" className="cs-btn cs-btn-aprovar" onClick={() => setLeitor(true)}>
+            Ler QR na entrada
+          </button>
+        </div>
+      )}
+      {leitor && <LeitorPorta onFechar={() => setLeitor(false)} onRegistrou={carregar} />}
+
       <div className="cs-conteudo">
         {mostrarInstalar && (instalar || ehIOS()) && (
           <div className="cs-aviso">
@@ -399,6 +445,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
               <div className={aguardando.length ? "cs-destaque" : undefined}><strong>{aguardando.length}</strong><span>para aprovar</span></div>
               <div><strong>{confirmadas.length}</strong><span>mesas confirmadas</span></div>
               <div><strong>{pessoas}</strong><span>pessoas</span></div>
+              {chegaram.length > 0 && <div><strong>{chegaram.length}/{confirmadas.length}</strong><span>chegaram</span></div>}
             </div>
 
             {daNoite.length === 0 && <p className="cs-vazio">Nenhum pedido para esta noite ainda. Os pedidos do site aparecem aqui na hora.</p>}
@@ -438,7 +485,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
             )}
             {encerradas.length > 0 && (
               <details className="cs-detalhes-recolhidos">
-                <summary>Recusadas e expiradas ({encerradas.length})</summary>
+                <summary>Recusadas, expiradas e não vieram ({encerradas.length})</summary>
                 {encerradas.map(cartao)}
               </details>
             )}

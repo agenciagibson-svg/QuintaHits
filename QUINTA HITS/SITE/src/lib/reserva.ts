@@ -22,7 +22,8 @@ export type MesaPublica = Omit<Mesa, "ativa">;
  * expirada:   o prazo passou sem mensagem — a mesa voltou a ficar livre
  * cancelada:  cancelada pela equipe
  */
-export type StatusReserva = "aguardando" | "confirmada" | "expirada" | "cancelada";
+/** `nao_compareceu`: confirmada, sem check-in até o fim da tolerância numa noite em que a porta fez check-in (solta a mesa). */
+export type StatusReserva = "aguardando" | "confirmada" | "expirada" | "cancelada" | "nao_compareceu";
 
 export type Reserva = {
   id: string;
@@ -38,6 +39,8 @@ export type Reserva = {
   /** 'site', 'whatsapp_agent', 'admin' (feita ou travada no painel), 'manual'. */
   origem_reserva?: string;
   observacoes?: string;
+  /** Check-in na entrada (QR ou código); null = ainda não chegou. */
+  chegou_em?: string | null;
 };
 
 /**
@@ -48,7 +51,7 @@ export type Reserva = {
 export const NOME_MESA_TRAVADA = "Mesa travada";
 export const ehTravada = (r: { origem_reserva?: string | null; whatsapp: string }): boolean => r.origem_reserva === "admin" && r.whatsapp === "";
 
-export const STATUS_RESERVA: readonly StatusReserva[] = ["aguardando", "confirmada", "expirada", "cancelada"];
+export const STATUS_RESERVA: readonly StatusReserva[] = ["aguardando", "confirmada", "expirada", "cancelada", "nao_compareceu"];
 /** Status que seguram a mesa: com um deles, ninguém mais consegue pedir a mesma mesa na edição. */
 export const STATUS_OCUPA_MESA: readonly StatusReserva[] = ["aguardando", "confirmada"];
 

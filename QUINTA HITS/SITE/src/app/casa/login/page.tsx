@@ -26,7 +26,9 @@ export default function CasaLogin() {
         setErro(j.erro || "Não foi possível entrar.");
         return;
       }
-      router.replace("/casa");
+      // Veio de um QR de check-in lido fora do app: volta para ele (só esse caminho; nada de endereço de fora).
+      const volta = new URLSearchParams(window.location.search).get("volta") ?? "";
+      router.replace(/^\/casa\/checkin\/[0-9a-f-]{36}$/i.test(volta) ? volta : "/casa");
       router.refresh();
     } catch {
       setErro("Sem conexão. Tente de novo.");

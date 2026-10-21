@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { casasDaSessao, exigirSessaoCasa } from "@/lib/casaSessao";
-import { hojeISO } from "@/lib/edicao";
+import { noitesEmAndamento } from "@/lib/checkin";
 import { expirarPedidosVencidos } from "@/lib/reservas";
 import { CASAS } from "@/config/casas";
 
@@ -33,7 +33,8 @@ export async function GET() {
           .from("edicoes")
           .select("id, data, artista, horario, local, status, casa")
           .eq("casa", casa)
-          .gte("data", hojeISO())
+          // De madrugada a noite de ontem continua na tela (check-in de quem chega depois da meia-noite).
+          .gte("data", noitesEmAndamento()[0])
           .neq("status", "cancelada")
           .order("data", { ascending: true })
           .limit(NOITES),
@@ -51,7 +52,7 @@ export async function GET() {
       ids.length
         ? db
             .from("reservas")
-            .select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, created_at, origem_reserva, observacoes")
+            .select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, created_at, origem_reserva, observacoes, chegou_em")
             .in("edicao_id", ids)
             .order("created_at", { ascending: true })
         : Promise.resolve({ data: [], error: null }),

@@ -136,7 +136,7 @@ export default function ReservaMesa({
         return;
       }
       if (j.manual) {
-        setRecebido({ mesa: j.mesa, data: edicao.data, codigo: j.codigo, nome });
+        setRecebido({ id: j.id, mesa: j.mesa, data: edicao.data, codigo: j.codigo, nome });
         return;
       }
       setEnviada({ id: j.id, mesa: j.mesa, data: edicao.data, codigo: j.codigo, expiraEm: j.expiraEm, whatsappLink: j.whatsappLink });

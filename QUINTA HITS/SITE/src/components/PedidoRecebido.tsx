@@ -2,7 +2,7 @@
 
 import { formatData } from "@/lib/edicao";
 
-export type PedidoManual = { mesa: string; data: string; codigo: string; nome: string };
+export type PedidoManual = { id?: string; mesa: string; data: string; codigo: string; nome: string };
 
 /**
  * Modo formulário (WhatsApp ainda não conectado): o pedido chegou ao painel e a mesa fica separada
@@ -21,6 +21,13 @@ export default function PedidoRecebido({ pedido, onNovaReserva }: { pedido: Pedi
       <p className="reserva__aviso">
         Código do pedido: <strong>{pedido.codigo}</strong>. Guarde para falar com a gente, se precisar.
       </p>
+      {pedido.id && (
+        <p>
+          <a className="btn btn--creme btn--p" href={`/minha-reserva/${pedido.id}`} target="_blank" rel="noopener">
+            Ver meu QR de entrada
+          </a>
+        </p>
+      )}
       <button type="button" className="btn btn--creme btn--p" onClick={onNovaReserva}>Fazer outro pedido</button>
     </div>
   );

@@ -23,6 +23,7 @@ const MIGRACAO_CASA = ler("migracao-2026-10-06-app-da-casa.sql");
 const MIGRACAO_MULTI_CASA = ler("migracao-2026-10-20-multi-casa.sql");
 const MIGRACAO_DADOS_CASAS = ler("migracao-2026-10-21-dados-das-casas.sql");
 const MIGRACAO_SOLARIUM = ler("migracao-2026-10-21-solarium.sql");
+const MIGRACAO_CHECKIN = ler("migracao-2026-10-21-checkin.sql");
 
 export type ErroBanco = { code: string; message: string; details: string | null; hint: string | null };
 type Resposta<T> = { data: T; error: ErroBanco | null; count: number | null };
@@ -204,7 +205,7 @@ export type BancoTeste = {
 
 /** `migracao: false` = banco antigo (sem nada do agente); `parte2: false` = só a parte 1 aplicada (estado do banco antes da parte 2). */
 /** `abertura: false` = banco sem as colunas da abertura semanal. Com elas, `limpar()` deixa a linha da casa SEM dia fixo. */
-export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean; casa?: boolean; multiCasa?: boolean; dadosCasas?: boolean } = {}): Promise<BancoTeste> {
+export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean; casa?: boolean; multiCasa?: boolean; dadosCasas?: boolean; checkin?: boolean } = {}): Promise<BancoTeste> {
   const pg = new PGlite();
   await pg.exec("create role anon; create role authenticated; create role service_role;");
   await pg.exec(BASE);
@@ -217,6 +218,7 @@ export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boo
   if (opcoes.multiCasa !== false) await pg.exec(MIGRACAO_MULTI_CASA);
   if (opcoes.multiCasa !== false && opcoes.dadosCasas !== false) await pg.exec(MIGRACAO_DADOS_CASAS);
   if (opcoes.multiCasa !== false) await pg.exec(MIGRACAO_SOLARIUM);
+  if (opcoes.checkin !== false) await pg.exec(MIGRACAO_CHECKIN);
   const temMigracao = opcoes.migracao !== false;
 
   const supabase = { from: (tabela: string) => new Consulta(pg, tabela) } as unknown as SupabaseClient;

@@ -53,6 +53,11 @@ export default function ConfirmacaoWhatsapp({ pedido, onNovaReserva }: { pedido:
         <div className="eyebrow">Reserva confirmada</div>
         <h2 className="display h-2">Mesa {pedido.mesa} · {formatData(pedido.data, "numerica")}</h2>
         <p>Pronto! Sua mesa está garantida. A confirmação também chegou no seu WhatsApp.</p>
+        <p>
+          <a className="btn btn--creme btn--p" href={`/minha-reserva/${pedido.id}`} target="_blank" rel="noopener">
+            Ver meu QR de entrada
+          </a>
+        </p>
         <button type="button" className="btn btn--creme btn--p" onClick={onNovaReserva}>Fazer outra reserva</button>
       </div>
     );

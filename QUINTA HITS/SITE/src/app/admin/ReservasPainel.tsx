@@ -9,13 +9,14 @@ import type { PedidoPendente } from "./AdminDashboard";
 import MapaMesas, { LegendaMapa, type EstadoMesa } from "@/components/MapaMesas";
 import type { ElementoSalao } from "@/lib/planta";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
-import { CASAS, CASA_PADRAO, type CasaId } from "@/config/casas";
+import { CASAS, CASA_PADRAO, dataDaEdicaoId, type CasaId } from "@/config/casas";
 
 const ROTULO_STATUS: Record<StatusReserva, string> = {
   aguardando: "Para confirmar",
   confirmada: "Confirmada",
   expirada: "Expirada",
   cancelada: "Cancelada",
+  nao_compareceu: "Não compareceu",
 };
 
 const TOM_STATUS: Record<StatusReserva, Tom> = {
@@ -23,6 +24,7 @@ const TOM_STATUS: Record<StatusReserva, Tom> = {
   confirmada: "ok",
   expirada: "neutro",
   cancelada: "neutro",
+  nao_compareceu: "perigo",
 };
 
 /** Próxima edição (de hoje em diante); se não houver, a mais recente. `edicoes` vem em ordem decrescente de data. */
@@ -156,6 +158,17 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
     }
   }
 
+  /** Chegada na porta marcada pelo painel (mesmo registro do QR). Vale também para corrigir noites que passaram. */
+  async function checkin(r: Reserva, acao: "chegou" | "desfazer" | "nao_veio") {
+    const res = await fetch("/api/admin/checkin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ref: r.id, acao }) });
+    if (res.status === 401) return router.replace("/admin/login");
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) return setErro(j.erro || "Não foi possível registrar a chegada.");
+    setErro("");
+    await carregar(edicaoId, true);
+    onMudou?.();
+  }
+
   /** Destravar = cancelar a trava (a mesa volta a ficar livre no site). Sem confirmação: dá para travar de novo. */
   async function destravar(r: Reserva) {
     const res = await fetch(`/api/admin/reservas/${r.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "cancelada" }) });
@@ -192,6 +205,13 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
   const aguardando = reservas.filter((r) => r.status === "aguardando").length;
   const pessoasConfirmadas = reservas.filter((r) => r.status === "confirmada" && !ehTravada(r)).reduce((t, r) => t + r.pessoas, 0);
   const podeOcupar = !!edicao && edicao.data >= hojeISO() && edicao.status !== "cancelada";
+  // Comparecimento: das reservas confirmadas de clientes (e das que não vieram), quantas fizeram check-in.
+  const confirmadasCliente = reservas.filter((r) => r.status === "confirmada" && !ehTravada(r));
+  const chegaram = confirmadasCliente.filter((r) => r.chegou_em);
+  const naoVieram = reservas.filter((r) => r.status === "nao_compareceu");
+  const baseComparecimento = confirmadasCliente.length + naoVieram.length;
+  const noitePassouOuHoje = !!edicao && edicao.data <= hojeISO();
+  const horaDe = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
   const mesaEscolhida = mesas.find((m) => m.id === mesaSel);
   const reservaDaEscolhida = mesaSel ? clienteDaMesa(mesaSel) : undefined;
 
@@ -220,7 +240,7 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
         </label>
         {outras.map(([id, n]) => (
           <button key={id} type="button" style={{ ...s.botaoMiniOutline, borderColor: cor.mostarda, color: cor.mostarda, padding: "8px 12px" }} onClick={() => setEdicaoId(id)}>
-            {n} para confirmar em {formatData(id, "numerica")}
+            {n} para confirmar em {formatData(dataDaEdicaoId(id), "numerica")}
           </button>
         ))}
       </div>
@@ -232,6 +252,15 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
         <div className="qh-kpi"><span className="qh-kpi-rotulo">Mesas ocupadas</span><span className="qh-kpi-valor">{ativas.length}</span></div>
         <div className="qh-kpi"><span className="qh-kpi-rotulo">Pessoas confirmadas</span><span className="qh-kpi-valor">{pessoasConfirmadas}</span></div>
         <div className="qh-kpi"><span className="qh-kpi-rotulo">Mesas travadas</span><span className="qh-kpi-valor">{travadas.length}</span></div>
+        {noitePassouOuHoje && baseComparecimento > 0 && (
+          <div className="qh-kpi">
+            <span className="qh-kpi-rotulo">Chegaram (check-in)</span>
+            <span className="qh-kpi-valor">
+              {chegaram.length}/{baseComparecimento}
+              <small style={{ fontSize: 14, marginLeft: 8, color: cor.suave }}>{Math.round((chegaram.length / baseComparecimento) * 100)}%</small>
+            </span>
+          </div>
+        )}
       </div>
       {msg && <div style={{ ...s.aviso, marginTop: 12 }}>{msg}</div>}
 
@@ -364,8 +393,17 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
                   <td style={{ ...s.td, whiteSpace: "nowrap", color: cor.suave }}>
                     {new Date(r.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </td>
-                  <td style={s.td}><span style={selo(TOM_STATUS[r.status])}>{ROTULO_STATUS[r.status]}</span></td>
+                  <td style={s.td}>
+                    <span style={selo(TOM_STATUS[r.status])}>{ROTULO_STATUS[r.status]}</span>
+                    {r.status === "confirmada" && r.chegou_em && <span style={{ ...selo("ok"), marginLeft: 6 }}>Chegou {horaDe(r.chegou_em)}</span>}
+                  </td>
                   <td style={{ ...s.td, whiteSpace: "nowrap", textAlign: "right" }}>
+                    {noitePassouOuHoje && (r.status === "confirmada" || r.status === "nao_compareceu") && !r.chegou_em && (
+                      <button style={s.botaoMini} onClick={() => checkin(r, "chegou")}>Chegou</button>
+                    )}
+                    {noitePassouOuHoje && r.status === "confirmada" && r.chegou_em && (
+                      <button style={s.botaoMiniOutline} onClick={() => checkin(r, "desfazer")}>Desfazer chegada</button>
+                    )}
                     {r.status === "aguardando" && (
                       <>
                         <button style={s.botaoMini} onClick={() => mudarStatus(r, "confirmada")}>Confirmar</button>

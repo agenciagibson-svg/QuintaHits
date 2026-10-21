@@ -28,7 +28,8 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith("/api/casa")) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
     const url = req.nextUrl.clone();
     url.pathname = "/casa/login";
-    url.search = "";
+    // QR lido com a câmera do celular fora do app: depois do login, volta para o check-in daquela reserva.
+    url.search = /^\/casa\/checkin\/[0-9a-f-]{36}$/i.test(pathname) ? `?volta=${encodeURIComponent(pathname)}` : "";
     return NextResponse.redirect(url);
   }
 

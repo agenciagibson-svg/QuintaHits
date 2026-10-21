@@ -17,10 +17,16 @@ const nextConfig: NextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "X-Frame-Options", value: "SAMEORIGIN" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-        // O site não usa câmera, microfone, localização nem pagamento do navegador.
-        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
       ],
     },
+    // O site não usa câmera, microfone, localização nem pagamento do navegador...
+    {
+      source: "/:caminho((?!casa(?:/|$)).*)",
+      headers: [{ key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" }],
+    },
+    // ...só o app da casa usa a câmera, para ler o QR de entrada (check-in na porta).
+    { source: "/casa", headers: [{ key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=()" }] },
+    { source: "/casa/:path*", headers: [{ key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=()" }] },
     // Painel e sua API nunca ficam em cache de navegador ou de intermediários.
     {
       source: "/(admin|api/admin)/:path*",

@@ -472,3 +472,13 @@ button { font: inherit; cursor: pointer; }
   max-width: calc(100vw - 32px);
 }
 .atualizacao button { border: 0; border-radius: 999px; padding: 7px 14px; background: #D5A62A; color: #171717; font: 700 13px/1 "DM Sans", system-ui, sans-serif; cursor: pointer; }
+
+/* Página da reserva do cliente (QR de entrada) */
+.minha-reserva { max-width: 520px; }
+.minha-reserva__noite { margin: 0; font-size: 17px; font-weight: 500; }
+.minha-reserva__quem { margin: 4px 0 0; opacity: 0.75; }
+.minha-reserva__situacao { margin: 18px 0 0; font-size: 16px; }
+.minha-reserva__qr { margin-top: 18px; background: #fff; border: 2px solid var(--preto); border-radius: 16px; padding: 18px; text-align: center; }
+.minha-reserva__qr svg { width: min(100%, 300px); height: auto; display: block; margin: 0 auto; }
+.minha-reserva__qr p { margin: 10px 0 2px; font-size: 18px; letter-spacing: 0.04em; }
+.minha-reserva__qr small { opacity: 0.6; }

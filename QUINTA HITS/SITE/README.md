@@ -77,6 +77,18 @@ Precisa de um número de telefone **só para o sistema** — enquanto estiver na
 
 Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas na Meta.
 
+## Check-in na entrada (QR code)
+
+- **Cliente:** cada reserva tem a página `/minha-reserva/<id>` com o QR de entrada (só primeiro nome, mesa, noite e casa).
+  O link vai na mensagem "Avisar no WhatsApp" de reserva confirmada e no botão "Ver meu QR de entrada" da tela do pedido.
+- **Porta:** no app da casa, **Ler QR na entrada** abre a câmera (leitor do navegador ou jsQR); também dá para digitar o
+  código (HG-482193) ou tocar **Chegou** no cartão. QR lido com a câmera normal do celular abre `/casa/checkin/<id>`
+  (pede login da casa uma vez e volta para o check-in). O painel tem **Chegou / Desfazer chegada** e o KPI de comparecimento.
+- **Não compareceu:** numa noite em que a porta fez ao menos um check-in, a reserva confirmada sem check-in depois de
+  abertura + tolerância (Regras da noite) vira *não compareceu* e solta a mesa. Chegou atrasado: a leitura devolve a mesa.
+  Noite sem nenhum check-in não é tocada.
+- Banco: `supabase/migracao-2026-10-21-checkin.sql` (rodar ANTES do deploy). Código: `src/lib/checkin.ts`, `src/app/casa/Porta.tsx`.
+
 ## Atualização automática depois do deploy
 
 Cada `vercel --prod` gera uma versão nova (`VERCEL_DEPLOYMENT_ID`, fixada no build em `NEXT_PUBLIC_VERSAO`). Site, páginas

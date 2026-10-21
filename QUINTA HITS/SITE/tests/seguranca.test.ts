@@ -10,7 +10,14 @@ describe("cabeçalhos de segurança e robots", () => {
     expect(todas["X-Content-Type-Options"]).toBe("nosniff");
     expect(todas["X-Frame-Options"]).toBe("SAMEORIGIN");
     expect(todas["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
-    expect(todas["Permissions-Policy"]).toContain("camera=()");
+    // Câmera: bloqueada no site todo, liberada (só para o próprio site) no app da casa, para ler o QR na porta.
+    const politica = (fonte: string) => regras.find((r) => r.source === fonte)?.headers.find((h) => h.key === "Permissions-Policy")?.value;
+    expect(politica("/:caminho((?!casa(?:/|$)).*)")).toContain("camera=()");
+    expect(politica("/casa")).toContain("camera=(self)");
+    expect(politica("/casa/:path*")).toContain("camera=(self)");
+    const fora = new RegExp("^/((?!casa(?:/|$)).*)$");
+    for (const c of ["/", "/reservar", "/admin", "/harley-grill", "/casas", "/minha-reserva/x"]) expect(fora.test(c), c).toBe(true);
+    for (const c of ["/casa", "/casa/checkin/x"]) expect(fora.test(c), c).toBe(false);
     const painel = regras.find((r) => r.source.includes("admin"));
     expect(painel?.headers).toEqual([{ key: "Cache-Control", value: "no-store" }]);
   });

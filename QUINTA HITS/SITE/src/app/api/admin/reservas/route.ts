@@ -44,7 +44,7 @@ export async function GET(req: Request) {
 
   const { data, error } = await supabaseAdmin()
     .from("reservas")
-    .select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, expira_em, created_at, origem_reserva, observacoes")
+    .select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, expira_em, created_at, origem_reserva, observacoes, chegou_em")
     .eq("edicao_id", edicao)
     .order("created_at", { ascending: true });
 
