@@ -14,8 +14,9 @@ vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "www.q
 
 import { lerReferencia, marcarNaoComparecimentos, noitesEmAndamento, registrarChegada, _reiniciarPassadaNaoComparecimento } from "@/lib/checkin";
 import { POST as checkinCasa } from "@/app/api/casa/checkin/route";
-import MinhaReserva from "@/app/minha-reserva/[id]/page";
+import MinhaReserva, { generateMetadata as metadadosDaReserva } from "@/app/minha-reserva/[id]/page";
 import { _reiniciarLimites } from "@/lib/limiteTaxa";
+import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 
 let banco: BancoTeste;
 beforeAll(async () => { banco = await criarBancoTeste(); });
@@ -45,6 +46,13 @@ describe("leitura do QR / código (puro)", () => {
     expect(lerReferencia(" QH 482193 ")).toEqual({ codigo: "482193", prefixo: "QH" });
     expect(lerReferencia("482193")).toEqual({ codigo: "482193", prefixo: null });
     for (const ruim of ["", "12345", "abc", "https://evil.com", null, 42]) expect(lerReferencia(ruim), String(ruim)).toBeNull();
+  });
+
+  it("mensagem de confirmação leva o link do QR numa linha só dele (a prévia do WhatsApp mostra o QR)", () => {
+    const url = linkWhatsappCliente({ id: "0b9c3c1e-4f2a-4d4e-9c1a-2b3c4d5e6f70", nome: "Junior Silva", whatsapp: "34999998888", pessoas: 4, status: "confirmada", codigo: "HG-957192" }, { data: "2026-11-06", horario: "20h", casa: "harley-grill" }, "33");
+    const texto = decodeURIComponent(url.split("text=")[1]);
+    expect(texto).toContain("Código HG-957192.");
+    expect(texto).toMatch(/\n\nSeu QR de entrada \(mostre na porta\):\nhttps?:\/\/[^\s]+\/minha-reserva\/0b9c3c1e-4f2a-4d4e-9c1a-2b3c4d5e6f70\n\nTe esperamos!$/);
   });
 
   it("de madrugada a noite de ontem continua em andamento", () => {
@@ -165,6 +173,10 @@ describe("check-in na porta", () => {
       expect(html).toContain("QH-777777");
       expect(html).toContain("Bruna ·"); // só o primeiro nome
       expect(html).not.toContain("Silva");
+      // Prévia do link no WhatsApp: título com mesa, noite e casa (a imagem é o QR, opengraph-image.tsx).
+      const meta = await metadadosDaReserva({ params: Promise.resolve({ id }) });
+      expect(meta.openGraph?.title).toBe("Reserva confirmada · Mesa 5 · 07/01 · QUINTA HITS");
+      expect(String(meta.description)).toContain("QR de entrada");
       const travada = await reserva({ mesa: await criarMesa(banco, "8"), whatsapp: "", nome: "Mesa travada", origem: "admin" });
       await expect(MinhaReserva({ params: Promise.resolve({ id: travada }) })).rejects.toThrow();
     } finally {

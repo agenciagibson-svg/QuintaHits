@@ -28,7 +28,7 @@ export function linkWhatsappCliente(
   const quando = `dia ${data}`;
   const texto =
     r.status === "confirmada"
-      ? `Olá, ${primeiroNome}! Sua reserva ${casa.naCasa} está confirmada: mesa ${mesa} para ${r.pessoas} pessoa(s), ${quando}${hora}${local}.${r.codigo ? ` Código ${r.codigo}.` : ""}${r.id ? ` Seu QR de entrada (mostre na porta): ${linkDoQr(r.id)}` : ""} Te esperamos!`
+      ? `Olá, ${primeiroNome}! Sua reserva ${casa.naCasa} está confirmada: mesa ${mesa} para ${r.pessoas} pessoa(s), ${quando}${hora}${local}.${r.codigo ? ` Código ${r.codigo}.` : ""}${r.id ? `\n\nSeu QR de entrada (mostre na porta):\n${linkDoQr(r.id)}\n\n` : " "}Te esperamos!`
       : r.status === "nao_compareceu"
         ? `Olá, ${primeiroNome}! Sentimos sua falta ${casa.naCasa} em ${data}: a mesa ${mesa} foi liberada porque não registramos sua chegada até o fim da tolerância. Quando quiser, é só reservar de novo.`
       : r.status === "cancelada" || r.status === "expirada"
