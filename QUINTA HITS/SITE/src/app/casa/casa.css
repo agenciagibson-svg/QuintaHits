@@ -68,6 +68,7 @@
 .cs-quinta[aria-pressed="true"] { background: var(--cs-verde); color: var(--cs-creme); border-color: var(--cs-verde); }
 .cs-quinta-data { font-family: var(--display); font-size: 20px; line-height: 1.05; display: block; }
 .cs-quinta-artista { font-size: 12px; opacity: 0.75; display: block; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-quinta-casa { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700; display: block; margin-top: 2px; opacity: 0.9; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-contador {
   position: absolute;
   top: -7px;

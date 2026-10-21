@@ -1,7 +1,8 @@
 import "server-only";
 import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { emailDaCasa } from "@/lib/casaAuth";
+import { casasDoEmail, emailDaCasa } from "@/lib/casaAuth";
+import { CASA_PADRAO, type CasaId } from "@/config/casas";
 
 /**
  * Avisos no celular do dono do bar (app da casa) quando chega pedido de mesa novo — Web Push com chaves VAPID.
@@ -57,10 +58,11 @@ export async function removerInscricao(endpoint: string, email?: string): Promis
 export type AvisoCasa = { titulo: string; corpo: string; url: string };
 
 /**
- * Manda o aviso para todos os celulares inscritos. Inscrição que o navegador já descartou (404/410) é apagada.
+ * Manda o aviso para os celulares inscritos de quem atende a casa do pedido (a equipe recebe de todas; o dono do
+ * Florindos, só da Quinta Hits). Inscrição que o navegador já descartou (404/410) é apagada.
  * Nunca lança erro: aviso é complementar e não pode atrapalhar a reserva.
  */
-export async function notificarCasa(aviso: AvisoCasa): Promise<{ enviados: number; removidos: number }> {
+export async function notificarCasa(aviso: AvisoCasa, casa: CasaId = CASA_PADRAO): Promise<{ enviados: number; removidos: number }> {
   const publica = chavePublicaPush();
   const privada = process.env.VAPID_PRIVATE_KEY?.trim();
   if (!publica || !privada) return { enviados: 0, removidos: 0 };
@@ -79,6 +81,7 @@ export async function notificarCasa(aviso: AvisoCasa): Promise<{ enviados: numbe
         removidos++;
         return;
       }
+      if (!casasDoEmail(l.email).includes(casa)) return; // não atende esta casa: sem aviso
       try {
         await webpush.sendNotification({ endpoint: l.endpoint, keys: { p256dh: l.p256dh, auth: l.auth } }, carga, {
           vapidDetails: { subject: assunto, publicKey: publica, privateKey: privada },

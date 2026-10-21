@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { atorDaCasa, exigirSessaoCasa } from "@/lib/casaSessao";
+import { atorDaCasa, casasDaSessao, exigirSessaoCasa } from "@/lib/casaSessao";
 import { mudarStatusReserva } from "@/lib/statusReserva";
-import { CASA_PADRAO } from "@/config/casas";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +11,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const { id } = await params;
   const body = await req.json().catch(() => null);
-  const r = await mudarStatusReserva(id, body?.status, await atorDaCasa(), { origem: "casa", somenteDeHojeEmDiante: true, somenteDaCasa: CASA_PADRAO });
+  const r = await mudarStatusReserva(id, body?.status, await atorDaCasa(), { origem: "casa", somenteDeHojeEmDiante: true, somenteDaCasa: await casasDaSessao() });
   if (!r.ok) return NextResponse.json({ erro: r.erro }, { status: r.status });
   return NextResponse.json({ reserva: r.reserva });
 }

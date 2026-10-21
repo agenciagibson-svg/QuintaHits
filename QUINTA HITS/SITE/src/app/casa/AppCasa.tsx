@@ -8,7 +8,7 @@ const SEMANA_CURTA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 import { formatarWhatsapp, type StatusReserva } from "@/lib/reserva";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 
-type EdicaoCasa = { id: string; data: string; artista: string; horario: string; local: string; status: string };
+type EdicaoCasa = { id: string; data: string; artista: string; horario: string; local: string; status: string; casa: string };
 type ReservaCasa = {
   id: string;
   edicao_id: string;
@@ -21,7 +21,8 @@ type ReservaCasa = {
   created_at: string;
 };
 type MesaCasa = { id: string; numero: string; lugares: number; area: string };
-type Dados = { edicoes: EdicaoCasa[]; reservas: ReservaCasa[]; mesas: MesaCasa[]; pendentes: number };
+type CasaDoApp = { id: string; nome: string };
+type Dados = { casas?: CasaDoApp[]; edicoes: EdicaoCasa[]; reservas: ReservaCasa[]; mesas: MesaCasa[]; pendentes: number };
 type Pergunta = { id: string; status: "confirmada" | "cancelada"; texto: string } | null;
 type EstadoAvisos = "carregando" | "indisponivel" | "precisa-instalar" | "desativado" | "ativado" | "bloqueado";
 
@@ -242,6 +243,11 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
   }
 
   const edicao = dados?.edicoes.find((e) => e.id === edicaoId);
+  // Mais de uma casa no app (a equipe): cada noite mostra de que casa é.
+  const casas = dados?.casas ?? [];
+  const variasCasas = casas.length > 1;
+  const nomeDaCasa = (id: string) => casas.find((c) => c.id === id)?.nome ?? "";
+  const marca = casas.length === 1 && casas[0].id !== "quinta-hits" ? casas[0].nome.toUpperCase() : variasCasas ? "QUINTA HITS · TODAS AS CASAS" : "QUINTA HITS · FLORINDOS BAR";
   const numeroMesa = useCallback((id: string) => dados?.mesas.find((m) => m.id === id)?.numero ?? "?", [dados]);
   const daNoite = useMemo(() => (dados?.reservas ?? []).filter((r) => r.edicao_id === edicaoId), [dados, edicaoId]);
   const aguardando = daNoite.filter((r) => r.status === "aguardando");
@@ -325,7 +331,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
       <header className="cs-topo">
         <div className="cs-topo-linha">
           <div>
-            <div className="cs-marca">QUINTA HITS · FLORINDOS BAR</div>
+            <div className="cs-marca">{marca}</div>
             <h1 className="cs-titulo">Reservas</h1>
           </div>
           <button className="cs-botao-topo" onClick={sair}>Sair</button>
@@ -340,6 +346,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
               <button key={e.id} className="cs-quinta" aria-pressed={e.id === edicaoId} onClick={() => setEdicaoId(e.id)}>
                 <span className="cs-quinta-data">{SEMANA_CURTA[diaSemana(e.data)]} {formatData(e.data, "numerica")}</span>
                 <span className="cs-quinta-artista">{e.artista || "Line-up em breve"}</span>
+                {variasCasas && <span className="cs-quinta-casa">{nomeDaCasa(e.casa)}</span>}
                 {n > 0 && <span className="cs-contador" aria-label={`${n} para aprovar`}>{n}</span>}
               </button>
             );
@@ -381,6 +388,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
                 <strong>{formatData(edicao.data, "longa")}</strong>
                 {edicao.horario ? ` · ${edicao.horario}` : ""}
                 {edicao.artista ? ` · ${edicao.artista}` : ""}
+                {variasCasas && nomeDaCasa(edicao.casa) ? ` · ${nomeDaCasa(edicao.casa)}` : ""}
               </p>
             )}
             <div className="cs-resumo">

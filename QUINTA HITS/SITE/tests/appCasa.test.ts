@@ -25,7 +25,7 @@ vi.mock("web-push", () => ({
 }));
 
 import { COOKIE_NAME, criarSessao } from "@/lib/adminAuth";
-import { COOKIE_CASA, emailDaCasa, sessaoCasaValida } from "@/lib/casaAuth";
+import { COOKIE_CASA, casasDoEmail, emailDaCasa, sessaoCasaValida } from "@/lib/casaAuth";
 import { verificarLoginCasa } from "@/lib/adminLogin";
 import { middleware } from "@/middleware";
 import { GET as listar } from "@/app/api/casa/reservas/route";
@@ -56,6 +56,15 @@ describe("quem entra no app da casa", () => {
     expect(await sessaoCasaValida(await criarSessao(DONO, "casa"))).toBe(true);
     vi.stubEnv("CASA_EMAILS", "");
     expect(await sessaoCasaValida(await criarSessao(DONO, "casa"))).toBe(false); // tirou da lista: perde o acesso na hora
+  });
+
+  it("casas de cada um: equipe vê todas com reserva; dono do Florindos só a Quinta Hits; pessoal do Harley só o Harley", () => {
+    vi.stubEnv("CASA_EMAILS_HARLEY_GRILL", "gerente@harley.com");
+    expect(casasDoEmail("equipe@gibson.com")).toEqual(["quinta-hits", "harley-grill"]); // Solarium ainda sem reserva
+    expect(casasDoEmail(DONO)).toEqual(["quinta-hits"]);
+    expect(casasDoEmail("Gerente@Harley.com")).toEqual(["harley-grill"]);
+    expect(emailDaCasa("gerente@harley.com")).toBe(true);
+    expect(casasDoEmail("cliente@x.com")).toEqual([]);
   });
 
   it("login: e-mail fora das listas é recusado sem nem consultar a senha", async () => {
@@ -218,6 +227,15 @@ describe("avisos de pedido novo (Web Push)", () => {
     push.envios = [];
     expect(await notificarCasa({ titulo: "t", corpo: "c", url: "/casa" })).toEqual({ enviados: 1, removidos: 1 });
     expect(push.envios.map((e) => e.endpoint)).toEqual([FCM]);
+
+    // Pedido do Harley: só o celular da equipe recebe (o dono do Florindos não); a inscrição dele continua valendo.
+    const EQUIPE_FCM = "https://fcm.googleapis.com/fcm/send/equipe";
+    await banco.sql("insert into casa_push (endpoint, p256dh, auth, email) values ($1, $2, $3, 'equipe@gibson.com')", [EQUIPE_FCM, CHAVES.p256dh, CHAVES.auth]);
+    push.envios = [];
+    expect(await notificarCasa({ titulo: "t", corpo: "c", url: "/casa" }, "harley-grill")).toEqual({ enviados: 1, removidos: 0 });
+    expect(push.envios.map((e) => e.endpoint)).toEqual([EQUIPE_FCM]);
+    expect((await banco.sql("select endpoint from casa_push where email = $1", [DONO])).length).toBe(1);
+    await banco.sql("delete from casa_push where endpoint = $1", [EQUIPE_FCM]);
 
     push.falharCom = 410;
     expect(await notificarCasa({ titulo: "t", corpo: "c", url: "/casa" })).toEqual({ enviados: 0, removidos: 1 });

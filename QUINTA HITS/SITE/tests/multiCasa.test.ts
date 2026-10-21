@@ -27,7 +27,8 @@ vi.mock("@/lib/adminSessao", () => ({
   atorDaSessao: async () => "equipe@teste.com",
   auditarPainel: async () => undefined,
 }));
-vi.mock("@/lib/casaSessao", () => ({ exigirSessaoCasa: async () => null, atorDaCasa: async () => "dono@florindos.com" }));
+const appCasa = vi.hoisted(() => ({ casas: ["quinta-hits"] as string[] }));
+vi.mock("@/lib/casaSessao", () => ({ exigirSessaoCasa: async () => null, atorDaCasa: async () => "dono@florindos.com", casasDaSessao: async () => appCasa.casas }));
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 vi.mock("@/lib/pushCasa", () => ({ notificarCasa: vi.fn(async () => ({ enviados: 0, removidos: 0 })) }));
 
@@ -266,8 +267,13 @@ describe("reserva pelo site do Harley Grill (tudo simulado)", () => {
     const [linha] = await banco.sql<{ status: string; expira_em: Date }>("select status, expira_em from reservas");
     expect(linha.status).toBe("aguardando");
     expect(new Date(linha.expira_em).toISOString()).toBe("2099-01-08T02:59:00.000Z"); // fim do dia da edição, Uberlândia
-    // O app do dono do Florindos não é avisado de pedido do Harley.
-    expect(notificarCasa).not.toHaveBeenCalled();
+    // Aviso só para quem atende o Harley (a equipe): o filtro por casa fica no notificarCasa.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(notificarCasa).toHaveBeenCalledTimes(1);
+    const [aviso, casaDoAviso] = vi.mocked(notificarCasa).mock.calls[0];
+    expect(casaDoAviso).toBe(HG);
+    expect(aviso.titulo).toBe("Novo pedido de mesa · Harley Grill");
+    expect(aviso.url).toBe(`/casa?edicao=${ED_HG}`);
   });
 
   it("chave do site desligada: fechado também para o Harley", async () => {
@@ -284,6 +290,7 @@ describe("reserva pelo site do Harley Grill (tudo simulado)", () => {
 
   it("app da casa (Florindos): não lista nem altera pedido do Harley", async () => {
     vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    appCasa.casas = ["quinta-hits"];
     const { id } = await (await post(corpo())).json();
     const lista = await (await appCasaListar()).json();
     expect(lista.edicoes.map((e: { id: string }) => e.id)).toEqual([DATA]);
@@ -292,6 +299,24 @@ describe("reserva pelo site do Harley Grill (tudo simulado)", () => {
     const mudar = await appCasaMudar(new Request("http://x", { method: "PUT", body: JSON.stringify({ status: "confirmada" }) }), { params: Promise.resolve({ id }) });
     expect(mudar.status).toBe(404);
     expect(await statusDaReserva(banco, id)).toBe("aguardando");
+  });
+
+  it("app da casa (equipe): lista as noites e os pedidos do Harley junto e aprova", async () => {
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    appCasa.casas = ["quinta-hits", HG];
+    try {
+      const { id } = await (await post(corpo())).json();
+      const lista = await (await appCasaListar()).json();
+      expect(lista.casas).toEqual([{ id: "quinta-hits", nome: "QUINTA HITS" }, { id: HG, nome: "Harley Grill" }]);
+      expect(lista.edicoes.map((e: { id: string; casa: string }) => [e.id, e.casa])).toEqual([[DATA, "quinta-hits"], [ED_HG, HG]]);
+      expect(lista.reservas.map((r: { id: string }) => r.id)).toEqual([id]);
+      expect(lista.mesas.map((m: { numero: string }) => m.numero).sort()).toEqual(["12", "T1"]);
+      const mudar = await appCasaMudar(new Request("http://x", { method: "PUT", body: JSON.stringify({ status: "confirmada" }) }), { params: Promise.resolve({ id }) });
+      expect(mudar.status).toBe(200);
+      expect(await statusDaReserva(banco, id)).toBe("confirmada");
+    } finally {
+      appCasa.casas = ["quinta-hits"];
+    }
   });
 });
 

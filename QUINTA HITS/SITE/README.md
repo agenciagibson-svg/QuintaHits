@@ -80,7 +80,7 @@ Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas
 ## Várias casas: Harley Grill (`/harley-grill`)
 
 O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mesas, edições, regras e planta**. A Quinta Hits
-(Florindos Bar) segue exatamente como antes: o site, a programação, o app da casa (`/casa`) e o WhatsApp são só dela.
+(Florindos Bar) segue exatamente como antes: o site, a programação e o WhatsApp são só dela.
 
 - **Página de reserva:** `/harley-grill` (também abre pelo domínio próprio, ver abaixo). Mostra só edições do Harley
   completas, liberadas para o site e dentro do prazo. O pedido é sempre no **modo formulário**: nasce *aguardando*, com
@@ -102,6 +102,10 @@ O mesmo sistema de reservas atende outras casas, cada uma com as **próprias mes
   "Reservar mesa" → `/harley-grill`). As noites do Harley entram na **agenda única** (home e `/programacao`), em ordem
   de data junto com as do Florindos; o card mostra "Harley Grill" e o link "Reservar mesa" leva ao mapa do Harley.
   Endereço, cidade, "quando" e Instagram: painel → **Casa**, com o Harley escolhido.
+- **App da casa (PWA `/casa`):** cada pessoa vê as casas que atende. A equipe (`ADMIN_EMAILS`) vê todas as casas com
+  reserva pelo site, com o nome da casa em cada noite, aprova/recusa e recebe o aviso de pedido novo de todas. O dono do
+  Florindos (`CASA_EMAILS`) continua vendo e recebendo só a Quinta Hits. Para dar acesso só ao Harley a alguém da casa:
+  `CASA_EMAILS_HARLEY_GRILL="gerente@..."` na Vercel (e a conta criada no Supabase Auth, como as demais).
 - **Configuração da casa** (nome, código, planta, tamanho das mesas): `src/config/casas.ts`.
 
 ### Ativar (uma vez, nesta ordem)

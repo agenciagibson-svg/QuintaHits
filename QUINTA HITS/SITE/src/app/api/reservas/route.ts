@@ -125,17 +125,18 @@ export async function POST(req: Request) {
       await registrarAuditoria({ ator: "site", acao: "reserva_site_criada", entidade: "reserva", entidadeId: data.id, detalhe: { origem: "site", politica_aceita: true, ...(manual ? { modo: "manual" } : {}), ...(casa !== CASA_PADRAO ? { casa } : {}) } });
 
       if (manual) {
-        // Aviso no celular do dono do Florindos (app da casa), depois de responder ao cliente. Sem nome nem telefone.
-        // O app da casa é só da Quinta Hits: pedido de outra casa aparece no painel (/admin).
-        if (casa === CASA_PADRAO) {
-          agendarDepois(() =>
-            notificarCasa({
-              titulo: "Novo pedido de mesa",
+        // Aviso no celular de quem atende a casa (app da casa), depois de responder ao cliente. Sem nome nem telefone.
+        // Pedido do Harley vai só para quem atende o Harley (a equipe); o dono do Florindos só recebe os da Quinta Hits.
+        agendarDepois(() =>
+          notificarCasa(
+            {
+              titulo: casa === CASA_PADRAO ? "Novo pedido de mesa" : `Novo pedido de mesa · ${CASAS[casa].nome}`,
               corpo: `Mesa ${mesa.numero} · ${pessoas} pessoa${pessoas > 1 ? "s" : ""} · dia ${formatData(dataDaEdicaoId(edicaoId), "numerica")}`,
-              url: `/casa?edicao=${edicaoId}`,
-            }),
-          );
-        }
+              url: `/casa?edicao=${encodeURIComponent(edicaoId)}`,
+            },
+            casa,
+          ),
+        );
         return NextResponse.json({ ok: true, id: data.id, mesa: mesa.numero, codigo, manual: true }, { status: 201 });
       }
 
