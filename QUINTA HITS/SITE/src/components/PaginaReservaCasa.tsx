@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { CASAS, type CasaId } from "@/config/casas";
 import { situacaoDoSite } from "@/lib/regras";
 import { regrasPublicas } from "@/lib/regrasEdicao";
@@ -39,7 +40,10 @@ export default async function PaginaReservaCasa({ casa }: { casa: CasaId }) {
       <header className="pagina-casa__topo">
         <div className="wrap pagina-casa__topo-in">
           <span className="pagina-casa__nome">{c.nome}</span>
-          <span className="eyebrow">Reserva de mesa</span>
+          {/* Volta ao site da QUINTA HITS (home, agenda das noites e "Onde"). */}
+          <Link className="btn btn--creme btn--p pagina-casa__voltar" href="/">
+            ← Voltar ao site
+          </Link>
         </div>
       </header>
       <section className="secao secao--creme pagina-casa__secao">

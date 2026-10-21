@@ -454,3 +454,5 @@ button { font: inherit; cursor: pointer; }
 .local--outra { margin-top: clamp(56px, 8vw, 104px); padding-top: clamp(40px, 6vw, 72px); border-top: 2px solid rgba(23, 23, 23, 0.12); }
 .pagina-casa__endereco { margin: 14px 0 0; font-size: 16px; opacity: 0.8; }
 .pagina-casa__endereco a { text-decoration: underline; text-underline-offset: 2px; }
+.pagina-casa__topo-in { align-items: center; }
+.pagina-casa__voltar { white-space: nowrap; }
