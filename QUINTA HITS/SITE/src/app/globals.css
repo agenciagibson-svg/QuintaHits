@@ -296,6 +296,7 @@ button { font: inherit; cursor: pointer; }
 .reserva__edicoes { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
 .reserva__edicao { text-align: left; line-height: 1.1; }
 .reserva__edicao small { display: block; font-family: var(--texto); font-size: 13px; letter-spacing: 0; text-transform: none; opacity: 0.8; margin-top: 2px; }
+.reserva__edicao small.reserva__edicao-casa { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
 .reserva__painel { padding: clamp(20px, 3vw, 32px); }
 .reserva__painel h2 { margin: 0 0 6px; }
 .reserva__form { display: grid; gap: 14px; margin-top: 18px; }

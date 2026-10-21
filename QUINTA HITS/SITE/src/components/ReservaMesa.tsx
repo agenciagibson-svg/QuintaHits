@@ -45,12 +45,15 @@ export default function ReservaMesa({
   regras,
   manual = false,
   casa = CASA_PADRAO,
+  mostrarCasa = false,
 }: {
   edicoes: Edicao[];
   instagram: string;
   regras?: Record<string, RegrasPublicas>;
   manual?: boolean;
   casa?: CasaId;
+  /** Diz a casa junto da data (em /reservar, onde aparecem noites de mais de uma casa). */
+  mostrarCasa?: boolean;
 }) {
   const configCasa = CASAS[casa];
   // Mapa da casa (proporção, tamanho das mesas, área em destaque). Quinta Hits: o mapa de sempre (4:3).
@@ -236,7 +239,10 @@ export default function ReservaMesa({
         </div>
 
         <div className="placa placa--p placa--vazada reserva__painel">
-          <div className="eyebrow">{formatData(edicao.data, "longa")}</div>
+          <div className="eyebrow">
+            {formatData(edicao.data, "longa")}
+            {mostrarCasa ? ` · ${casa === CASA_PADRAO ? edicao.local || configCasa.nome : configCasa.nome}` : ""}
+          </div>
           <h2 className="display h-3">{edicao.artista || (casa === CASA_PADRAO ? "Line-up em breve" : configCasa.nome)}</h2>
           {regras?.[edicao.id] && <RegrasDaNoite r={regras[edicao.id]} />}
           {!mesa ? (
