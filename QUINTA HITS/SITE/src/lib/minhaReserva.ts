@@ -2,7 +2,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { hojeISO } from "@/lib/edicao";
-import { expirarPedidosVencidos } from "@/lib/reservas";
+import { expirarPedidosDeVezEmQuando } from "@/lib/expiracao";
 import { CASAS, casaDaEdicaoId, dataDaEdicaoId, type Casa } from "@/config/casas";
 import type { StatusReserva } from "@/lib/reserva";
 
@@ -49,7 +49,7 @@ export type MinhaReserva = {
 export async function lerMinhaReserva(ref: string): Promise<MinhaReserva | null> {
   const id = await resolverId(ref);
   if (!id) return null;
-  await expirarPedidosVencidos().catch(() => undefined);
+  await expirarPedidosDeVezEmQuando().catch(() => undefined);
   const db = supabaseAdmin();
   const { data } = await db.from("reservas").select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, chegou_em").eq("id", id).maybeSingle();
   if (!data || (data as { whatsapp: string }).whatsapp === "") return null;

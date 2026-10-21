@@ -77,6 +77,20 @@ Precisa de um número de telefone **só para o sistema** — enquanto estiver na
 
 Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas na Meta.
 
+## Segurança (revisão de 21/10/2026)
+
+- **Login (painel e app):** além do limite por endereço, limite por e-mail no banco (`login_tentativas`): 5 senhas erradas
+  bloqueiam o e-mail por 15 min, dobrando até 1 h. Todo erro de login demora o mesmo tempo (não revela quem tem acesso).
+- **Sair:** encerra o cookie no servidor (`sessoes_encerradas`); uma cópia do cookie deixa de valer.
+- **CSRF:** POST/PUT/DELETE em `/api/admin` e `/api/casa` vindos de outro site são recusados (cabeçalho Origin).
+- **Reserva pelo site:** no máximo 3 pedidos abertos por endereço (IP guardado só como impressão com segredo) por noite;
+  o Turnstile precisa ter sido resolvido no próprio site. Painel: "Recusar todos os pedidos para confirmar" da noite.
+- **Check-in pelo link do QR:** abrir o link só mostra a reserva; a entrada só é registrada com o toque em "Confirmar".
+- **Cabeçalhos:** HSTS, CSP (sem plugins, sem formulário para fora, sem o site dentro de outro), páginas de reserva de
+  cliente com `noindex` e fora do robots.txt. Dados estruturados (JSON-LD) escapados contra `</script>`.
+- Banco: `supabase/migracao-2026-10-21-seguranca.sql` (pode rodar antes ou depois do deploy). Código: `src/lib/protecao.ts`.
+- **No painel do Supabase (manual):** Authentication → desligar cadastro aberto (sign-ups) e ligar MFA para a equipe.
+
 ## Página de cada noite (`/noite/<id da edição>`)
 
 O link para divulgar uma noite (stories, WhatsApp, bio), de qualquer casa: data, atração, tema, destaque, onde (endereço e

@@ -160,6 +160,21 @@ export async function registrarChegada(
   return { ok: true, reserva: await paraPorta(nova as unknown as Linha), jaTinhaChegado: false };
 }
 
+/**
+ * Só CONSULTA (não muda nada): o que a porta vai liberar. Usada pelo link do QR aberto fora do app — a equipe vê a
+ * reserva e confirma com um toque (abrir um link nunca registra entrada nem aprova pedido sozinho).
+ */
+export async function consultarNaPorta(ref: unknown, casas: readonly CasaId[], agora = new Date()): Promise<ResultadoCheckin> {
+  const achada = await encontrar(ref, casas, agora);
+  if (!("linha" in achada)) return { ok: false, status: achada.status, erro: achada.erro };
+  const l = achada.linha;
+  const reserva = await paraPorta(l);
+  if (l.origem_reserva === "admin" && l.whatsapp === "") return { ok: false, status: 409, erro: `A mesa ${reserva.mesa} está travada nesta noite (não é reserva de cliente).`, reserva };
+  if (!noitesEmAndamento(agora).includes(dataDaEdicaoId(l.edicao_id))) return { ok: false, status: 409, erro: "Essa reserva não é para hoje.", reserva };
+  if (l.status === "cancelada" || l.status === "expirada") return { ok: false, status: 409, erro: l.status === "cancelada" ? "Essa reserva foi cancelada." : "Esse pedido expirou sem confirmação.", reserva };
+  return { ok: true, reserva, jaTinhaChegado: l.status === "confirmada" && !!l.chegou_em };
+}
+
 /** Só uma passada por minuto por instância: roda junto de toda leitura de reservas (não há tarefa agendada). */
 let ultimaPassada = 0;
 export const _reiniciarPassadaNaoComparecimento = () => {

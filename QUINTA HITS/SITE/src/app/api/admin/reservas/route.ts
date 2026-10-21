@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   try {
     await expirarPedidosVencidos();
   } catch (e) {
-    return NextResponse.json({ erro: e instanceof Error ? e.message : "Erro ao expirar pedidos." }, { status: 500 });
+    return NextResponse.json({ erro: erroInterno(e as { code?: string }) }, { status: 500 });
   }
 
   if (pendentes) {

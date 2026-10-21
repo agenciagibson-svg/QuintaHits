@@ -11,6 +11,7 @@ import { limiteExcedido } from "@/lib/limiteTaxa";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { agendarDepois } from "@/lib/agente/depois";
 import { notificarCasa } from "@/lib/pushCasa";
+import { PEDIDOS_ABERTOS_POR_ENDERECO, enderecoNoLimite, impressaoDoIp } from "@/lib/protecao";
 import { formatData } from "@/lib/edicao";
 import { reservasSiteLigadoPorEnv } from "@/lib/agente/ambiente";
 import { CASAS, CASA_PADRAO, casaDaEdicaoId, dataDaEdicaoId } from "@/config/casas";
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
   // Barreira extra contra abuso (10 pedidos a cada 10 min por endereço; vale por instância do servidor). Sem IP não limita ninguém.
   if (ip && limiteExcedido(`reserva:${ip}`, 10, 10 * 60_000)) return erro("Muitas tentativas. Aguarde alguns minutos e tente de novo.", 429);
-  if (!(await verificarTurnstile(body.turnstile, ip))) {
+  if (!(await verificarTurnstile(body.turnstile, ip, req.headers.get("host")))) {
     return erro("Não conseguimos confirmar que você não é um robô. Recarregue a página e tente de novo.", 403);
   }
 
@@ -105,21 +106,31 @@ export async function POST(req: Request) {
       return erro("Esse WhatsApp já tem reservas nesta edição. Fale com a gente para mudar.", 409);
     }
 
+    // Mesmo endereço segurando pedidos demais na mesma noite (conta no banco, vale para todas as instâncias): barra
+    // quem tenta ocupar o salão inteiro com pedidos falsos.
+    if (await enderecoNoLimite(edicaoId, ip)) {
+      return erro(`Já existem ${PEDIDOS_ABERTOS_POR_ENDERECO} pedidos feitos daqui para esta noite. Fale com a gente para pedir mais mesas.`, 429);
+    }
+
     const expiraEm = manual ? fimDoDiaDaEdicao(edicaoId) : new Date(Date.now() + PRAZO_CONFIRMACAO_MIN * 60_000).toISOString();
 
     // Código repetido entre pedidos aguardando é raro (6 dígitos), mas o índice do banco barra: tenta outro.
     for (let tentativa = 0; tentativa < 3; tentativa++) {
       const codigo = `${CASAS[casa].prefixoCodigo}-${String(randomInt(0, 1_000_000)).padStart(6, "0")}`;
-      const { data, error } = await db
+      const linha = { edicao_id: edicaoId, mesa_id: mesa.id, nome, whatsapp, pessoas, codigo, expira_em: expiraEm };
+      let { data, error } = await db
         .from("reservas")
-        .insert({ edicao_id: edicaoId, mesa_id: mesa.id, nome, whatsapp, pessoas, codigo, expira_em: expiraEm })
+        .insert({ ...linha, ...(ip ? { origem_ip_hash: impressaoDoIp(ip) } : {}) })
         .select("id")
         .single();
+      // Banco ainda sem a coluna da migração de segurança: grava sem ela (o limite por endereço só não conta).
+      if (error && (error.code === "42703" || error.code === "PGRST204")) ({ data, error } = await db.from("reservas").insert(linha).select("id").single());
 
       if (error?.code === "23505" && error.message.includes("reservas_codigo_aguardando")) continue;
       // Índice único do banco: outra pessoa pediu a mesma mesa um instante antes.
       if (error?.code === "23505") return erro("Essa mesa acabou de ser reservada. Escolha outra.", 409);
       if (error) throw error;
+      if (!data) throw new Error("Pedido gravado sem id.");
 
       // Prova do aceite da Política de Privacidade (sem nome nem telefone: só o fato e a origem).
       await registrarAuditoria({ ator: "site", acao: "reserva_site_criada", entidade: "reserva", entidadeId: data.id, detalhe: { origem: "site", politica_aceita: true, ...(manual ? { modo: "manual" } : {}), ...(casa !== CASA_PADRAO ? { casa } : {}) } });

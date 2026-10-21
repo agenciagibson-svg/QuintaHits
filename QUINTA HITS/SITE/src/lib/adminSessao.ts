@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { COOKIE_NAME, lerSessao, sessaoValida } from "@/lib/adminAuth";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { sessaoEncerrada } from "@/lib/protecao";
 
 /**
  * Checagem de sessão dentro de cada rota de admin — segunda camada além do middleware,
@@ -11,7 +12,8 @@ import { registrarAuditoria } from "@/lib/auditoria";
  */
 export async function exigirSessao(): Promise<NextResponse | null> {
   const valor = (await cookies()).get(COOKIE_NAME)?.value;
-  if (await sessaoValida(valor)) return null;
+  // Cookie encerrado com "Sair" (mesmo copiado) não vale mais.
+  if ((await sessaoValida(valor)) && !(await sessaoEncerrada(valor).catch(() => false))) return null;
   return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
 }
 

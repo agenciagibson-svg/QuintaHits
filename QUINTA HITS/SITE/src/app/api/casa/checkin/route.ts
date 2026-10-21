@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { atorDaCasa, casasDaSessao, exigirSessaoCasa } from "@/lib/casaSessao";
-import { registrarChegada } from "@/lib/checkin";
+import { consultarNaPorta, registrarChegada } from "@/lib/checkin";
 import { limiteExcedido } from "@/lib/limiteTaxa";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,21 @@ export const dynamic = "force-dynamic";
  * da reserva) ou o código digitado (HG-482193). `acao`: "chegou" (padrão), "desfazer" ou "nao_veio".
  * Só as casas de quem está no app e só as noites em andamento (hoje; de madrugada, a de ontem).
  */
+/** GET /api/casa/checkin?ref=… — só mostra a reserva (link do QR aberto fora do app): nada é registrado. */
+export async function GET(req: Request) {
+  const negado = await exigirSessaoCasa();
+  if (negado) return negado;
+  const ator = await atorDaCasa();
+  if (limiteExcedido(`checkin:${ator}`, 60, 60_000)) return NextResponse.json({ erro: "Muitas leituras seguidas. Aguarde um instante." }, { status: 429 });
+  try {
+    const r = await consultarNaPorta(new URL(req.url).searchParams.get("ref"), await casasDaSessao());
+    if (!r.ok) return NextResponse.json({ erro: r.erro, reserva: r.reserva ?? null }, { status: r.status });
+    return NextResponse.json({ reserva: r.reserva, jaTinhaChegado: r.jaTinhaChegado });
+  } catch {
+    return NextResponse.json({ erro: "Não foi possível consultar. Tente de novo." }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   const negado = await exigirSessaoCasa();
   if (negado) return negado;

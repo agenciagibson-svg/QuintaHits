@@ -4,11 +4,12 @@ import { NextResponse } from "next/server";
 import { lerSessao } from "@/lib/adminAuth";
 import { COOKIE_CASA, casasDoEmail, sessaoCasaValida } from "@/lib/casaAuth";
 import type { CasaId } from "@/config/casas";
+import { sessaoEncerrada } from "@/lib/protecao";
 
 /** Segunda camada além do middleware: toda rota /api/casa confere a sessão da casa antes de usar a service_role. */
 export async function exigirSessaoCasa(): Promise<NextResponse | null> {
   const valor = (await cookies()).get(COOKIE_CASA)?.value;
-  if (await sessaoCasaValida(valor)) return null;
+  if ((await sessaoCasaValida(valor)) && !(await sessaoEncerrada(valor).catch(() => false))) return null;
   return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
 }
 

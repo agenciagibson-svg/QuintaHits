@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { expirarPedidosVencidos } from "@/lib/reservas";
+import { expirarPedidosDeVezEmQuando } from "@/lib/expiracao";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   if (!UUID_RE.test(id)) return NextResponse.json({ erro: "Pedido não encontrado." }, { status: 404 });
   try {
-    await expirarPedidosVencidos();
+    await expirarPedidosDeVezEmQuando();
     const { data, error } = await supabaseAdmin().from("reservas").select("status").eq("id", id).maybeSingle();
     if (error) throw error;
     if (!data) return NextResponse.json({ erro: "Pedido não encontrado." }, { status: 404 });

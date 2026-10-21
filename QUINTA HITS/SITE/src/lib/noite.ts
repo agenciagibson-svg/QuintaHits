@@ -77,7 +77,7 @@ export function linkGoogleAgenda(n: Noite, url: string): string {
   return `https://calendar.google.com/calendar/render?${p.toString()}`;
 }
 
-const escaparIcs = (t: string) => t.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
+const escaparIcs = (t: string) => t.replace(/\\/g, "\\\\").replace(/\r\n|\r|\n/g, "\\n").replace(/([,;])/g, "\\$1");
 
 /** Arquivo .ics (iPhone, Outlook, qualquer agenda), com lembrete 3 horas antes. */
 export function icsDaNoite(n: Noite, url: string): string {

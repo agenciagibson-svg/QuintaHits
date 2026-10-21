@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HojeBanner from "@/components/HojeBanner";
 import AtualizacaoAutomatica from "@/components/AtualizacaoAutomatica";
+import { jsonLdSeguro } from "@/lib/jsonLd";
 
 const GOOGLE_FONTS =
   "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap";
@@ -66,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <ForaDoAdmin>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSeguro(jsonLd) }} />
           <HojeBanner reservaUrl={reservaHrefFrom(cfg)} datasComEvento={comEvento} reservaPorData={outrasCasas} />
           <Header />
         </ForaDoAdmin>

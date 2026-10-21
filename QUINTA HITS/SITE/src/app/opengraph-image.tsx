@@ -55,7 +55,6 @@ export default async function Image() {
             {!prox ? "Agenda e reservas" : prox.artista ? `${formatData(prox.data)} · ${prox.artista}` : `Próxima: ${formatData(prox.data)}`}
           </div>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={logo} alt="" width={420} height={385} style={{ display: "flex" }} />
       </div>
     ),

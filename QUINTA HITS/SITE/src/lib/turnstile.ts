@@ -5,7 +5,7 @@ import "server-only";
  * Sem TURNSTILE_SECRET_KEY: em produção recusa (melhor sem reserva do que aberto a robô);
  * em desenvolvimento deixa passar, para o site rodar local sem conta na Cloudflare.
  */
-export async function verificarTurnstile(token: unknown, ip: string | null): Promise<boolean> {
+export async function verificarTurnstile(token: unknown, ip: string | null, host?: string | null): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
@@ -20,8 +20,12 @@ export async function verificarTurnstile(token: unknown, ip: string | null): Pro
   if (ip) form.set("remoteip", ip);
   try {
     const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
-    const j = (await res.json()) as { success?: boolean };
-    return j.success === true;
+    const j = (await res.json()) as { success?: boolean; hostname?: string };
+    if (j.success !== true) return false;
+    // O "não sou robô" tem de ter sido resolvido NESTE site (token gerado em outro site com a mesma chave pública não vale).
+    const semPorta = (h: string) => h.trim().toLowerCase().replace(/:\d+$/, "").replace(/^www\./, "");
+    if (j.hostname && host && semPorta(j.hostname) !== semPorta(host)) return false;
+    return true;
   } catch (e) {
     console.error("Falha ao verificar Turnstile:", e);
     return false;

@@ -11,6 +11,7 @@ import Vinil from "@/components/Vinil";
 import { ComoChegarCasa } from "@/components/OutraCasa";
 import { OUTRAS_CASAS } from "@/config/casas";
 import { dadosDaCasa } from "@/lib/casasDados";
+import { jsonLdSeguro } from "@/lib/jsonLd";
 
 // A página é regenerada a cada minuto: a "próxima noite" e a contagem mudam sozinhas.
 export const revalidate = 60;
@@ -72,7 +73,7 @@ export default async function Home() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(agendaLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSeguro(agendaLd) }} />
 
       {/* HERO */}
       <section className="secao--creme hero">

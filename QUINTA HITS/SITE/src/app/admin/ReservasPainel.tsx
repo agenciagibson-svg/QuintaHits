@@ -158,6 +158,25 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
     }
   }
 
+  /**
+   * Recusa de uma vez todos os pedidos "para confirmar" da noite (ex.: alguém encheu o mapa de pedidos falsos).
+   * As mesas voltam a ficar livres no site. Pedidos já confirmados e mesas travadas não são tocados.
+   */
+  async function recusarTodosPendentes() {
+    const alvo = reservas.filter((r) => r.status === "aguardando");
+    if (!alvo.length || !confirm(`Recusar os ${alvo.length} pedidos para confirmar desta noite? As mesas voltam a ficar livres no site. Os confirmados não mudam.`)) return;
+    setErro("");
+    let falhas = 0;
+    for (const r of alvo) {
+      const res = await fetch(`/api/admin/reservas/${r.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "cancelada" }) });
+      if (res.status === 401) return router.replace("/admin/login");
+      if (!res.ok) falhas++;
+    }
+    setMsg(falhas ? `${alvo.length - falhas} pedidos recusados; ${falhas} não puderam ser recusados.` : `${alvo.length} pedidos recusados.`);
+    await carregar(edicaoId, true);
+    onMudou?.();
+  }
+
   /** Chegada na porta marcada pelo painel (mesmo registro do QR). Vale também para corrigir noites que passaram. */
   async function checkin(r: Reserva, acao: "chegou" | "desfazer" | "nao_veio") {
     const res = await fetch("/api/admin/checkin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ref: r.id, acao }) });
@@ -263,6 +282,13 @@ export default function ReservasPainel({ edicoes, pendentes = [], onMudou, casa 
         )}
       </div>
       {msg && <div style={{ ...s.aviso, marginTop: 12 }}>{msg}</div>}
+      {aguardando > 1 && (
+        <div style={{ marginTop: 10 }}>
+          <button type="button" style={s.botaoMiniPerigo} onClick={recusarTodosPendentes}>
+            Recusar todos os {aguardando} pedidos para confirmar
+          </button>
+        </div>
+      )}
 
       {mesas.length > 0 && (
         <section style={{ ...s.secao, background: "#f1e7d2", padding: 16, maxWidth: mapaLargo ? undefined : 780 }}>

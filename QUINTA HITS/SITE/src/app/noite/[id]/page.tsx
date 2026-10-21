@@ -9,6 +9,7 @@ import Aba from "@/components/Aba";
 import Countdown from "@/components/Countdown";
 import Compartilhar from "@/components/Compartilhar";
 import EdicaoCard from "@/components/EdicaoCard";
+import { jsonLdSeguro } from "@/lib/jsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export default async function Noite({ params }: { params: Promise<{ id: string }
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventoLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSeguro(eventoLd) }} />
       <section className="secao secao--verde noite">
         <div className="wrap">
           <Link className="noite__voltar" href="/programacao">← Toda a programação</Link>

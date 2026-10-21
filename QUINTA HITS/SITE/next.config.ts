@@ -17,8 +17,16 @@ const nextConfig: NextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "X-Frame-Options", value: "SAMEORIGIN" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        // HTTPS sempre (2 anos), explícito também nos domínios próprios das casas.
+        { key: "Strict-Transport-Security", value: "max-age=63072000" },
+        // Política de conteúdo: nada de plugins (<object>), <base> trocado, formulário enviando para fora nem o site
+        // aberto dentro de outro. Scripts e estilos ficam livres de propósito (Turnstile, Spotify e Google Fonts).
+        { key: "Content-Security-Policy", value: "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests" },
       ],
     },
+    // Página e QR da reserva do cliente: fora dos buscadores (além do robots.txt e do noindex da página).
+    { source: "/minha-reserva/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+    { source: "/r/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
     // O site não usa câmera, microfone, localização nem pagamento do navegador...
     {
       source: "/:caminho((?!casa(?:/|$)).*)",

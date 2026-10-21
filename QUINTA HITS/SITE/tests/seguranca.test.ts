@@ -10,6 +10,9 @@ describe("cabeçalhos de segurança e robots", () => {
     expect(todas["X-Content-Type-Options"]).toBe("nosniff");
     expect(todas["X-Frame-Options"]).toBe("SAMEORIGIN");
     expect(todas["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+    expect(todas["Strict-Transport-Security"]).toContain("max-age=63072000");
+    expect(todas["Content-Security-Policy"]).toContain("frame-ancestors 'self'");
+    expect(todas["Content-Security-Policy"]).toContain("object-src 'none'");
     // Câmera: bloqueada no site todo, liberada (só para o próprio site) no app da casa, para ler o QR na porta.
     const politica = (fonte: string) => regras.find((r) => r.source === fonte)?.headers.find((h) => h.key === "Permissions-Policy")?.value;
     expect(politica("/:caminho((?!casa(?:/|$)).*)")).toContain("camera=()");
@@ -24,7 +27,7 @@ describe("cabeçalhos de segurança e robots", () => {
 
   it("robots.txt esconde /admin e /api, libera o resto e aponta o sitemap", () => {
     const r = robots();
-    expect(r.rules).toEqual([{ userAgent: "*", allow: "/", disallow: ["/admin", "/api/"] }]);
+    expect(r.rules).toEqual([{ userAgent: "*", allow: "/", disallow: ["/admin", "/api/", "/casa", "/minha-reserva/", "/r/"] }]);
     expect(r.sitemap).toBe(`${site.url}/sitemap.xml`);
   });
 });

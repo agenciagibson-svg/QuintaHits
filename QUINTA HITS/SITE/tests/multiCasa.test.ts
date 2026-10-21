@@ -277,6 +277,15 @@ describe("reserva pelo site do Harley Grill (tudo simulado)", () => {
     expect(aviso.url).toBe(`/casa?edicao=${ED_HG}`);
   });
 
+  it("mesmo endereço com 3 pedidos abertos na noite: o 4º é recusado (outro endereço passa)", async () => {
+    vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
+    const mesas = [mesaHg, await criarMesaHarley("13"), await criarMesaHarley("14"), await criarMesaHarley("15")];
+    for (let i = 0; i < 3; i++) expect((await post(corpo({ mesa_id: mesas[i], whatsapp: `(34) 9999${i}-0000` }), "10.9.9.9")).status).toBe(201);
+    const quarto = await post(corpo({ mesa_id: mesas[3], whatsapp: "(34) 99995-0000" }), "10.9.9.9");
+    expect(quarto.status).toBe(429);
+    expect((await post(corpo({ mesa_id: mesas[3], whatsapp: "(34) 99995-0000" }), "10.8.8.8")).status).toBe(201);
+  });
+
   it("chave do site desligada: fechado também para o Harley", async () => {
     vi.stubEnv("RESERVAS_SITE_ENABLED", "");
     expect((await post(corpo())).status).toBe(503);

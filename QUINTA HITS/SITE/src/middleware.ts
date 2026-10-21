@@ -9,8 +9,27 @@ const PUBLICOS_CASA = new Set(["/casa/login", "/api/casa/login", "/api/casa/logo
 /** Páginas públicas da Quinta Hits que, no domínio de OUTRA casa, levam à página de reserva dessa casa. */
 const PAGINAS_DA_QUINTA = new Set(["/", "/reservar", "/programacao"]);
 
+/** Métodos que mudam alguma coisa: só aceitos vindos do próprio site (proteção contra CSRF além do cookie SameSite). */
+const MUDA = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/** Pedido de outro site? Com Origin (todo navegador manda em POST/PUT/DELETE): o host tem de ser o mesmo. */
+function deOutroSite(req: NextRequest): boolean {
+  const origem = req.headers.get("origin");
+  if (!origem) return false;
+  try {
+    return new URL(origem).host !== (req.headers.get("host") || req.nextUrl.host);
+  } catch {
+    return true;
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // ----- Painel e app da casa: nada que mude dados aceito de outro site (CSRF) -----
+  if ((pathname.startsWith("/api/admin") || pathname.startsWith("/api/casa")) && MUDA.has(req.method) && deOutroSite(req)) {
+    return NextResponse.json({ erro: "Pedido recusado." }, { status: 403 });
+  }
 
   // ----- Domínio próprio de outra casa (ex.: Harley Grill): a raiz abre a reserva dela -----
   const casaDoHost = casaDoDominio(req.headers.get("host") || req.nextUrl.host, process.env.DOMINIOS_CASAS);
