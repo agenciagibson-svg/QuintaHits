@@ -29,13 +29,17 @@ export async function fazerCheckin(ref: string, acao: "chegou" | "desfazer" | "n
   }
 }
 
-/** Resultado grande, para ler de longe na porta: verde = pode entrar; amarelo = já tinha entrado; vermelho = problema. */
+/**
+ * Resultado grande, para ler de longe na porta: verde = pode entrar; vermelho = não liberado OU QR JÁ USADO.
+ * O QR vale uma entrada só: a segunda leitura (print, foto, encaminhado) aparece em vermelho com a hora da primeira,
+ * para a porta conferir se é a mesma pessoa voltando.
+ */
 export function ResultadoPorta({ r, onDesfazer }: { r: RespostaCheckin; onDesfazer?: () => void }) {
   const res = r.reserva;
-  const tom = !r.ok ? "erro" : r.jaTinhaChegado ? "aviso" : "ok";
+  const tom = r.ok && !r.jaTinhaChegado ? "ok" : "erro";
   return (
     <div className={`cs-porta cs-porta-${tom}`} role="status" aria-live="assertive">
-      <div className="cs-porta-titulo">{!r.ok ? "Não liberado" : r.jaTinhaChegado ? "Já tinha entrado" : "Pode entrar"}</div>
+      <div className="cs-porta-titulo">{!r.ok ? "Não liberado" : r.jaTinhaChegado ? "QR já usado" : "Pode entrar"}</div>
       {res && (
         <>
           <div className="cs-porta-mesa">Mesa {res.mesa}</div>
@@ -45,11 +49,14 @@ export function ResultadoPorta({ r, onDesfazer }: { r: RespostaCheckin; onDesfaz
           <div className="cs-porta-det">
             {res.casaNome} · {formatData(res.data, "numerica")}
             {res.codigo ? ` · ${res.codigo}` : ""}
-            {r.ok && res.chegou_em ? ` · chegou ${hora(res.chegou_em)}` : ""}
+            {r.ok && res.chegou_em && !r.jaTinhaChegado ? ` · chegou ${hora(res.chegou_em)}` : ""}
           </div>
         </>
       )}
       {!r.ok && r.erro && <div className="cs-porta-msg">{r.erro}</div>}
+      {r.ok && r.jaTinhaChegado && res?.chegou_em && (
+        <div className="cs-porta-msg">Entrada já registrada às {hora(res.chegou_em)}. Confira se é a mesma pessoa voltando; se não for, não libere.</div>
+      )}
       {r.ok && !r.jaTinhaChegado && onDesfazer && (
         <button type="button" className="cs-btn cs-btn-neutro" style={{ marginTop: 10 }} onClick={onDesfazer}>
           Desfazer
@@ -89,7 +96,7 @@ export default function LeitorPorta({ onFechar, onRegistrou }: { onFechar: () =>
       setEnviando(false);
       setResultado({ ...r, ref });
       try {
-        navigator.vibrate?.(r.ok ? 120 : [80, 60, 80]);
+        navigator.vibrate?.(r.ok && !r.jaTinhaChegado ? 120 : [80, 60, 80]);
       } catch {
         /* sem vibração */
       }

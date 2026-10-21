@@ -138,7 +138,11 @@ export async function registrarChegada(
   const quando = agora.toISOString();
   let campos: Record<string, unknown>;
   if (acao === "chegou") {
-    if (l.status === "confirmada" && l.chegou_em) return { ok: true, reserva, jaTinhaChegado: true };
+    // QR vale uma entrada só: a segunda leitura não registra nada e a porta vê "QR já usado" (com a hora da primeira).
+    if (l.status === "confirmada" && l.chegou_em) {
+      await registrarAuditoria({ ator, acao: "checkin_repetido", entidade: "reserva", entidadeId: l.id, detalhe: { edicao: l.edicao_id, mesa: reserva.mesa } });
+      return { ok: true, reserva, jaTinhaChegado: true };
+    }
     // Pedido ainda aguardando ou marcado como "não veio": quem está na porta decide, a chegada confirma a mesa.
     campos = { status: "confirmada", chegou_em: quando, checkin_por: ator, ...(l.status !== "confirmada" ? { confirmada_em: quando } : {}) };
   } else if (acao === "desfazer") {
