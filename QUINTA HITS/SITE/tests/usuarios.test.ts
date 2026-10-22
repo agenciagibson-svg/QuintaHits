@@ -56,16 +56,16 @@ describe("usuários cadastrados pelo painel", () => {
     expect(await acessoDoEmail("gerente@gibson.com")).toMatchObject({ painel: true, casas: ["quinta-hits", "harley-grill"], gerenciaUsuarios: false });
     const lista = await (await listar()).json();
     expect(lista.podeGerenciar).toBe(true);
-    expect(lista.fixos.map((f: { email: string }) => f.email).sort()).toEqual([DONO, "florindos@bar.com"]);
-    expect(lista.cadastrados.map((u: { email: string }) => u.email)).toEqual(["ana@porta.com", "gerente@gibson.com"]);
+    expect(lista.responsaveis).toEqual([DONO]);
+    expect(lista.usuarios.map((u: { email: string; vercel: boolean }) => [u.email, u.vercel])).toEqual([["florindos@bar.com", true], ["ana@porta.com", false], ["gerente@gibson.com", false]]);
   });
 
-  it("recusa: senha fraca, sem acesso nenhum, e-mail inválido e conta fixa", async () => {
+  it("recusa: senha fraca, sem acesso nenhum, e-mail inválido e o responsável", async () => {
     expect((await incluir(json("POST", { email: "x@y.com", senha: "1234567", casas: ["quinta-hits"] }))).status).toBe(400);
     expect((await incluir(json("POST", { email: "x@y.com", senha: "abcdefgh", casas: ["quinta-hits"] }))).status).toBe(400); // sem número
     expect((await incluir(json("POST", { email: "x@y.com", senha: "abcd1234", casas: [] }))).status).toBe(400);
     expect((await incluir(json("POST", { email: "não é email", senha: "abcd1234", casas: ["quinta-hits"] }))).status).toBe(400);
-    expect((await incluir(json("POST", { email: "florindos@bar.com", senha: "abcd1234", casas: ["quinta-hits"] }))).status).toBe(409);
+    expect((await incluir(json("POST", { email: DONO, senha: "abcd1234", casas: ["quinta-hits"] }))).status).toBe(409);
     expect(contas.criadas).toEqual([]);
   });
 
@@ -93,7 +93,7 @@ describe("usuários cadastrados pelo painel", () => {
     expect((await exigirSessaoCasa())?.status).toBe(401);
   });
 
-  it("editar: muda as casas e troca a senha; não deixa sem acesso nenhum; conta fixa não muda por aqui", async () => {
+  it("editar: muda as casas e troca a senha; não deixa sem acesso nenhum; o responsável não muda por aqui", async () => {
     await incluir(json("POST", { email: "ana@porta.com", senha: "porta2026x", casas: ["quinta-hits"] }));
     cookies.valores = { [COOKIE_NAME]: await criarSessao(DONO), [COOKIE_CASA]: await criarSessao("ana@porta.com", "casa") };
     expect(await casasDaSessao()).toEqual(["quinta-hits"]);
@@ -102,7 +102,26 @@ describe("usuários cadastrados pelo painel", () => {
     expect(contas.criadas).toEqual(["ana@porta.com", "ana@porta.com"]);
     expect((await alterar(json("PUT", { email: "ana@porta.com", casas: [] }))).status).toBe(400);
     expect(await casasDaSessao()).toEqual(["harley-grill"]); // nada mudou
-    expect((await alterar(json("PUT", { email: "florindos@bar.com", painel: true }))).status).toBe(409);
+    expect((await alterar(json("PUT", { email: DONO, painel: false, casas: ["quinta-hits"] }))).status).toBe(409);
+    expect((await remover(new Request(`http://localhost/api/admin/usuarios?email=${DONO}`, { method: "DELETE" }))).status).toBe(409);
+  });
+
+  it("quem veio das variáveis da Vercel (CASA_EMAILS) também se edita e se remove pelo painel", async () => {
+    expect(await acessoDoEmail("florindos@bar.com")).toMatchObject({ casas: ["quinta-hits"] });
+    // Editar: ganha o cadastro e passa a valer o que o painel diz.
+    expect((await alterar(json("PUT", { email: "florindos@bar.com", casas: ["quinta-hits", "harley-grill"], nome: "Junior" }))).status).toBe(200);
+    expect(await acessoDoEmail("florindos@bar.com")).toMatchObject({ painel: false, casas: ["quinta-hits", "harley-grill"] });
+    // Remover: bloqueia mesmo com o e-mail ainda na variável da Vercel, e some da lista.
+    cookies.valores = { [COOKIE_NAME]: await criarSessao(DONO), [COOKIE_CASA]: await criarSessao("florindos@bar.com", "casa") };
+    expect(await exigirSessaoCasa()).toBeNull();
+    expect((await remover(new Request("http://localhost/api/admin/usuarios?email=florindos@bar.com", { method: "DELETE" }))).status).toBe(200);
+    expect(await acessoDoEmail("florindos@bar.com")).toMatchObject({ painel: false, casas: [] });
+    expect((await exigirSessaoCasa())?.status).toBe(401);
+    expect(contas.removidas).toEqual(["florindos@bar.com"]);
+    expect((await (await listar()).json()).usuarios.map((u: { email: string }) => u.email)).not.toContain("florindos@bar.com");
+    // Incluir de novo (com senha): volta a entrar.
+    expect((await incluir(json("POST", { email: "florindos@bar.com", senha: "volta2026", casas: ["quinta-hits"] }))).status).toBe(201);
+    expect(await acessoDoEmail("florindos@bar.com")).toMatchObject({ casas: ["quinta-hits"] });
   });
 
   it("contas fixas (variáveis da Vercel) continuam valendo sem a tabela", async () => {

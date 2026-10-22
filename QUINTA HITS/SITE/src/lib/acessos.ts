@@ -42,27 +42,60 @@ async function cadastroDoEmail(email: string): Promise<UsuarioCadastrado | null>
   return { ...u, casas: casasValidas(u.casas) };
 }
 
+/** E-mail listado nas variáveis da Vercel do app da casa (CASA_EMAILS, CASA_EMAILS_HARLEY_GRILL...). */
+export const estaNaVercel = (email: string) => casasDoEmail(normalizarEmail(email)).length > 0 || emailAutorizado(email);
+
+/**
+ * Acesso de um e-mail agora. Regras:
+ *  - responsável (ADMIN_EMAILS na Vercel): painel e todas as casas, sempre — não se edita nem se remove pelo painel;
+ *  - com linha na tabela: a linha manda (inclusive para quem também está em CASA_EMAILS na Vercel — é assim que o painel
+ *    edita ou remove essas pessoas: removida = linha inativa, que bloqueia mesmo com o e-mail ainda na variável);
+ *  - sem linha: o que estiver nas variáveis da Vercel.
+ */
 export async function acessoDoEmail(email: string): Promise<Acesso> {
   const e = normalizarEmail(email);
-  const fixoPainel = emailAutorizado(e);
-  const fixoCasas = casasDoEmail(e);
+  const responsavel = emailAutorizado(e);
+  const naVercel = casasDoEmail(e);
+  if (responsavel) return { painel: true, casas: CASAS_COM_RESERVA(), fixo: true, gerenciaUsuarios: true };
   const u = await cadastroDoEmail(e).catch(() => null);
-  const ativo = u?.ativo ? u : null;
-  const painel = fixoPainel || !!ativo?.painel;
-  const casas = painel ? CASAS_COM_RESERVA() : CASAS_COM_RESERVA().filter((c) => fixoCasas.includes(c) || !!ativo?.casas.includes(c));
-  return { painel, casas, fixo: fixoPainel || fixoCasas.length > 0, gerenciaUsuarios: fixoPainel };
+  if (u) {
+    if (!u.ativo) return { painel: false, casas: [], fixo: naVercel.length > 0, gerenciaUsuarios: false };
+    return { painel: u.painel, casas: u.painel ? CASAS_COM_RESERVA() : u.casas, fixo: naVercel.length > 0, gerenciaUsuarios: false };
+  }
+  return { painel: false, casas: CASAS_COM_RESERVA().filter((c) => naVercel.includes(c)), fixo: naVercel.length > 0, gerenciaUsuarios: false };
 }
 
-/** Lista para a tela de usuários: contas fixas (variáveis da Vercel) e as cadastradas no painel. */
-export async function listarUsuarios(): Promise<{ fixos: { email: string; painel: boolean; casas: CasaId[] }[]; cadastrados: UsuarioCadastrado[]; tabela: boolean }> {
+export type UsuarioDaLista = {
+  email: string;
+  nome: string;
+  painel: boolean;
+  casas: CasaId[];
+  /** E-mail também listado nas variáveis da Vercel (CASA_EMAILS...). */
+  vercel: boolean;
+  criado_por: string | null;
+  criado_em: string | null;
+};
+
+/**
+ * Lista da tela de usuários: os responsáveis (ADMIN_EMAILS, fixos) e todos os outros — cadastrados no painel e os das
+ * variáveis da Vercel ainda sem cadastro —, que podem ser editados e removidos. Removidos (linha inativa) não aparecem.
+ */
+export async function listarUsuarios(): Promise<{ responsaveis: string[]; usuarios: UsuarioDaLista[]; tabela: boolean }> {
   const lista = (nome: string) => (process.env[nome] ?? "").split(",").map((x) => normalizarEmail(x)).filter(Boolean);
-  const emails = [...new Set([...lista("ADMIN_EMAILS"), ...lista("CASA_EMAILS"), ...lista("CASA_EMAILS_HARLEY_GRILL"), ...lista("CASA_EMAILS_SOLARIUM")])];
-  const fixos = emails.map((email) => {
-    const painel = emailAutorizado(email);
-    return { email, painel, casas: painel ? CASAS_COM_RESERVA() : casasDoEmail(email) };
-  });
+  const responsaveis = [...new Set(lista("ADMIN_EMAILS"))];
+  const daVercel = [...new Set([...lista("CASA_EMAILS"), ...lista("CASA_EMAILS_HARLEY_GRILL"), ...lista("CASA_EMAILS_SOLARIUM")])].filter((e) => !responsaveis.includes(e));
   const { data, error } = await supabaseAdmin().from("usuarios_acesso").select("email, nome, painel, casas, ativo, criado_por, criado_em").order("criado_em", { ascending: true });
-  if (tabelaAusente(error)) return { fixos, cadastrados: [], tabela: false };
-  if (error) throw error;
-  return { fixos, cadastrados: ((data ?? []) as UsuarioCadastrado[]).map((u) => ({ ...u, casas: casasValidas(u.casas) })), tabela: true };
+  const ausente = tabelaAusente(error);
+  if (error && !ausente) throw error;
+  const linhas = ((data ?? []) as UsuarioCadastrado[]).filter((u) => !responsaveis.includes(u.email));
+  const comLinha = new Set(linhas.map((u) => u.email));
+  const usuarios: UsuarioDaLista[] = [
+    ...daVercel
+      .filter((e) => !comLinha.has(e))
+      .map((email) => ({ email, nome: "", painel: false, casas: CASAS_COM_RESERVA().filter((c) => casasDoEmail(email).includes(c)), vercel: true, criado_por: null, criado_em: null })),
+    ...linhas
+      .filter((u) => u.ativo)
+      .map((u) => ({ email: u.email, nome: u.nome, painel: u.painel, casas: u.painel ? CASAS_COM_RESERVA() : casasValidas(u.casas), vercel: daVercel.includes(u.email), criado_por: u.criado_por, criado_em: u.criado_em })),
+  ];
+  return { responsaveis, usuarios, tabela: !ausente };
 }

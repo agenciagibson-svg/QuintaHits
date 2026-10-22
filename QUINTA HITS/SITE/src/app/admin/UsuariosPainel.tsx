@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { cor, s, selo } from "./estilos";
 import { CASAS, CASA_IDS, type CasaId } from "@/config/casas";
 
-type Fixo = { email: string; painel: boolean; casas: CasaId[] };
-type Cadastrado = { email: string; nome: string; painel: boolean; casas: CasaId[]; ativo: boolean; criado_por: string | null; criado_em: string };
-type Dados = { fixos: Fixo[]; cadastrados: Cadastrado[]; tabela: boolean; podeGerenciar: boolean; voce: string };
+type Usuario = { email: string; nome: string; painel: boolean; casas: CasaId[]; vercel: boolean; criado_por: string | null; criado_em: string | null };
+type Dados = { responsaveis: string[]; usuarios: Usuario[]; tabela: boolean; podeGerenciar: boolean; voce: string };
 type Edicao = { email: string; painel: boolean; casas: CasaId[]; senha: string };
 
 const CASAS_APP = CASA_IDS.filter((c) => CASAS[c].reservas);
@@ -64,9 +63,9 @@ function EscolhaAcesso({ painel, casas, mudar }: { painel: boolean; casas: CasaI
 }
 
 /**
- * Configuração → Usuários: quem entra no painel e no app de reservas (PWA). Contas fixas (variáveis da Vercel) aparecem
- * só para consulta; as cadastradas aqui podem ter o acesso mudado, a senha trocada ou ser removidas (perdem o acesso na
- * hora). Só o responsável pelo sistema (conta fixa do painel) inclui e remove.
+ * Configuração → Usuários: quem entra no painel e no app de reservas (PWA). O responsável (ADMIN_EMAILS na Vercel) é fixo;
+ * todos os outros — cadastrados aqui ou vindos das variáveis da Vercel — podem ter o acesso mudado, a senha trocada ou
+ * ser removidos (perdem o acesso na hora). Só o responsável inclui, edita e remove.
  */
 export default function UsuariosPainel() {
   const router = useRouter();
@@ -133,7 +132,7 @@ export default function UsuariosPainel() {
     }
   }
 
-  async function remover(u: Cadastrado) {
+  async function remover(u: Usuario) {
     if (!confirm(`Remover ${u.email}? A pessoa perde o acesso ao painel e ao app na hora e o login dela é apagado.`)) return;
     if (await chamar("DELETE", undefined, u.email)) {
       setMsg(`${u.email} removido.`);
@@ -149,7 +148,7 @@ export default function UsuariosPainel() {
       {erro && <div style={s.avisoErro}>{erro}</div>}
       {msg && <div style={s.aviso}>{msg}</div>}
       {!dados.tabela && (
-        <div style={s.avisoErro}>Falta rodar no Supabase a migração de usuários (migracao-2026-10-22-usuarios.sql). Até lá, só as contas fixas entram.</div>
+        <div style={s.avisoErro}>Falta rodar no Supabase a migração de usuários (migracao-2026-10-22-usuarios.sql). Até lá, só quem está nas variáveis da Vercel entra, e não dá para editar nem remover.</div>
       )}
 
       {recado && (
@@ -193,15 +192,15 @@ export default function UsuariosPainel() {
             </tr>
           </thead>
           <tbody>
-            {dados.fixos.map((u) => (
-              <tr key={`f-${u.email}`}>
-                <td style={s.td}><div style={{ fontWeight: 600 }}>{u.email}{u.email === dados.voce ? " (você)" : ""}</div></td>
-                <td style={s.td}><Acessos painel={u.painel} casas={u.casas} /></td>
-                <td style={{ ...s.td, color: cor.suave }}>Fixo (Vercel)</td>
+            {dados.responsaveis.map((email) => (
+              <tr key={`r-${email}`}>
+                <td style={s.td}><div style={{ fontWeight: 600 }}>{email}{email === dados.voce ? " (você)" : ""}</div></td>
+                <td style={s.td}><Acessos painel casas={CASAS_APP} /></td>
+                <td style={{ ...s.td, color: cor.suave }}>Responsável (Vercel)</td>
                 <td style={s.td} />
               </tr>
             ))}
-            {dados.cadastrados.map((u) =>
+            {dados.usuarios.map((u) =>
               editando?.email === u.email ? (
                 <tr key={u.email}>
                   <td style={s.td}><div style={{ fontWeight: 600 }}>{u.nome || u.email}</div>{u.nome && <div style={{ fontSize: 12, color: cor.suave }}>{u.email}</div>}</td>
@@ -225,8 +224,14 @@ export default function UsuariosPainel() {
                   <td style={s.td}><div style={{ fontWeight: 600 }}>{u.nome || u.email}</div>{u.nome && <div style={{ fontSize: 12, color: cor.suave }}>{u.email}</div>}</td>
                   <td style={s.td}><Acessos painel={u.painel} casas={u.casas} /></td>
                   <td style={{ ...s.td, color: cor.suave, fontSize: 13 }}>
-                    Cadastrado {new Date(u.criado_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                    {u.criado_por ? ` por ${u.criado_por}` : ""}
+                    {u.criado_em ? (
+                      <>
+                        Cadastrado {new Date(u.criado_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                        {u.criado_por ? ` por ${u.criado_por}` : ""}
+                      </>
+                    ) : (
+                      "Vercel"
+                    )}
                   </td>
                   <td style={{ ...s.td, whiteSpace: "nowrap", textAlign: "right" }}>
                     {pode && (
@@ -243,8 +248,8 @@ export default function UsuariosPainel() {
         </table>
       </div>
       <p style={{ ...s.legenda, marginTop: 12 }}>
-        Contas fixas são as das variáveis da Vercel (ADMIN_EMAILS, CASA_EMAILS…): só mudam por lá. Remover alguém tira o acesso na hora,
-        inclusive de quem já estava logado.
+        O responsável (ADMIN_EMAILS na Vercel) é fixo: ninguém se tranca fora. Os demais, inclusive os que vieram das variáveis da Vercel,
+        podem ser editados e removidos aqui. Remover tira o acesso na hora, inclusive de quem já estava logado, e apaga o login.
       </p>
     </>
   );

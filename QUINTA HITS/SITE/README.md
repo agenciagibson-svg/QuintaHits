@@ -79,8 +79,11 @@ Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas
 
 ## Usuários (painel → Configuração → Usuários)
 
-- **Contas fixas:** as das variáveis da Vercel (`ADMIN_EMAILS`, `CASA_EMAILS`, `CASA_EMAILS_HARLEY_GRILL`...). Só mudam lá;
-  ninguém se tranca fora pelo painel. Só quem está em `ADMIN_EMAILS` inclui, muda ou remove usuários.
+- **Responsável (fixo):** quem está em `ADMIN_EMAILS` na Vercel. Não se edita nem se remove pelo painel (ninguém se
+  tranca fora) e é o único que inclui, muda ou remove usuários.
+- **Quem veio das variáveis da Vercel** (`CASA_EMAILS`, `CASA_EMAILS_HARLEY_GRILL`...) aparece na lista e se edita/remove
+  como os outros: a primeira edição cria o cadastro (daí o painel manda); remover deixa um cadastro inativo que bloqueia
+  mesmo com o e-mail ainda na variável.
 - **Contas cadastradas** (tabela `usuarios_acesso`): *Painel completo* (painel + app de todas as casas) ou *Só o app de
   reservas* das casas escolhidas. Incluir cria o login no Supabase Auth com a senha informada (8+ letras e números) e
   mostra o recado pronto para mandar à pessoa. "Editar / senha" muda o acesso e troca a senha; "Remover" tira o acesso na
