@@ -9,6 +9,7 @@ import Aba from "@/components/Aba";
 import Countdown from "@/components/Countdown";
 import Compartilhar from "@/components/Compartilhar";
 import EdicaoCard from "@/components/EdicaoCard";
+import { noitesComReservaAberta } from "@/lib/reservasAbertas";
 import { jsonLdSeguro } from "@/lib/jsonLd";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,7 @@ export default async function Noite({ params }: { params: Promise<{ id: string }
   const [, , dia] = e.data.split("-");
   const cancelada = e.status === "cancelada";
   const outras = (await proximasEdicoes(new Date(), 4)).filter((x) => x.id !== e.id).slice(0, 3);
+  const abertas = await noitesComReservaAberta();
   const textoShare = `${e.artista ? `${e.artista} · ` : ""}${diaDaSemana(e.data)}, ${formatData(e.data, "numerica")}${e.horario ? `, ${e.horario}` : ""} no ${n.lugar}. ${site.assinatura}`;
 
   const eventoLd = {
@@ -156,7 +158,7 @@ export default async function Noite({ params }: { params: Promise<{ id: string }
               </div>
               <Link className="btn btn--vazado btn--p" href="/programacao">Ver todas</Link>
             </div>
-            <div className="edicoes">{outras.map((x) => <EdicaoCard key={x.id} edicao={x} />)}</div>
+            <div className="edicoes">{outras.map((x) => <EdicaoCard key={x.id} edicao={x} reservaAberta={abertas.includes(x.id)} />)}</div>
           </div>
         )}
       </section>

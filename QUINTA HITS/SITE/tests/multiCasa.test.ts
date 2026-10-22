@@ -483,14 +483,18 @@ describe("Quinta Hits como marca: agenda só com as datas cadastradas, em qualqu
 });
 
 describe("agenda única: card de noite em outra casa", () => {
-  it("mostra a casa e o link de reserva dela; noite da Quinta Hits não ganha esses extras", async () => {
+  it("mostra a casa; 'Reservar mesa' leva ao mapa DAQUELA noite e só quando ela está aberta", async () => {
     const { default: EdicaoCard } = await import("@/components/EdicaoCard");
     const base = { data: "2099-01-09", artista: "Voo Livre", instagram: "", tema: "", genero: "" as const, horario: "20h", local: "Harley Grill", status: "confirmada" as const, destaque: "" };
-    const hg = renderToStaticMarkup(EdicaoCard({ edicao: { ...base, id: "2099-01-09_harley-grill", casa: HG } }));
-    expect(hg).toContain("Harley Grill");
-    expect(hg).toContain('href="/harley-grill"');
-    const qh = renderToStaticMarkup(EdicaoCard({ edicao: { ...base, id: "2099-01-09", casa: "quinta-hits", local: "Florindos Bar" } }));
-    expect(qh).not.toContain("card__reservar");
+    const aberta = renderToStaticMarkup(EdicaoCard({ edicao: { ...base, id: "2099-01-09_harley-grill", casa: HG }, reservaAberta: true }));
+    expect(aberta).toContain("Harley Grill");
+    expect(aberta).toContain('href="/reservar?edicao=2099-01-09_harley-grill"');
+    // Outra data do Harley ainda não liberada: nada de link para o mapa (que mostraria a noite aberta, outra data).
+    const fechada = renderToStaticMarkup(EdicaoCard({ edicao: { ...base, id: "2099-01-16_harley-grill", data: "2099-01-16", casa: HG } }));
+    expect(fechada).not.toContain("card__reservar");
+    expect(fechada).toContain("Reservas em breve");
+    const qh = renderToStaticMarkup(EdicaoCard({ edicao: { ...base, id: "2099-01-09", casa: "quinta-hits", local: "Florindos Bar" }, reservaAberta: true }));
+    expect(qh).toContain('href="/reservar?edicao=2099-01-09"');
     expect(qh).not.toContain("card__casa");
   });
 });

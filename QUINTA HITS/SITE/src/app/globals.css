@@ -462,6 +462,7 @@ button { font: inherit; cursor: pointer; }
 .pagina-casa__topo-in { align-items: center; }
 .pagina-casa__voltar { white-space: nowrap; }
 .card__casa { opacity: 1; color: var(--mostarda); }
+.card__em-breve { align-self: flex-start; font-size: 13px; opacity: 0.7; letter-spacing: 0.04em; }
 .card__reservar { align-self: flex-start; margin-top: 4px; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
 /* Faixa "Nova versão" (atualização automática depois de deploy) — por cima de tudo, no rodapé da tela */

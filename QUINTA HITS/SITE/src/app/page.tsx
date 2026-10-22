@@ -7,6 +7,7 @@ import Countdown from "@/components/Countdown";
 import Marquee from "@/components/Marquee";
 import ProximaEdicao from "@/components/ProximaEdicao";
 import EdicaoCard from "@/components/EdicaoCard";
+import { noitesComReservaAberta } from "@/lib/reservasAbertas";
 import Vinil from "@/components/Vinil";
 import { ComoChegarCasa } from "@/components/OutraCasa";
 import { OUTRAS_CASAS } from "@/config/casas";
@@ -30,6 +31,7 @@ export default async function Home() {
   const proxima = await proximaEdicao(agora);
   const proximas = await proximasEdicoes(agora, 4);
   const anteriores = await edicoesAnteriores(agora);
+  const abertas = await noitesComReservaAberta();
   const temHoje = await temEdicaoHoje(agora);
   // Outras casas (Harley Grill, Solarium...): "como chegar" na seção Onde (erro de banco = "Em breve", sem derrubar a
   // home). As noites delas entram na agenda única, junto com as do Florindos.
@@ -104,7 +106,7 @@ export default async function Home() {
       {proxima && (
         <section className="secao secao--verde" id="proxima">
           <div className="wrap">
-            <ProximaEdicao edicao={proxima} site={site} />
+            <ProximaEdicao edicao={proxima} site={site} reservaAberta={abertas.includes(proxima.id)} />
           </div>
         </section>
       )}
@@ -121,7 +123,7 @@ export default async function Home() {
           </div>
           {proximas.length > 0 ? (
             <div className="edicoes">
-              {proximas.map((e) => <EdicaoCard key={e.id} edicao={e} />)}
+              {proximas.map((e) => <EdicaoCard key={e.id} edicao={e} reservaAberta={abertas.includes(e.id)} />)}
             </div>
           ) : (
             <p className="vazio">A próxima noite sai primeiro no Instagram. Fica de olho: @{site.instagram}.</p>

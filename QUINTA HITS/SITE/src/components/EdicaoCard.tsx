@@ -10,7 +10,12 @@ const STATUS: Record<Edicao["status"], string> = {
   cancelada: "cancelada",
 };
 
-export default function EdicaoCard({ edicao, passada = false }: { edicao: Edicao; passada?: boolean }) {
+/**
+ * `reservaAberta`: a noite aceita reserva pelo site agora → "Reservar mesa" leva ao mapa DESTA noite. Casa com reserva,
+ * noite ainda não liberada → "Reservas em breve" (nunca leva ao mapa de outra data).
+ */
+export default function EdicaoCard({ edicao, passada = false, reservaAberta = false }: { edicao: Edicao; passada?: boolean; reservaAberta?: boolean }) {
+  const casa = CASAS[ehCasa(edicao.casa) ? edicao.casa : CASA_PADRAO];
   const cor = passada ? "placa--preto" : "placa--verde";
   return (
     <article className={`placa ${cor} card ${passada ? "card--passada" : ""}`}>
@@ -33,9 +38,12 @@ export default function EdicaoCard({ edicao, passada = false }: { edicao: Edicao
       {!passada && edicao.status !== "cancelada" && (
         <a className="card__ver" href={`/noite/${edicao.id}`}>Ver a noite →</a>
       )}
-      {!passada && ehCasa(edicao.casa) && edicao.casa !== CASA_PADRAO && CASAS[edicao.casa].reservas && (
-        <a className="card__reservar" href={CASAS[edicao.casa].pagina}>Reservar mesa →</a>
-      )}
+      {!passada && edicao.status !== "cancelada" && casa.reservas &&
+        (reservaAberta ? (
+          <a className="card__reservar" href={`/reservar?edicao=${encodeURIComponent(edicao.id)}`}>Reservar mesa →</a>
+        ) : (
+          <span className="card__em-breve">Reservas em breve</span>
+        ))}
       <Aba genero={edicao.genero} />
     </article>
   );

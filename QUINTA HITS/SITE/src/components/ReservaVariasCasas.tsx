@@ -26,6 +26,7 @@ export default function ReservaVariasCasas({ noites, instagram, edicaoInicial }:
         instagram={casa === CASA_PADRAO ? instagram : ""}
         manual={noites[0].manual}
         mostrarCasa={casa !== CASA_PADRAO}
+        edicaoInicial={edicaoInicial}
         regras={Object.fromEntries(noites.map((n) => [n.edicao.id, n.regras]))}
       />
     );

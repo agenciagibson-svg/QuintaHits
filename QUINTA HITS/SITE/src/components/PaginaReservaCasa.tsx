@@ -26,7 +26,7 @@ export function metadadosDaCasa(casa: CasaId): Metadata {
   };
 }
 
-export default async function PaginaReservaCasa({ casa }: { casa: CasaId }) {
+export default async function PaginaReservaCasa({ casa, edicaoInicial }: { casa: CasaId; edicaoInicial?: string }) {
   const c = CASAS[casa];
   const estado = estadoDasReservasDoSite(casa);
   const { prontas, proximaAbertura } = estado.aberto ? await situacaoDoSite(new Date(), 6, casa) : { prontas: [], proximaAbertura: null };
@@ -80,6 +80,7 @@ export default async function PaginaReservaCasa({ casa }: { casa: CasaId }) {
               edicoes={edicoes}
               instagram=""
               casa={casa}
+              edicaoInicial={edicaoInicial}
               manual
               regras={Object.fromEntries(prontas.map((p) => [p.edicao.id, regrasPublicas(p.regras)]))}
             />

@@ -3,6 +3,7 @@ import { alvoLink, site } from "@/config/site";
 import { getSiteConfig, reservaHrefFrom } from "@/lib/siteConfig";
 import { edicoesAnteriores, proximasEdicoes, temEdicaoHoje } from "@/lib/programacao";
 import ProgramacaoFiltro from "@/components/ProgramacaoFiltro";
+import { noitesComReservaAberta } from "@/lib/reservasAbertas";
 import Marquee from "@/components/Marquee";
 
 export const revalidate = 60;
@@ -33,7 +34,7 @@ export default async function Programacao() {
               Reservar mesa
             </a>
           </div>
-          <ProgramacaoFiltro proximas={proximas} anteriores={anteriores} />
+          <ProgramacaoFiltro proximas={proximas} anteriores={anteriores} abertas={await noitesComReservaAberta()} />
         </div>
       </section>
       {/* Só afirma "hoje tem" quando hoje tem evento na agenda. */}

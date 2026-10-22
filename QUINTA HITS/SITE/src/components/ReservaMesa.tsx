@@ -46,6 +46,7 @@ export default function ReservaMesa({
   manual = false,
   casa = CASA_PADRAO,
   mostrarCasa = false,
+  edicaoInicial,
 }: {
   edicoes: Edicao[];
   instagram: string;
@@ -54,13 +55,15 @@ export default function ReservaMesa({
   casa?: CasaId;
   /** Diz a casa junto da data (em /reservar, onde aparecem noites de mais de uma casa). */
   mostrarCasa?: boolean;
+  /** Noite já escolhida (link "Reservar mesa" de uma noite: /reservar?edicao=…). */
+  edicaoInicial?: string;
 }) {
   const configCasa = CASAS[casa];
   // Mapa da casa (proporção, tamanho das mesas, área em destaque). Quinta Hits: o mapa de sempre (4:3).
   const planta = configCasa.mapa;
   const larga = planta.tamanhoMesa !== null;
   const semAtracao = casa === CASA_PADRAO ? "line-up em breve" : "atração a confirmar";
-  const [edicaoId, setEdicaoId] = useState(edicoes[0].id);
+  const [edicaoId, setEdicaoId] = useState(() => (edicoes.some((e) => e.id === edicaoInicial) ? (edicaoInicial as string) : edicoes[0].id));
   const [mapa, setMapa] = useState<Mapa | null>(null);
   const [erroMapa, setErroMapa] = useState("");
   const [mesa, setMesa] = useState<MesaPublica | null>(null);

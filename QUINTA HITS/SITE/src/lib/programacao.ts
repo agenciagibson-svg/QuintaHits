@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { hojeISO, temEdicaoNoDia, type Edicao } from "@/lib/edicao";
-import { CASAS, CASA_PADRAO, ehCasa } from "@/config/casas";
+import { CASA_PADRAO, ehCasa } from "@/config/casas";
 
 // Tipos e helpers puros moram em lib/edicao.ts (seguro para client) e seguem disponíveis por aqui.
 export * from "@/lib/edicao";
@@ -29,14 +29,15 @@ export async function datasComEvento(): Promise<string[]> {
 }
 
 /**
- * Páginas de reserva das datas com evento em OUTRA casa ({ "2026-11-06": "/harley-grill" }): a faixa "Hoje tem" leva
- * à reserva da casa certa. Datas da casa padrão não entram (usam o link de reserva de sempre).
+ * Página da noite das datas com evento em OUTRA casa ({ "2026-11-06": "/noite/2026-11-06_harley-grill" }): a faixa
+ * "Hoje tem" leva à noite certa. Datas da casa padrão não entram (usam o link de reserva de sempre).
  */
 export async function reservaDasOutrasCasas(): Promise<Record<string, string>> {
   const r: Record<string, string> = {};
   for (const e of await todasEdicoes()) {
-    // Casa sem reserva pelo site (ex.: Solarium): a faixa leva à agenda.
-    if (e.status !== "cancelada" && ehCasa(e.casa) && e.casa !== CASA_PADRAO) r[e.data] = CASAS[e.casa].reservas ? CASAS[e.casa].pagina : "/programacao";
+    // A faixa leva à página DAQUELA noite (que mostra "Reservar mesa" só se ela estiver aberta) — nunca ao mapa de
+    // outra data da mesma casa.
+    if (e.status !== "cancelada" && ehCasa(e.casa) && e.casa !== CASA_PADRAO) r[e.data] = `/noite/${e.id}`;
   }
   return r;
 }

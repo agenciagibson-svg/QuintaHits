@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import { GENEROS, type Edicao, type Genero } from "@/lib/edicao";
 import EdicaoCard from "./EdicaoCard";
 
-type Props = { proximas: Edicao[]; anteriores: Edicao[] };
+type Props = { proximas: Edicao[]; anteriores: Edicao[]; abertas?: string[] };
 
 const FILTROS: { chave: Genero | "todas"; rotulo: string }[] = [
   { chave: "todas", rotulo: "Todas" },
   ...(Object.keys(GENEROS) as Exclude<Genero, "">[]).map((g) => ({ chave: g, rotulo: GENEROS[g].rotulo })),
 ];
 
-export default function ProgramacaoFiltro({ proximas, anteriores }: Props) {
+export default function ProgramacaoFiltro({ proximas, anteriores, abertas = [] }: Props) {
   const [filtro, setFiltro] = useState<Genero | "todas">("todas");
 
   const filtrar = (lista: Edicao[]) => (filtro === "todas" ? lista : lista.filter((e) => e.genero === filtro));
@@ -37,7 +37,7 @@ export default function ProgramacaoFiltro({ proximas, anteriores }: Props) {
       <h3 className="display h-3" style={{ margin: "0 0 18px" }}>Próximas noites</h3>
       {prox.length ? (
         <div className="edicoes">
-          {prox.map((e) => <EdicaoCard key={e.id} edicao={e} />)}
+          {prox.map((e) => <EdicaoCard key={e.id} edicao={e} reservaAberta={abertas.includes(e.id)} />)}
         </div>
       ) : (
         <p className="vazio">Nenhuma noite desse estilo anunciada ainda. Volte em breve.</p>

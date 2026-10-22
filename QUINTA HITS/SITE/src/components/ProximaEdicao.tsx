@@ -5,7 +5,8 @@ import Aba from "./Aba";
 import Compartilhar from "./Compartilhar";
 import { CASAS, CASA_PADRAO, ehCasa } from "@/config/casas";
 
-export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: typeof siteType }) {
+/** `reservaAberta`: a noite aceita reserva agora → "Reservar mesa" abre o mapa DESTA noite; senão "Reservas em breve". */
+export default function ProximaEdicao({ edicao, site, reservaAberta = false }: { edicao: Edicao; site: typeof siteType; reservaAberta?: boolean }) {
   const [, , dia] = edicao.data.split("-");
   const mes = mesCurto(edicao.data);
   const horario = edicao.horario || site.horarioPadrao;
@@ -14,7 +15,9 @@ export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: 
   // Reserva da casa da noite: Quinta Hits/Florindos = /reservar (ou link cadastrado); outra casa = página dela.
   const casa = ehCasa(edicao.casa) ? CASAS[edicao.casa] : CASAS[CASA_PADRAO];
   // Casa sem reserva pelo site (ex.: Solarium, ainda sem mapa): sem botão de reserva.
-  const reserva = !casa.reservas ? null : casa.id !== CASA_PADRAO ? casa.pagina : reservaHrefFrom(site);
+  // Link externo de reserva (cadastrado no painel da Quinta Hits) continua valendo; senão, o mapa desta noite.
+  const externo = casa.id === CASA_PADRAO && /^https?:/.test(reservaHrefFrom(site)) ? reservaHrefFrom(site) : null;
+  const reserva = !casa.reservas ? null : externo ?? (reservaAberta ? `/reservar?edicao=${encodeURIComponent(edicao.id)}` : null);
   const textoShare = edicao.artista
     ? `${edicao.artista} na QUINTA HITS, ${formatData(edicao.data, "longa")}, no ${local}. ${site.assinatura}`
     : `QUINTA HITS, ${formatData(edicao.data, "longa")}, no ${local}. ${site.assinatura}`;
@@ -53,10 +56,12 @@ export default function ProximaEdicao({ edicao, site }: { edicao: Edicao; site: 
           )}
         </div>
         <div className="proxima__acoes">
-          {reserva && (
+          {reserva ? (
             <a className="btn btn--terracota" href={reserva} {...alvoLink(reserva)}>
               Reservar mesa
             </a>
+          ) : (
+            casa.reservas && <span className="noite__selo">Reservas em breve</span>
           )}
           <a className="btn btn--vazado" href={`/noite/${edicao.id}`}>Ver a noite</a>
           <Compartilhar titulo={site.nome} texto={textoShare} url={`${site.url}/noite/${edicao.id}`} />
