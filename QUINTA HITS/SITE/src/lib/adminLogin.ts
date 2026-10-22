@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
-import { emailDaCasa } from "@/lib/casaAuth";
+import { acessoDoEmail } from "@/lib/acessos";
 
 /**
  * E-mails que podem entrar no painel (ADMIN_EMAILS, separados por vírgula).
@@ -16,13 +16,14 @@ function emailsAutorizados(): string[] {
 
 /** Confere e-mail e senha no Supabase Auth. Fica fora de adminAuth.ts porque aquele roda no middleware (Edge). */
 export async function verificarLogin(email: string, senha: string): Promise<boolean> {
-  if (!emailsAutorizados().includes(email.trim().toLowerCase())) return false;
+  // Variáveis da Vercel (ADMIN_EMAILS) ou usuário cadastrado no painel com acesso ao painel.
+  if (!emailsAutorizados().includes(email.trim().toLowerCase()) && !(await acessoDoEmail(email)).painel) return false;
   return senhaConfere(email, senha);
 }
 
 /** Login do app da casa: e-mail em CASA_EMAILS ou ADMIN_EMAILS (ver casaAuth.ts) e senha certa no Supabase Auth. */
 export async function verificarLoginCasa(email: string, senha: string): Promise<boolean> {
-  if (!emailDaCasa(email)) return false;
+  if ((await acessoDoEmail(email)).casas.length === 0) return false;
   return senhaConfere(email, senha);
 }
 

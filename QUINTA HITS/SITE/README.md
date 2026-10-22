@@ -77,6 +77,18 @@ Precisa de um número de telefone **só para o sistema** — enquanto estiver na
 
 Custo: mensagens que o cliente manda e as respostas dentro de 24h são gratuitas na Meta.
 
+## Usuários (painel → Configuração → Usuários)
+
+- **Contas fixas:** as das variáveis da Vercel (`ADMIN_EMAILS`, `CASA_EMAILS`, `CASA_EMAILS_HARLEY_GRILL`...). Só mudam lá;
+  ninguém se tranca fora pelo painel. Só quem está em `ADMIN_EMAILS` inclui, muda ou remove usuários.
+- **Contas cadastradas** (tabela `usuarios_acesso`): *Painel completo* (painel + app de todas as casas) ou *Só o app de
+  reservas* das casas escolhidas. Incluir cria o login no Supabase Auth com a senha informada (8+ letras e números) e
+  mostra o recado pronto para mandar à pessoa. "Editar / senha" muda o acesso e troca a senha; "Remover" tira o acesso na
+  hora (a checagem é feita em toda rota de API) e apaga o login.
+- O middleware só confere a assinatura do cookie (roda no Edge, sem banco); quem tem acesso é conferido em
+  `exigirSessao`/`exigirSessaoCasa` (`src/lib/acessos.ts`).
+- Banco: `supabase/migracao-2026-10-22-usuarios.sql`.
+
 ## Segurança (revisão de 21/10/2026)
 
 - **Login (painel e app):** além do limite por endereço, limite por e-mail no banco (`login_tentativas`): 5 senhas erradas

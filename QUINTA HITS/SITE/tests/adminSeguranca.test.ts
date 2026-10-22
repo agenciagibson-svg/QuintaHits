@@ -89,11 +89,11 @@ describe("middleware do admin", () => {
     expect((await middleware(req("/admin", await criarSessao("a@x.com")))).headers.get("x-middleware-next")).toBe("1");
   });
 
-  it("cookie autêntico de quem foi removido de ADMIN_EMAILS não abre o painel", async () => {
-    const cookie = await criarSessao("a@x.com");
-    vi.stubEnv("ADMIN_EMAILS", "outra@x.com");
-    expect((await middleware(req("/api/admin/mesas", cookie))).status).toBe(401);
-    expect((await middleware(req("/admin", cookie))).status).toBe(307);
+  it("o middleware (Edge, sem banco) só confere a assinatura; QUEM tem acesso é conferido em toda rota (usuarios.test.ts)", async () => {
+    // Usuários cadastrados no painel não estão nas variáveis: o middleware não pode barrá-los. Quem foi removido
+    // (das variáveis ou do painel) passa daqui, mas cada rota responde 401 — ver "removido perde o acesso na hora".
+    const cookie = await criarSessao("cadastrado@x.com");
+    expect((await middleware(req("/api/admin/mesas", cookie))).headers.get("x-middleware-next")).toBe("1");
   });
 
   it("cookie forjado não abre o painel", async () => {

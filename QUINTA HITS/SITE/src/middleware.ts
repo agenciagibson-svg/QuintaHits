@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { COOKIE_NAME, sessaoValida } from "@/lib/adminAuth";
-import { COOKIE_CASA, sessaoCasaValida } from "@/lib/casaAuth";
+import { COOKIE_NAME, lerSessao } from "@/lib/adminAuth";
+import { COOKIE_CASA } from "@/lib/casaAuth";
 import { CASAS, CASA_PADRAO, casaDoDominio } from "@/config/casas";
 
 /** Do app da casa, só o que precisa abrir SEM login: a tela/API de login e os arquivos do app instalável. */
@@ -43,7 +43,9 @@ export async function middleware(req: NextRequest) {
   // ----- App da casa (/casa): sessão própria, separada do painel -----
   if (pathname === "/casa" || pathname.startsWith("/casa/") || pathname.startsWith("/api/casa")) {
     if (PUBLICOS_CASA.has(pathname) || pathname.startsWith("/casa/icones/")) return NextResponse.next();
-    if (await sessaoCasaValida(req.cookies.get(COOKIE_CASA)?.value)) return NextResponse.next();
+    // Aqui só a assinatura do cookie (o middleware roda no Edge, sem banco). QUEM pode entrar (variáveis da Vercel +
+    // usuários do painel) é conferido em toda rota de API (casaSessao.ts): removido = 401 na hora.
+    if (await lerSessao(req.cookies.get(COOKIE_CASA)?.value, "casa")) return NextResponse.next();
     if (pathname.startsWith("/api/casa")) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
     const url = req.nextUrl.clone();
     url.pathname = "/casa/login";
@@ -64,7 +66,8 @@ export async function middleware(req: NextRequest) {
   }
 
   const cookie = req.cookies.get(COOKIE_NAME)?.value;
-  const valido = await sessaoValida(cookie);
+  // Só a assinatura; a lista de quem entra (variáveis + usuários do painel) é conferida em toda rota (adminSessao.ts).
+  const valido = (await lerSessao(cookie)) !== null;
 
   if (!valido) {
     if (pathname.startsWith("/api/admin")) {

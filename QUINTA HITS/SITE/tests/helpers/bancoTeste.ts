@@ -25,6 +25,7 @@ const MIGRACAO_DADOS_CASAS = ler("migracao-2026-10-21-dados-das-casas.sql");
 const MIGRACAO_SOLARIUM = ler("migracao-2026-10-21-solarium.sql");
 const MIGRACAO_CHECKIN = ler("migracao-2026-10-21-checkin.sql");
 const MIGRACAO_SEGURANCA = ler("migracao-2026-10-21-seguranca.sql");
+const MIGRACAO_USUARIOS = ler("migracao-2026-10-22-usuarios.sql");
 
 export type ErroBanco = { code: string; message: string; details: string | null; hint: string | null };
 type Resposta<T> = { data: T; error: ErroBanco | null; count: number | null };
@@ -32,7 +33,7 @@ type Resposta<T> = { data: T; error: ErroBanco | null; count: number | null };
 const TABELAS_DE_DADOS = [
   "casa_push", "wa_notas_internas", "reservas_historico", "reservas", "edicoes_mesas", "edicoes_regras", "wa_fila_tentativas", "wa_fila_saida",
   "wa_mensagens", "wa_transferencias", "wa_conversas", "wa_contatos", "wa_webhook_eventos", "auditoria",
-  "wa_config", "mesas", "site_config", "edicoes", "login_tentativas", "sessoes_encerradas",
+  "wa_config", "mesas", "site_config", "edicoes", "login_tentativas", "sessoes_encerradas", "usuarios_acesso",
 ];
 
 // Relações "embutidas" que o código atual usa em select (ex.: `mesas(numero)`): tabela -> coluna de ligação.
@@ -206,7 +207,7 @@ export type BancoTeste = {
 
 /** `migracao: false` = banco antigo (sem nada do agente); `parte2: false` = só a parte 1 aplicada (estado do banco antes da parte 2). */
 /** `abertura: false` = banco sem as colunas da abertura semanal. Com elas, `limpar()` deixa a linha da casa SEM dia fixo. */
-export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean; casa?: boolean; multiCasa?: boolean; dadosCasas?: boolean; checkin?: boolean; seguranca?: boolean } = {}): Promise<BancoTeste> {
+export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean; casa?: boolean; multiCasa?: boolean; dadosCasas?: boolean; checkin?: boolean; seguranca?: boolean; usuarios?: boolean } = {}): Promise<BancoTeste> {
   const pg = new PGlite();
   await pg.exec("create role anon; create role authenticated; create role service_role;");
   await pg.exec(BASE);
@@ -221,6 +222,7 @@ export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boo
   if (opcoes.multiCasa !== false) await pg.exec(MIGRACAO_SOLARIUM);
   if (opcoes.checkin !== false) await pg.exec(MIGRACAO_CHECKIN);
   if (opcoes.seguranca !== false) await pg.exec(MIGRACAO_SEGURANCA);
+  if (opcoes.usuarios !== false) await pg.exec(MIGRACAO_USUARIOS);
   const temMigracao = opcoes.migracao !== false;
 
   const supabase = { from: (tabela: string) => new Consulta(pg, tabela) } as unknown as SupabaseClient;

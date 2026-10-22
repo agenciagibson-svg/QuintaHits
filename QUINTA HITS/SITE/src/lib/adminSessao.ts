@@ -1,7 +1,8 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { COOKIE_NAME, lerSessao, sessaoValida } from "@/lib/adminAuth";
+import { COOKIE_NAME, lerSessao } from "@/lib/adminAuth";
+import { acessoDoEmail } from "@/lib/acessos";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { sessaoEncerrada } from "@/lib/protecao";
 
@@ -12,8 +13,10 @@ import { sessaoEncerrada } from "@/lib/protecao";
  */
 export async function exigirSessao(): Promise<NextResponse | null> {
   const valor = (await cookies()).get(COOKIE_NAME)?.value;
-  // Cookie encerrado com "Sair" (mesmo copiado) não vale mais.
-  if ((await sessaoValida(valor)) && !(await sessaoEncerrada(valor).catch(() => false))) return null;
+  // Assinatura válida + e-mail com acesso ao painel AGORA (variáveis da Vercel ou usuário do painel) + cookie não
+  // encerrado com "Sair". Removido pelo painel = perde o acesso na próxima requisição.
+  const sessao = await lerSessao(valor);
+  if (sessao && (await acessoDoEmail(sessao.email)).painel && !(await sessaoEncerrada(valor).catch(() => false))) return null;
   return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
 }
 
@@ -25,4 +28,10 @@ export async function atorDaSessao(): Promise<string> {
 /** Registra na auditoria uma ação feita no painel, com o e-mail real de quem a executou. Nunca recebe segredos nem conteúdo de conversa. */
 export async function auditarPainel(acao: string, entidade: string, entidadeId?: string, detalhe?: Record<string, unknown>): Promise<void> {
   await registrarAuditoria({ ator: await atorDaSessao(), acao, entidade, entidadeId, detalhe });
+}
+
+/** Acesso de quem está no painel (para saber, por exemplo, se pode gerenciar usuários). */
+export async function acessoDaSessao() {
+  const sessao = await lerSessao((await cookies()).get(COOKIE_NAME)?.value);
+  return sessao ? { email: sessao.email, ...(await acessoDoEmail(sessao.email)) } : null;
 }

@@ -1,7 +1,7 @@
 import "server-only";
 import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { casasDoEmail, emailDaCasa } from "@/lib/casaAuth";
+import { acessoDoEmail } from "@/lib/acessos";
 import { CASA_PADRAO, type CasaId } from "@/config/casas";
 
 /**
@@ -76,12 +76,13 @@ export async function notificarCasa(aviso: AvisoCasa, casa: CasaId = CASA_PADRAO
   await Promise.all(
     (data as { endpoint: string; p256dh: string; auth: string; email: string }[]).map(async (l) => {
       // Quem saiu de CASA_EMAILS/ADMIN_EMAILS perde também os avisos, na hora: a inscrição é apagada sem envio.
-      if (!emailDaCasa(l.email)) {
+      const acesso = await acessoDoEmail(l.email);
+      if (acesso.casas.length === 0) {
         await removerInscricao(l.endpoint).catch(() => undefined);
         removidos++;
         return;
       }
-      if (!casasDoEmail(l.email).includes(casa)) return; // não atende esta casa: sem aviso
+      if (!acesso.casas.includes(casa)) return; // não atende esta casa: sem aviso
       try {
         await webpush.sendNotification({ endpoint: l.endpoint, keys: { p256dh: l.p256dh, auth: l.auth } }, carga, {
           vapidDetails: { subject: assunto, publicKey: publica, privateKey: privada },

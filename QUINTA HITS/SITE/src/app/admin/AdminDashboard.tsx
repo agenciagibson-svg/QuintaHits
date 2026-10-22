@@ -8,13 +8,14 @@ import AuditoriaPainel from "./AuditoriaPainel";
 import CasaPainel from "./CasaPainel";
 import DadosCasaPainel from "./DadosCasaPainel";
 import IntegracoesPainel from "./IntegracoesPainel";
+import UsuariosPainel from "./UsuariosPainel";
 import MesasEditor from "./MesasEditor";
 import ProgramacaoPainel from "./ProgramacaoPainel";
 import RegrasEdicaoPainel from "./RegrasEdicaoPainel";
 import ReservasPainel from "./ReservasPainel";
 import VisaoGeral from "./VisaoGeral";
 import {
-  IconeCalendario, IconeCasa, IconeConversa, IconeExterno, IconeInicio, IconeMesas, IconeRegras, IconeReserva, IconeSair, IconeSistema,
+  IconeCalendario, IconeCasa, IconeConversa, IconeExterno, IconeInicio, IconeMesas, IconeRegras, IconeReserva, IconeSair, IconeSistema, IconeUsuarios,
 } from "./Icones";
 import type { Edicao } from "@/lib/edicao";
 import { CASAS, CASA_IDS, CASA_PADRAO, casaDaEdicaoId, ehCasa, type CasaId } from "@/config/casas";
@@ -23,7 +24,7 @@ const CHAVE_CASA = "qh-painel-casa";
 
 export type PedidoPendente = { id: string; edicao_id: string; created_at: string };
 
-export type Aba = "inicio" | "atendimento" | "reservas" | "programacao" | "regras" | "mesas" | "casa" | "sistema";
+export type Aba = "inicio" | "atendimento" | "reservas" | "programacao" | "regras" | "mesas" | "casa" | "usuarios" | "sistema";
 
 type ItemMenu = { aba: Aba; rotulo: string; icone: ReactNode; titulo: string; descricao: string; grupo: "Operação" | "Configuração" };
 
@@ -35,6 +36,7 @@ const MENU: ItemMenu[] = [
   { aba: "regras", rotulo: "Regras da noite", icone: <IconeRegras />, grupo: "Configuração", titulo: "Regras da noite", descricao: "Prazos, valores e canais de cada edição. A reserva só abre quando tudo está preenchido e liberado." },
   { aba: "mesas", rotulo: "Mesas", icone: <IconeMesas />, grupo: "Configuração", titulo: "Mesas", descricao: "O mapa que o cliente vê em /reservar. Mesa desativada some do site." },
   { aba: "casa", rotulo: "Casa", icone: <IconeCasa />, grupo: "Configuração", titulo: "Dados da casa", descricao: "Endereço, Instagram e link de reserva usados em todo o site." },
+  { aba: "usuarios", rotulo: "Usuários", icone: <IconeUsuarios />, grupo: "Configuração", titulo: "Usuários", descricao: "Quem entra no painel e no app de reservas (celular). Incluir, mudar o acesso, trocar a senha ou remover." },
   { aba: "sistema", rotulo: "Sistema", icone: <IconeSistema />, grupo: "Configuração", titulo: "Sistema", descricao: "Estado das integrações (WhatsApp, banco, site) e histórico de ações da equipe." },
 ];
 
@@ -194,7 +196,7 @@ export default function AdminDashboard() {
           <div className="qh-conteudo">
             <header className="qh-cabecalho">
               <div>
-                <h1>{atual.titulo}{casa !== CASA_PADRAO && !SO_DA_QUINTA.includes(aba) && aba !== "sistema" ? ` · ${CASAS[casa].nome}` : ""}</h1>
+                <h1>{atual.titulo}{casa !== CASA_PADRAO && !SO_DA_QUINTA.includes(aba) && aba !== "sistema" && aba !== "usuarios" ? ` · ${CASAS[casa].nome}` : ""}</h1>
                 <p>{atual.descricao.replace("/reservar", CASAS[casa].pagina)}</p>
               </div>
             </header>
@@ -214,6 +216,7 @@ export default function AdminDashboard() {
                 {painel("regras", <RegrasEdicaoPainel key={casa} casa={casa} edicoes={edicoes} />)}
                 {painel("mesas", <MesasEditor key={casa} casa={casa} />)}
                 {painel("casa", casa === CASA_PADRAO ? <CasaPainel /> : <DadosCasaPainel key={casa} casa={casa} />)}
+                {painel("usuarios", <UsuariosPainel />)}
                 {painel("sistema", <><IntegracoesPainel /><AuditoriaPainel /></>)}
               </>
             )}
