@@ -210,3 +210,33 @@
 .cs-chegou { display: inline-block; background: rgba(31, 122, 77, 0.14); color: var(--cs-ok); border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 700; }
 .cs-porta-botao { display: flex; gap: 8px; max-width: 640px; margin: 12px auto 0; padding: 0 16px; }
 .cs-porta-botao .cs-btn { flex: 1; padding: 12px; font-size: 16px; }
+
+/* ----- Mapa de mesas no app: reservar para cliente ou travar ----- */
+.cs-porta-botao .cs-btn-escuro { background: var(--cs-verde); color: var(--cs-creme); }
+.cs-btn-escuro { background: var(--cs-preto); color: var(--cs-creme); }
+.cs-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; text-decoration: underline; color: inherit; cursor: pointer; }
+.cs-mesas { position: fixed; inset: 0; z-index: 50; background: var(--cs-creme); color: var(--cs-preto); overflow-y: auto; overscroll-behavior: contain; }
+.cs-mesas-topo { position: sticky; top: 0; z-index: 2; background: var(--cs-verde); color: var(--cs-creme); padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.cs-mesas-titulo { font-family: var(--display); font-size: 26px; line-height: 1; letter-spacing: 0.02em; }
+.cs-mesas-noite { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+.cs-mesas-corpo { max-width: 640px; margin: 0 auto; padding: 12px 16px calc(env(safe-area-inset-bottom) + 32px); display: grid; gap: 12px; }
+.cs-mesas-mapa { background: #fffaf0; border: 1px solid var(--cs-linha); border-radius: 18px; padding: 10px; }
+.cs-mesas-mapa .mapa__legenda { color: var(--cs-preto); }
+.cs-mesas-dica, .cs-mesas-obs { margin: 0; font-size: 14px; color: var(--cs-suave); }
+.cs-mesas-dica { text-align: center; }
+.cs-mesas-quadro { background: #fffaf0; border: 2px solid var(--cs-mostarda); border-radius: 18px; padding: 14px; display: grid; gap: 10px; }
+.cs-mesas-quadro p { margin: 0; line-height: 1.45; }
+.cs-mesas-quadro .cs-acoes { margin-top: 0; }
+.cs-mesas-quadro-cabeca { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.cs-mesas-quadro-titulo { font-family: var(--display); font-size: 24px; line-height: 1.05; }
+.cs-mesas-quadro-titulo small { font-family: var(--texto); font-size: 13px; color: var(--cs-suave); }
+.cs-mesas-feita { border-color: var(--cs-ok); }
+.cs-selo-travada { background: var(--cs-preto); color: var(--cs-creme); margin-left: 0; }
+.cs-abas { display: grid; grid-template-columns: 1fr 1fr; background: rgba(23, 23, 23, 0.06); border-radius: 12px; padding: 4px; gap: 4px; }
+.cs-abas button { border: 0; border-radius: 9px; background: transparent; font: inherit; font-weight: 700; font-size: 14px; padding: 10px 6px; color: var(--cs-suave); }
+.cs-abas button[aria-selected="true"] { background: #fff; color: var(--cs-preto); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.cs-form { display: grid; gap: 10px; }
+.cs-form label { display: grid; gap: 4px; font-size: 14px; font-weight: 600; }
+.cs-form input { font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--cs-linha); background: #fff; color: var(--cs-preto); }
+.cs-form .cs-erro { margin-bottom: 0; }
+.cs-form .cs-btn { width: 100%; }

@@ -8,6 +8,7 @@ const SEMANA_CURTA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 import { ehTravada, formatarWhatsapp, type StatusReserva } from "@/lib/reserva";
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 import LeitorPorta, { fazerCheckin } from "./Porta";
+import MesasCasa from "./MesasCasa";
 
 type EdicaoCasa = { id: string; data: string; artista: string; horario: string; local: string; status: string; casa: string };
 type ReservaCasa = {
@@ -84,6 +85,7 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
   const [instalar, setInstalar] = useState<EventoInstalar | null>(null);
   const [mostrarInstalar, setMostrarInstalar] = useState(false);
   const [leitor, setLeitor] = useState(false);
+  const [mapaAberto, setMapaAberto] = useState(false);
   const chavePush = useRef<string | null>(null);
   const timerToast = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -247,6 +249,23 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
     }
   }
 
+  /** Destravar pelo mapa: mesmo caminho do botão "Destravar" da lista (cancelar a trava). */
+  async function destravarPeloMapa(id: string) {
+    const r = dados?.reservas.find((x) => x.id === id);
+    if (r) await mudarStatus(r, "cancelada");
+  }
+
+  /** Reserva feita ou mesa travada pelo mapa: atualiza a lista; reserva de cliente já fica com o botão de avisar. */
+  const aoOcuparPeloMapa = useCallback(
+    (nova?: { id: string; cliente: boolean }) => {
+      if (nova?.cliente) setAvisar((a) => ({ ...a, [nova.id]: true }));
+      mostrarToast(nova?.cliente ? "Reserva feita (já confirmada)." : "Mesa travada nesta noite.");
+      carregar();
+    },
+    [carregar, mostrarToast],
+  );
+  const fecharMapa = useCallback(() => setMapaAberto(false), []);
+
   const edicao = dados?.edicoes.find((e) => e.id === edicaoId);
   // Mais de uma casa no app (a equipe): cada noite mostra de que casa é.
   const casas = dados?.casas ?? [];
@@ -400,9 +419,17 @@ export default function AppCasa({ edicaoInicial }: { edicaoInicial?: string }) {
           <button type="button" className="cs-btn cs-btn-aprovar" onClick={() => setLeitor(true)}>
             Ler QR na entrada
           </button>
+          {edicao && edicao.data >= hojeISO() && (
+            <button type="button" className="cs-btn cs-btn-escuro" onClick={() => setMapaAberto(true)}>
+              Reservar ou travar mesa
+            </button>
+          )}
         </div>
       )}
       {leitor && <LeitorPorta onFechar={() => setLeitor(false)} onRegistrou={carregar} />}
+      {mapaAberto && edicao && (
+        <MesasCasa noite={edicao} reservas={daNoite} onFechar={fecharMapa} onMudou={aoOcuparPeloMapa} onDestravar={destravarPeloMapa} />
+      )}
 
       <div className="cs-conteudo">
         {mostrarInstalar && (instalar || ehIOS()) && (

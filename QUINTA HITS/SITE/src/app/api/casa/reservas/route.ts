@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { casasDaSessao, exigirSessaoCasa } from "@/lib/casaSessao";
+import { atorDaCasa, casasDaSessao, exigirSessaoCasa } from "@/lib/casaSessao";
 import { noitesEmAndamento } from "@/lib/checkin";
 import { expirarPedidosVencidos } from "@/lib/reservas";
 import { CASAS } from "@/config/casas";
+import { ocuparMesa } from "@/lib/ocuparMesa";
 
 export const dynamic = "force-dynamic";
 
@@ -75,4 +76,20 @@ export async function GET() {
     console.error("Erro ao carregar reservas da casa:", (e as { code?: string })?.code ?? "erro");
     return NextResponse.json({ erro: "Não foi possível carregar as reservas." }, { status: 500 });
   }
+}
+
+/**
+ * POST /api/casa/reservas — quem atende a casa ocupa uma mesa pelo app (mesmas regras do mapa do painel):
+ *   { edicao_id, mesa_id, nome, whatsapp, pessoas }  → reserva de cliente, já confirmada;
+ *   { edicao_id, mesa_id, travar: true, motivo? }     → mesa travada na noite.
+ * Só noites das casas de quem está logado; destravar é o PUT de status "cancelada" (como no painel).
+ */
+export async function POST(req: Request) {
+  const negado = await exigirSessaoCasa();
+  if (negado) return negado;
+
+  const body = await req.json().catch(() => null);
+  const r = await ocuparMesa(body, { ator: await atorDaCasa(), origem: "casa", somenteDaCasa: await casasDaSessao() });
+  if (!r.ok) return NextResponse.json({ erro: r.erro }, { status: r.status });
+  return NextResponse.json({ ok: true, id: r.id, mesa: r.mesa, codigo: r.codigo }, { status: 201 });
 }

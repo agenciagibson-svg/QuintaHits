@@ -28,7 +28,8 @@ import { COOKIE_NAME, criarSessao } from "@/lib/adminAuth";
 import { COOKIE_CASA, casasDoEmail, emailDaCasa, sessaoCasaValida } from "@/lib/casaAuth";
 import { verificarLoginCasa } from "@/lib/adminLogin";
 import { middleware } from "@/middleware";
-import { GET as listar } from "@/app/api/casa/reservas/route";
+import { GET as listar, POST as ocuparPelaCasa } from "@/app/api/casa/reservas/route";
+import { GET as mapaDaCasa } from "@/app/api/casa/mapa/route";
 import { PUT as mudar } from "@/app/api/casa/reservas/[id]/route";
 import { DELETE as pushSair, GET as pushConfig, POST as pushEntrar } from "@/app/api/casa/push/route";
 import { GET as manifest } from "@/app/casa/manifest.webmanifest/route";
@@ -182,6 +183,76 @@ describe("API de reservas do app da casa", () => {
     const antiga = await reserva("2000-01-06", "confirmada");
     expect((await mudar(corpo({ status: "cancelada" }), ctx(antiga))).status).toBe(403);
     expect((await banco.sql("select status from reservas where id = $1", [antiga]))[0]).toEqual({ status: "confirmada" });
+  });
+});
+
+describe("app da casa: reservar para cliente e travar mesa pelo mapa", () => {
+  let mesa: string;
+  let mesaHg: string;
+  const ED_HG = "2099-01-08_harley-grill";
+  const ocupar = (o: Record<string, unknown>) => ocuparPelaCasa(corpo(o, "POST"));
+  const mapa = (edicao: string) => mapaDaCasa(new Request(`http://localhost/api/casa/mapa?edicao=${encodeURIComponent(edicao)}`));
+
+  beforeEach(async () => {
+    definirBanco(banco);
+    await banco.limpar();
+    await criarEdicao(banco, { id: ED, artista: "Cibele", horario: "19h" });
+    await criarEdicao(banco, { id: "2000-01-06", status: "realizada" });
+    mesa = await criarMesa(banco, "05", 4);
+    await banco.sql("insert into edicoes (id, data, casa, artista, local, status) values ($1, '2099-01-08', 'harley-grill', '[TESTE] Atração', 'Harley Grill', 'confirmada')", [ED_HG]);
+    [{ id: mesaHg }] = await banco.sql<{ id: string }>("insert into mesas (casa, numero, lugares, area) values ('harley-grill', '12', 4, 'Pista VIP') returning id");
+    sessao.cookies[COOKIE_CASA] = await criarSessao(DONO, "casa");
+  });
+
+  it("mapa: mesas da casa com posição; noite de outra casa não abre para o dono do Florindos", async () => {
+    const r = await mapa(ED);
+    expect(r.status).toBe(200);
+    const j = await r.json();
+    expect(j.mesas).toEqual([expect.objectContaining({ id: mesa, numero: "05", lugares: 4, x: expect.any(Number), y: expect.any(Number) })]);
+    expect(Array.isArray(j.planta)).toBe(true);
+    expect((await mapa(ED_HG)).status).toBe(404);
+    expect((await mapa("xx")).status).toBe(400);
+  });
+
+  it("reserva de cliente: já confirmada, com código, autor e origem 'casa' na auditoria; mesa ocupada não aceita outra", async () => {
+    const r = await ocupar({ edicao_id: ED, mesa_id: mesa, nome: "Bruno", whatsapp: "(34) 98888-7777", pessoas: 3 });
+    expect(r.status).toBe(201);
+    const j = await r.json();
+    expect(j).toMatchObject({ ok: true, mesa: "05" });
+    expect(j.codigo).toMatch(/^QH-\d{6}$/);
+    const [linha] = await banco.sql<{ status: string; whatsapp: string; pessoas: number; atendente: string }>("select status, whatsapp, pessoas, atendente from reservas where id = $1", [j.id]);
+    expect(linha).toEqual({ status: "confirmada", whatsapp: "34988887777", pessoas: 3, atendente: DONO });
+    const [aud] = await banco.sql<{ ator: string; detalhe: { origem: string } }>("select ator, detalhe from auditoria where acao = 'reserva_casa_criada'");
+    expect(aud).toMatchObject({ ator: DONO, detalhe: { origem: "casa" } });
+    expect((await ocupar({ edicao_id: ED, mesa_id: mesa, travar: true })).status).toBe(409);
+  });
+
+  it("travar e destravar: a trava aparece na lista como mesa travada e destravar (cancelar) libera a mesa", async () => {
+    const r = await ocupar({ edicao_id: ED, mesa_id: mesa, travar: true, motivo: "Mesa do dono" });
+    expect(r.status).toBe(201);
+    const { id, codigo } = await r.json();
+    expect(codigo).toBeNull();
+    const lista = await (await listar()).json();
+    expect(lista.reservas).toEqual([expect.objectContaining({ id, status: "confirmada", whatsapp: "", origem_reserva: "admin", observacoes: "Mesa do dono" })]);
+    expect((await mudar(corpo({ status: "cancelada" }), ctx(id))).status).toBe(200);
+    expect((await ocupar({ edicao_id: ED, mesa_id: mesa, travar: true })).status).toBe(201);
+  });
+
+  it("recusa: casa que a pessoa não atende, mesa de outra casa, dados faltando, mais pessoas que lugares e noite passada", async () => {
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, travar: true })).status).toBe(404); // dono do Florindos x Harley
+    expect((await ocupar({ edicao_id: ED, mesa_id: mesaHg, travar: true })).status).toBe(404); // mesa do Harley na noite da Quinta
+    expect((await ocupar({ edicao_id: ED, mesa_id: mesa, nome: "B", whatsapp: "34988887777", pessoas: 2 })).status).toBe(400);
+    expect((await ocupar({ edicao_id: ED, mesa_id: mesa, nome: "Bruno", whatsapp: "123", pessoas: 2 })).status).toBe(400);
+    expect((await ocupar({ edicao_id: ED, mesa_id: mesa, nome: "Bruno", whatsapp: "34988887777", pessoas: 9 })).status).toBe(400);
+    expect((await ocupar({ edicao_id: ED, mesa_id: "abc", travar: true })).status).toBe(400);
+    expect((await ocupar({ edicao_id: "2000-01-06", mesa_id: mesa, travar: true })).status).toBe(409);
+    expect((await banco.sql("select 1 from reservas")).length).toBe(0);
+  });
+
+  it("a equipe (ADMIN_EMAILS) logada no app trava mesa do Harley", async () => {
+    sessao.cookies[COOKIE_CASA] = await criarSessao("equipe@gibson.com", "casa");
+    expect((await mapa(ED_HG)).status).toBe(200);
+    expect((await ocupar({ edicao_id: ED_HG, mesa_id: mesaHg, travar: true })).status).toBe(201);
   });
 });
 
