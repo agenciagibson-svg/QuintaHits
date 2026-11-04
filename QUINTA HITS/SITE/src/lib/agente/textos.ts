@@ -1,6 +1,6 @@
 import { site } from "@/config/site";
 import { formatData } from "@/lib/edicao";
-import { formatarReais, type RegrasEdicao } from "@/lib/regrasEdicao";
+import { formatarReais, linhasDePreco, type RegrasEdicao } from "@/lib/regrasEdicao";
 import type { Botao, EdicaoOferecida, ItemLista, Mensagem, MesaOferecida, ReservaResumo } from "./tipos";
 
 /**
@@ -101,7 +101,7 @@ export function linhasDeRegras(r: RegrasEdicao, horarioEvento: string): string[]
   if (r.consumacao_minima_centavos !== null) {
     linhas.push(r.consumacao_minima_centavos === 0 ? "Sem consumação mínima." : `Consumação mínima: ${formatarReais(r.consumacao_minima_centavos)}.`);
   }
-  if (r.preco_centavos !== null) linhas.push(`Valor: ${formatarReais(r.preco_centavos)}.`);
+  if (r.preco_centavos !== null || r.precos_mesa) linhas.push(...linhasDePreco(r).map((l) => `${l}.`));
   if (r.cancelamento_ate_horas !== null) linhas.push(`Cancelamento até ${r.cancelamento_ate_horas} ${r.cancelamento_ate_horas === 1 ? "hora" : "horas"} antes.`);
   return linhas;
 }

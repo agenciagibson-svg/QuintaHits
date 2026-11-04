@@ -2,6 +2,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { hojeISO } from "@/lib/edicao";
+import { linhasDeValores } from "@/lib/regrasEdicao";
 import { expirarPedidosDeVezEmQuando } from "@/lib/expiracao";
 import { CASAS, casaDaEdicaoId, dataDaEdicaoId, type Casa } from "@/config/casas";
 import type { StatusReserva } from "@/lib/reserva";
@@ -40,6 +41,8 @@ export type MinhaReserva = {
   passou: boolean;
   /** Mostra o QR de entrada (confirmada ou aguardando, noite de hoje em diante, ainda sem check-in). */
   valeQr: boolean;
+  /** Valor da mesa e consumação cadastrados para a noite (vazio se a edição não tem regras). */
+  valores: string[];
 };
 
 /**
@@ -54,18 +57,25 @@ export async function lerMinhaReserva(ref: string): Promise<MinhaReserva | null>
   const { data } = await db.from("reservas").select("id, edicao_id, mesa_id, nome, whatsapp, pessoas, status, codigo, chegou_em").eq("id", id).maybeSingle();
   if (!data || (data as { whatsapp: string }).whatsapp === "") return null;
   const r = data as { id: string; edicao_id: string; mesa_id: string; nome: string; pessoas: number; status: StatusReserva; codigo: string | null; chegou_em: string | null };
-  const [{ data: mesa }, { data: edicao }] = await Promise.all([
-    db.from("mesas").select("numero").eq("id", r.mesa_id).maybeSingle(),
+  const [{ data: mesa }, { data: edicao }, { data: regras }, { data: ajuste }, precosLidos] = await Promise.all([
+    db.from("mesas").select("numero, lugares").eq("id", r.mesa_id).maybeSingle(),
     db.from("edicoes").select("artista, horario, local").eq("id", r.edicao_id).maybeSingle(),
+    db.from("edicoes_regras").select("preco_centavos, consumacao_minima_centavos").eq("edicao_id", r.edicao_id).maybeSingle(),
+    db.from("edicoes_mesas").select("lugares_override").eq("edicao_id", r.edicao_id).eq("mesa_id", r.mesa_id).maybeSingle(),
+    // À parte: sem a migração dos valores por tamanho, esta consulta falha e a página continua no ar.
+    db.from("edicoes_regras").select("precos_mesa").eq("edicao_id", r.edicao_id).maybeSingle(),
   ]);
   const ed = (edicao ?? {}) as { artista?: string; horario?: string; local?: string };
   const dataNoite = dataDaEdicaoId(r.edicao_id);
+  const m = mesa as { numero?: string; lugares?: number } | null;
+  const lugares = (ajuste as { lugares_override?: number | null } | null)?.lugares_override ?? m?.lugares;
+  const precos_mesa = precosLidos.error ? null : ((precosLidos.data as { precos_mesa?: Record<string, number> | null } | null)?.precos_mesa ?? null);
   const passou = dataNoite < hojeISO();
   return {
     id: r.id,
     casa: CASAS[casaDaEdicaoId(r.edicao_id)],
     data: dataNoite,
-    mesa: (mesa as { numero?: string } | null)?.numero ?? "?",
+    mesa: m?.numero ?? "?",
     primeiroNome: r.nome.trim().split(/\s+/)[0] || r.nome,
     pessoas: r.pessoas,
     status: r.status,
@@ -76,6 +86,7 @@ export async function lerMinhaReserva(ref: string): Promise<MinhaReserva | null>
     local: ed.local ?? "",
     passou,
     valeQr: !passou && !r.chegou_em && (r.status === "confirmada" || r.status === "aguardando"),
+    valores: regras ? linhasDeValores({ ...(regras as { preco_centavos: number | null; consumacao_minima_centavos: number | null }), precos_mesa }, lugares) : [],
   };
 }
 

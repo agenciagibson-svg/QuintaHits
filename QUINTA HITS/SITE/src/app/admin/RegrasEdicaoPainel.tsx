@@ -18,6 +18,8 @@ type Formulario = {
   capacidade_maxima: string;
   consumacao: string;
   preco: string;
+  /** Valor por tamanho de mesa: lugares → reais digitados. */
+  precos: Record<string, string>;
   sinal: string;
   instrucoes_chegada: string;
   observacoes: string;
@@ -55,6 +57,7 @@ function formularioDe(r: RegrasEdicao): Formulario {
     capacidade_maxima: r.capacidade_maxima === null ? "" : String(r.capacidade_maxima),
     consumacao: centavosParaReais(r.consumacao_minima_centavos),
     preco: centavosParaReais(r.preco_centavos),
+    precos: Object.fromEntries(Object.entries(r.precos_mesa ?? {}).map(([t, c]) => [t, centavosParaReais(c)])),
     sinal: centavosParaReais(r.sinal_centavos),
     instrucoes_chegada: r.instrucoes_chegada ?? "",
     observacoes: r.observacoes,
@@ -123,7 +126,10 @@ export default function RegrasEdicaoPainel({ edicoes, casa = CASA_PADRAO }: { ed
     setErro("");
     setMsg("");
     const dinheiro = { consumacao_minima_centavos: reaisParaCentavos(form.consumacao), preco_centavos: reaisParaCentavos(form.preco), sinal_centavos: reaisParaCentavos(form.sinal) };
-    if (Object.values(dinheiro).includes(null)) return setErro("Informe os valores em reais, como 50,00.");
+    const precosMesa = Object.fromEntries(Object.entries(form.precos).map(([t, v]) => [t, reaisParaCentavos(v)]));
+    if ([...Object.values(dinheiro), ...Object.values(precosMesa)].includes(null)) return setErro("Informe os valores em reais, como 50,00.");
+    // Só envia a tabela se há algo para gravar ou apagar (assim o painel segue salvando antes da migração dos valores).
+    const enviarPrecos = Object.values(precosMesa).some((v) => v !== "") || (painel?.migrado && painel.regras.precos_mesa !== null);
 
     setSalvando(true);
     try {
@@ -138,6 +144,7 @@ export default function RegrasEdicaoPainel({ edicoes, casa = CASA_PADRAO }: { ed
             cancelamento_ate_horas: form.cancelamento_ate_horas,
             capacidade_maxima: form.capacidade_maxima,
             ...dinheiro,
+            ...(enviarPrecos ? { precos_mesa: precosMesa } : {}),
             instrucoes_chegada: form.instrucoes_chegada,
             observacoes: form.observacoes,
             atendimento_automatico: form.atendimento_automatico,
@@ -283,7 +290,13 @@ export default function RegrasEdicaoPainel({ edicoes, casa = CASA_PADRAO }: { ed
               <input style={s.input} inputMode="numeric" value={form.capacidade_maxima} onChange={(e) => trocar("capacidade_maxima", e.target.value)} /></label>
             <label style={s.campo}><span>Consumação mínima (R$; 0 se não houver)</span>
               <input style={s.input} inputMode="decimal" value={form.consumacao} onChange={(e) => trocar("consumacao", e.target.value)} /></label>
-            <label style={s.campo}><span>Preço (R$, opcional)</span>
+            <label style={s.campo}><span>Valor por pessoa (R$; se preenchido, vale no lugar do valor da mesa)</span>
+              <input style={s.input} inputMode="decimal" value={form.precos.pessoa ?? ""} onChange={(e) => setForm({ ...form, precos: { ...form.precos, pessoa: e.target.value } })} /></label>
+            {[...new Set(mesas.map((m) => m.lugares_ajuste ?? m.lugares_da_mesa))].sort((a, b) => a - b).map((t) => (
+              <label key={t} style={s.campo}><span>Mesa de {t} {t === 1 ? "lugar" : "lugares"} (R$)</span>
+                <input style={s.input} inputMode="decimal" value={form.precos[String(t)] ?? ""} onChange={(e) => setForm({ ...form, precos: { ...form.precos, [String(t)]: e.target.value } })} /></label>
+            ))}
+            <label style={s.campo}><span>Valor único da mesa (R$; usado se o tamanho não tiver valor)</span>
               <input style={s.input} inputMode="decimal" value={form.preco} onChange={(e) => trocar("preco", e.target.value)} /></label>
             <label style={s.campo}><span>Sinal (R$, só informativo)</span>
               <input style={s.input} inputMode="decimal" value={form.sinal} onChange={(e) => trocar("sinal", e.target.value)} /></label>

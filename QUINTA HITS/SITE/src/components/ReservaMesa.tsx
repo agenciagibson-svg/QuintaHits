@@ -5,7 +5,7 @@ import { instagramUrl } from "@/config/site";
 import { formatData, type Edicao } from "@/lib/edicao";
 import { mascararWhatsapp, problemaNoWhatsapp, type MesaPublica } from "@/lib/reserva";
 import type { ElementoSalao } from "@/lib/planta";
-import { formatarReais, type RegrasPublicas } from "@/lib/regrasEdicao";
+import { linhasDeValores, type RegrasPublicas } from "@/lib/regrasEdicao";
 import MapaMesas, { LegendaMapa } from "./MapaMesas";
 import Turnstile, { TURNSTILE_SITE_KEY } from "./Turnstile";
 import ConfirmacaoWhatsapp, { type PedidoEnviado } from "./ConfirmacaoWhatsapp";
@@ -23,13 +23,14 @@ function RegrasDaNoite({ r }: { r: RegrasPublicas }) {
   if (r.reservas_ate) itens.push(`Reservas até ${dataHoraBR(r.reservas_ate)}`);
   if (r.tolerancia_min !== null) itens.push(`Tolerância de chegada: ${r.tolerancia_min} min`);
   if (r.cancelamento_ate_horas !== null) itens.push(`Cancelamento até ${r.cancelamento_ate_horas} h antes`);
-  if (r.consumacao_minima_centavos !== null && r.consumacao_minima_centavos > 0) itens.push(`Consumação mínima: ${formatarReais(r.consumacao_minima_centavos)}`);
-  if (r.preco_centavos !== null && r.preco_centavos > 0) itens.push(`Valor: ${formatarReais(r.preco_centavos)}`);
-  if (itens.length === 0 && !r.instrucoes_chegada) return null;
   return (
     <div className="reserva__regras">
-      <strong>Regras desta noite</strong>
-      <ul>{itens.map((i) => <li key={i}>{i}</li>)}</ul>
+      <div className="reserva__valores">
+        <strong>Valores</strong>
+        <ul>{linhasDeValores(r).map((i) => <li key={i}>{i}</li>)}</ul>
+      </div>
+      {(itens.length > 0 || r.instrucoes_chegada) && <strong>Regras desta noite</strong>}
+      {itens.length > 0 && <ul>{itens.map((i) => <li key={i}>{i}</li>)}</ul>}
       {r.instrucoes_chegada && <p className="reserva__aviso">{r.instrucoes_chegada}</p>}
     </div>
   );
@@ -139,7 +140,7 @@ export default function ReservaMesa({
         return;
       }
       if (j.manual) {
-        setRecebido({ id: j.id, mesa: j.mesa, data: edicao.data, codigo: j.codigo, nome });
+        setRecebido({ id: j.id, mesa: j.mesa, data: edicao.data, codigo: j.codigo, nome, valores: regras?.[edicao.id] ? linhasDeValores(regras[edicao.id], mesa.lugares) : [] });
         return;
       }
       setEnviada({ id: j.id, mesa: j.mesa, data: edicao.data, codigo: j.codigo, expiraEm: j.expiraEm, whatsappLink: j.whatsappLink });
@@ -259,6 +260,7 @@ export default function ReservaMesa({
               <p className="mb-0">
                 <strong>Mesa {mesa.numero}</strong> · até {mesa.lugares} pessoas{mesa.area ? ` · ${mesa.area}` : ""}
               </p>
+              {regras?.[edicao.id] && <p className="reserva__valor-mesa">{linhasDeValores(regras[edicao.id], mesa.lugares).join(" · ")}</p>}
               <label>
                 Seu nome
                 <input value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="name" required maxLength={80} />

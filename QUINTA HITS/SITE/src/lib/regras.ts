@@ -53,7 +53,10 @@ async function lerRegras(edicaoId: string): Promise<{ regras: RegrasEdicao | nul
   if (tabelaAusente(error)) return null;
   if (error) throw new Error(`Erro ao buscar regras: ${error.message}`);
   const linha = data as unknown as RegrasEdicao | null;
-  return { regras: linha ? { ...REGRAS_VAZIAS, ...linha, reservas_site: parte2 ? linha.reservas_site === true : false } : null, parte2 };
+  // À parte: sem a migração dos valores por tamanho, a consulta falha aqui e as reservas seguem funcionando.
+  const precos = linha ? await supabaseAdmin().from("edicoes_regras").select("precos_mesa").eq("edicao_id", edicaoId).maybeSingle() : null;
+  const precos_mesa = precos && !precos.error ? ((precos.data as { precos_mesa: Record<string, number> | null } | null)?.precos_mesa ?? null) : null;
+  return { regras: linha ? { ...REGRAS_VAZIAS, ...linha, precos_mesa, reservas_site: parte2 ? linha.reservas_site === true : false } : null, parte2 };
 }
 
 function canaisDoEstoque(estoque: Estoque): CanalDaMesa[] {
@@ -124,13 +127,21 @@ export async function salvarRegrasECanais(edicaoId: string, entrada: { regras?: 
   const db = supabaseAdmin();
   const agora = new Date().toISOString();
 
-  if (entrada.regras && Object.keys(entrada.regras).length > 0) {
-    const { error } = await db.from("edicoes_regras").upsert({ edicao_id: edicaoId, ...entrada.regras, updated_at: agora }, { onConflict: "edicao_id" });
+  const { precos_mesa, ...regrasGerais } = entrada.regras ?? {};
+  if (Object.keys(regrasGerais).length > 0) {
+    const { error } = await db.from("edicoes_regras").upsert({ edicao_id: edicaoId, ...regrasGerais, updated_at: agora }, { onConflict: "edicao_id" });
     if (colunaSiteAusente(error)) return { ok: false, status: 503, erro: "A migração parte 2 (liberação para o site) ainda não foi aplicada neste banco." };
     if (tabelaAusente(error)) return { ok: false, status: 503, erro: "A migração do agente ainda não foi aplicada neste banco." };
     if (error?.code === "23503") return { ok: false, status: 404, erro: "Edição não encontrada." };
     if (error) return { ok: false, status: 500, erro: "Não foi possível salvar as regras." };
-    await registrarAuditoria({ ator, acao: "regras_edicao_atualizadas", entidade: "edicao", entidadeId: edicaoId, detalhe: { campos: Object.keys(entrada.regras) } });
+    await registrarAuditoria({ ator, acao: "regras_edicao_atualizadas", entidade: "edicao", entidadeId: edicaoId, detalhe: { campos: Object.keys(regrasGerais) } });
+  }
+
+  if (precos_mesa !== undefined) {
+    const { error } = await db.from("edicoes_regras").upsert({ edicao_id: edicaoId, precos_mesa, updated_at: agora }, { onConflict: "edicao_id" });
+    if (error?.code === "42703" || error?.code === "PGRST204") return { ok: false, status: 503, erro: "A migração dos valores por tamanho de mesa ainda não foi aplicada neste banco." };
+    if (error) return { ok: false, status: 500, erro: "Não foi possível salvar os valores das mesas." };
+    await registrarAuditoria({ ator, acao: "regras_edicao_atualizadas", entidade: "edicao", entidadeId: edicaoId, detalhe: { campos: ["precos_mesa"] } });
   }
 
   if (entrada.canais && entrada.canais.length > 0) {

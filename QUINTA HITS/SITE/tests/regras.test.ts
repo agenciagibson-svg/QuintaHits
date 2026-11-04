@@ -3,10 +3,40 @@ import { NextResponse } from "next/server";
 import { criarBancoTeste, type BancoTeste } from "./helpers/bancoTeste";
 import { definirBanco } from "./helpers/holder";
 import { criarEdicao, criarMesa } from "./helpers/cenarios";
-import { avaliarProntidao, validarRegras, REGRAS_VAZIAS, type RegrasEdicao } from "@/lib/regrasEdicao";
+import { avaliarProntidao, linhasDeValores, validarRegras, REGRAS_VAZIAS, type RegrasEdicao } from "@/lib/regrasEdicao";
 import type { Edicao } from "@/lib/edicao";
 
 const sessao = vi.hoisted(() => ({ autenticado: true }));
+
+describe("valores mostrados ao cliente", () => {
+  it("mostra o valor da mesa e a consumação cadastrados", () => {
+    expect(linhasDeValores({ preco_centavos: 20000, consumacao_minima_centavos: 5000 })).toEqual(["Valor da mesa: R$ 200,00", "Consumação mínima: R$ 50,00"]);
+  });
+  it("zero é dito claramente, não some", () => {
+    expect(linhasDeValores({ preco_centavos: 0, consumacao_minima_centavos: 0 })).toEqual(["Sem valor de mesa", "Sem consumação mínima"]);
+  });
+  it("tabela por tamanho: lista tudo e, com a mesa escolhida, mostra só o valor dela", () => {
+    const r = { preco_centavos: null, consumacao_minima_centavos: null, precos_mesa: { "8": 40000, "2": 12000, "4": 20000 } };
+    expect(linhasDeValores(r)).toEqual(["Mesa de 2 lugares: R$ 120,00", "Mesa de 4 lugares: R$ 200,00", "Mesa de 8 lugares: R$ 400,00"]);
+    expect(linhasDeValores(r, 8)).toEqual(["Valor da mesa: R$ 400,00"]);
+    expect(linhasDeValores(r, 6)).toEqual(["Valor da mesa: a confirmar com a equipe"]);
+  });
+  it("valor por pessoa vale para qualquer mesa e não vira valor de mesa", () => {
+    const r = { preco_centavos: null, consumacao_minima_centavos: 0, precos_mesa: { pessoa: 2000 } };
+    expect(linhasDeValores(r)).toEqual(["Valor: R$ 20,00 por pessoa", "Sem consumação mínima"]);
+    expect(linhasDeValores(r, 4)).toEqual(["Valor: R$ 20,00 por pessoa", "Sem consumação mínima"]);
+    expect(validarRegras({ precos_mesa: { pessoa: 2000 } })).toEqual({ campos: { precos_mesa: { pessoa: 2000 } } });
+  });
+  it("valida a tabela vinda do painel", () => {
+    expect(validarRegras({ precos_mesa: { "2": 12000, "4": "" } })).toEqual({ campos: { precos_mesa: { "2": 12000 } } });
+    expect(validarRegras({ precos_mesa: { "4": "" } })).toEqual({ campos: { precos_mesa: null } });
+    expect(validarRegras({ precos_mesa: { abc: 100 } })).toHaveProperty("erro");
+    expect(validarRegras({ precos_mesa: { "4": -1 } })).toHaveProperty("erro");
+  });
+  it("sem valor cadastrado, avisa que a equipe confirma e não inventa número", () => {
+    expect(linhasDeValores({ preco_centavos: null, consumacao_minima_centavos: null })).toEqual(["Valor da mesa: a confirmar com a equipe"]);
+  });
+});
 
 vi.mock("@/lib/supabaseAdmin", async () => {
   const h = await import("./helpers/holder");

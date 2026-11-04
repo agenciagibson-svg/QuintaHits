@@ -18,6 +18,11 @@ export type RegrasEdicao = {
   /** 0 = sem consumação mínima; null = ainda não definido. */
   consumacao_minima_centavos: number | null;
   preco_centavos: number | null;
+  /**
+   * Valor por tamanho de mesa: { "2": 12000, "4": 20000, "8": 40000 } (lugares → centavos), ou por pessoa:
+   * { "pessoa": 2000 }. "pessoa" vale para qualquer mesa; ambos têm prioridade sobre `preco_centavos`. Coluna de migração própria: fora de CAMPOS_REGRAS e lida à parte, para nunca fechar reservas se faltar.
+   */
+  precos_mesa: Record<string, number> | null;
   /** Só informativo: pagamento segue desligado na fase 1. */
   sinal_centavos: number | null;
   instrucoes_chegada: string | null;
@@ -44,6 +49,7 @@ export const REGRAS_VAZIAS: RegrasEdicao = {
   capacidade_maxima: null,
   consumacao_minima_centavos: null,
   preco_centavos: null,
+  precos_mesa: null,
   sinal_centavos: null,
   instrucoes_chegada: null,
   atendimento_automatico: false,
@@ -94,6 +100,21 @@ export function validarRegras(body: unknown): Resultado {
     const r = inteiro(b[campo], min, max, rotulo);
     if ("erro" in r) return r;
     (campos as Record<string, number | null>)[campo] = r.valor;
+  }
+  if ("precos_mesa" in b) {
+    const v = b.precos_mesa;
+    if (vazio(v)) campos.precos_mesa = null;
+    else {
+      if (typeof v !== "object" || v === null || Array.isArray(v)) return { erro: "Valores por tamanho de mesa inválidos." };
+      const precos: Record<string, number> = {};
+      for (const [lugares, valor] of Object.entries(v as Record<string, unknown>)) {
+        if (!/^([1-9][0-9]?|pessoa)$/.test(lugares)) return { erro: "Tamanho de mesa inválido." };
+        const r = inteiro(valor, 0, 100_000_000, "Valor da mesa");
+        if ("erro" in r) return r;
+        if (r.valor !== null) precos[lugares] = r.valor;
+      }
+      campos.precos_mesa = Object.keys(precos).length > 0 ? precos : null;
+    }
   }
   for (const [campo, limite] of [["instrucoes_chegada", 1000], ["observacoes", 500]] as const) {
     if (!(campo in b)) continue;
@@ -239,7 +260,7 @@ export function regrasCopiadas(modelo: RegrasEdicao, dataModelo: string, dataDes
 }
 
 /** O que o CLIENTE pode ver das regras da edição (nada interno: sem sinal e sem observações). */
-export type RegrasPublicas = Pick<RegrasEdicao, "abertura" | "reservas_ate" | "tolerancia_min" | "cancelamento_ate_horas" | "consumacao_minima_centavos" | "preco_centavos" | "instrucoes_chegada">;
+export type RegrasPublicas = Pick<RegrasEdicao, "abertura" | "reservas_ate" | "tolerancia_min" | "cancelamento_ate_horas" | "consumacao_minima_centavos" | "preco_centavos" | "precos_mesa" | "instrucoes_chegada">;
 
 export const regrasPublicas = (r: RegrasEdicao): RegrasPublicas => ({
   abertura: r.abertura,
@@ -248,8 +269,34 @@ export const regrasPublicas = (r: RegrasEdicao): RegrasPublicas => ({
   cancelamento_ate_horas: r.cancelamento_ate_horas,
   consumacao_minima_centavos: r.consumacao_minima_centavos,
   preco_centavos: r.preco_centavos,
+  precos_mesa: r.precos_mesa,
   instrucoes_chegada: r.instrucoes_chegada,
 });
 
 /** "R$ 50,00" a partir de centavos. */
 export const formatarReais = (centavos: number) => `R$ ${(centavos / 100).toFixed(2).replace(".", ",")}`;
+
+const textoDoPreco = (centavos: number | null) =>
+  centavos === null ? "Valor da mesa: a confirmar com a equipe" : centavos === 0 ? "Sem valor de mesa" : `Valor da mesa: ${formatarReais(centavos)}`;
+
+/** Com `lugares`: o valor daquela mesa. Sem: a tabela por tamanho, ou o valor único se não houver tabela. */
+export function linhasDePreco(r: Pick<RegrasEdicao, "preco_centavos"> & Partial<Pick<RegrasEdicao, "precos_mesa">>, lugares?: number): string[] {
+  const precos = r.precos_mesa ?? {};
+  if (precos.pessoa !== undefined) return [precos.pessoa === 0 ? "Sem valor por pessoa" : `Valor: ${formatarReais(precos.pessoa)} por pessoa`];
+  if (lugares !== undefined) return [textoDoPreco(precos[String(lugares)] ?? r.preco_centavos)];
+  const tamanhos = Object.keys(precos).sort((a, b) => Number(a) - Number(b));
+  if (tamanhos.length === 0) return [textoDoPreco(r.preco_centavos)];
+  return tamanhos.map((t) => `Mesa de ${t} ${t === "1" ? "lugar" : "lugares"}: ${precos[t] === 0 ? "sem valor" : formatarReais(precos[t])}`);
+}
+
+/**
+ * O que o cliente paga, para repetir em toda a jornada da reserva. O valor da mesa nunca fica em silêncio: sem cadastro,
+ * diz que a equipe confirma (sem inventar número). Consumação não cadastrada não aparece.
+ */
+export function linhasDeValores(r: Pick<RegrasEdicao, "preco_centavos" | "consumacao_minima_centavos"> & Partial<Pick<RegrasEdicao, "precos_mesa">>, lugares?: number): string[] {
+  const linhas = linhasDePreco(r, lugares);
+  if (r.consumacao_minima_centavos !== null) {
+    linhas.push(r.consumacao_minima_centavos === 0 ? "Sem consumação mínima" : `Consumação mínima: ${formatarReais(r.consumacao_minima_centavos)}`);
+  }
+  return linhas;
+}

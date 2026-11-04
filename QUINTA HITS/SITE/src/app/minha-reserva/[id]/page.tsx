@@ -82,6 +82,7 @@ export default async function MinhaReserva({ params }: { params: Promise<{ id: s
         ) : (
           <p className="minha-reserva__situacao">{situacao}</p>
         )}
+        {r.valeQr && r.valores.length > 0 && <p className="minha-reserva__valores"><strong>{r.valores.join(" · ")}</strong></p>}
         {qr && (
           <div className="minha-reserva__qr">
             <div aria-label="QR code de entrada" role="img" dangerouslySetInnerHTML={{ __html: qr }} />
