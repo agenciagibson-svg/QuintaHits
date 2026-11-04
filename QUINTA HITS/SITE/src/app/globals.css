@@ -428,6 +428,8 @@ button { font: inherit; cursor: pointer; }
 .reserva__regras { margin: 10px 0 14px; font-size: 14px; }
 .reserva__regras ul { margin: 6px 0 6px 1.1em; padding: 0; }
 .reserva__regras li { margin-bottom: 2px; }
+.reserva__noites { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.reserva__noites h2 { margin: 6px 0 14px; }
 .reserva__valores { margin-bottom: 10px; font-size: 16px; }
 .reserva__valores ul { font-weight: 600; }
 .reserva__valor-mesa { margin: 0; font-weight: 700; }

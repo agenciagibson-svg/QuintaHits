@@ -63,7 +63,7 @@ describe("/reservar: formulário escondido enquanto a reserva do site não estiv
     expect(html).toContain("Ainda não abrimos reservas");
   });
 
-  it("noites abertas em mais de uma casa: todas aparecem em ordem de data, com o nome da casa", async () => {
+  it("várias noites abertas: sem noite escolhida, lista cada uma com o seu link, sem mapa misturado", async () => {
     integracaoCompleta();
     vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
     vi.mocked(situacaoDoSite).mockImplementation(async (_a, _l, casa) =>
@@ -72,7 +72,9 @@ describe("/reservar: formulário escondido enquanto a reserva do site não estiv
         : { prontas: [{ edicao: { id: "2026-10-08", data: "2026-10-08", artista: "Atração QH", local: "Florindos Bar" } as never, regras: {} as never, mesasSite: 6 }], proximaAbertura: null },
     );
     const html = await renderizar();
-    expect(html).toContain("FORMULARIO_DE_RESERVA");
+    expect(html).not.toContain("FORMULARIO_DE_RESERVA");
+    expect(html).toContain('href="/harley-grill?edicao=2026-10-06_harley-grill"');
+    expect(html).toContain('href="/reservar?edicao=2026-10-08"');
     expect(html.indexOf("Voo Livre")).toBeGreaterThan(-1);
     expect(html.indexOf("Voo Livre")).toBeLessThan(html.indexOf("Atração QH")); // 06/10 antes de 08/10
     expect(html).toContain("Harley Grill");

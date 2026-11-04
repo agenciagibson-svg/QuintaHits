@@ -5,7 +5,7 @@ import { situacaoDoSite } from "@/lib/regras";
 import { regrasPublicas } from "@/lib/regrasEdicao";
 import { formatData } from "@/lib/edicao";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
-import ReservaMesa from "@/components/ReservaMesa";
+import ReservaVariasCasas from "@/components/ReservaVariasCasas";
 import { dadosDaCasa, mapsUrlDe } from "@/lib/casasDados";
 
 /**
@@ -76,13 +76,10 @@ export default async function PaginaReservaCasa({ casa, edicaoInicial }: { casa:
               </p>
             </div>
           ) : (
-            <ReservaMesa
-              edicoes={edicoes}
+            <ReservaVariasCasas
+              noites={prontas.map((p) => ({ casa, edicao: p.edicao, regras: regrasPublicas(p.regras), manual: true }))}
               instagram=""
-              casa={casa}
               edicaoInicial={edicaoInicial}
-              manual
-              regras={Object.fromEntries(prontas.map((p) => [p.edicao.id, regrasPublicas(p.regras)]))}
             />
           )}
         </div>
