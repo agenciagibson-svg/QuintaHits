@@ -19,6 +19,7 @@ import {
 } from "./Icones";
 import type { Edicao } from "@/lib/edicao";
 import { CASAS, CASA_IDS, CASA_PADRAO, casaDaEdicaoId, ehCasa, type CasaId } from "@/config/casas";
+import { site } from "@/config/site";
 
 const CHAVE_CASA = "qh-painel-casa";
 
@@ -187,7 +188,7 @@ export default function AdminDashboard() {
             ))}
           </nav>
           <div className="qh-rodape">
-            <a className="qh-item qh-site" href={casa === CASA_PADRAO ? "/" : CASAS[casa].pagina} target="_blank" rel="noopener noreferrer"><IconeExterno /> Ver o site</a>
+            <a className="qh-item qh-site" href={`${site.dominioOficial}${casa === CASA_PADRAO ? "/" : CASAS[casa].pagina}`} target="_blank" rel="noopener noreferrer"><IconeExterno /> Ver o site</a>
             <button type="button" className="qh-item" onClick={sair}><IconeSair /> Sair</button>
           </div>
         </aside>

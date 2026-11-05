@@ -16,6 +16,9 @@ export const site = {
   // URL pública do site (usada em metadata, OpenGraph e sitemap)
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://quinta-hits.vercel.app",
 
+  // Endereço oficial que o cliente vê. "Ver o site" do painel sempre abre aqui, mesmo com o painel aberto em outro endereço.
+  dominioOficial: "https://www.quintahits.com.br",
+
   // Casa atual da QUINTA HITS
   casa: {
     nome: "Florindos Bar",
