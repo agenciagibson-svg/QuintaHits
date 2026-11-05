@@ -8,6 +8,7 @@ import { ehTravada, formatarWhatsapp, mascararWhatsapp, problemaNoWhatsapp, type
 import { linkWhatsappCliente } from "@/lib/mensagemCliente";
 import { formatData, hojeISO } from "@/lib/edicao";
 import { CASAS, type CasaId } from "@/config/casas";
+import { formatarReais, linhasDeValores, type RegrasEdicao } from "@/lib/regrasEdicao";
 
 /** O que o mapa precisa saber de cada reserva da noite (vem da lista que o app já carrega). */
 export type ReservaNoMapa = {
@@ -48,6 +49,7 @@ export default function MesasCasa({
   const router = useRouter();
   const [mesas, setMesas] = useState<MesaPublica[] | null>(null);
   const [planta, setPlanta] = useState<ElementoSalao[]>([]);
+  const [valores, setValores] = useState<Pick<RegrasEdicao, "preco_centavos" | "precos_mesa" | "consumacao_minima_centavos"> | null>(null);
   const [erroMapa, setErroMapa] = useState("");
   const [mesaSel, setMesaSel] = useState<string | null>(null);
   const [modo, setModo] = useState<"cliente" | "travar">("cliente");
@@ -70,6 +72,7 @@ export default function MesasCasa({
       if (!res.ok) throw new Error(j.erro);
       setMesas(j.mesas ?? []);
       setPlanta(j.planta ?? []);
+      setValores(j.valores ?? null);
     } catch (e) {
       setErroMapa(e instanceof Error && e.message ? e.message : "Sem conexão. Tente de novo.");
     }
@@ -155,6 +158,11 @@ export default function MesasCasa({
     setMesaSel(null);
   }
 
+  // Mesas de 2 lugares em destaque, como no site: só quando dividem o salão com mesas maiores.
+  const duplas = !!mesas && mesas.some((m) => m.lugares === 2) && mesas.some((m) => m.lugares !== 2);
+  const precos = valores?.precos_mesa;
+  const rotuloDuplas = precos?.["2"] !== undefined && precos.pessoa === undefined ? `2 lugares · ${formatarReais(precos["2"])}` : "2 lugares";
+
   return (
     <div className="cs-mesas" role="dialog" aria-modal="true" aria-label="Reservar ou travar mesa">
       <div className="cs-mesas-topo">
@@ -187,10 +195,11 @@ export default function MesasCasa({
                 elementos={planta}
                 planta={plantaDaCasa}
                 desativarOcupadas={false}
+                marcarDuplas={duplas}
                 estado={estado}
                 onEscolher={escolher}
               />
-              <LegendaMapa painel destaque={plantaDaCasa.destaque?.rotulo ?? null} />
+              <LegendaMapa painel destaque={plantaDaCasa.destaque?.rotulo ?? null} duplas={duplas ? rotuloDuplas : null} />
             </div>
             {!mesaSel && !feita && (
               <p className="cs-mesas-dica">
@@ -231,6 +240,7 @@ export default function MesasCasa({
               </div>
               <button type="button" className="cs-link" onClick={() => setMesaSel(null)}>Fechar</button>
             </div>
+            {valores && <p><strong>{linhasDeValores(valores, mesa.lugares).join(" · ")}</strong></p>}
 
             {ocupante && ehTravada(ocupante) ? (
               <>

@@ -59,6 +59,12 @@ async function lerRegras(edicaoId: string): Promise<{ regras: RegrasEdicao | nul
   return { regras: linha ? { ...REGRAS_VAZIAS, ...linha, precos_mesa, reservas_site: parte2 ? linha.reservas_site === true : false } : null, parte2 };
 }
 
+/** Valores da noite (mesa, tamanho e consumação) para o app da casa. Sem regras: null. */
+export async function valoresDaEdicao(edicaoId: string): Promise<Pick<RegrasEdicao, "preco_centavos" | "precos_mesa" | "consumacao_minima_centavos"> | null> {
+  const regras = (await lerRegras(edicaoId))?.regras;
+  return regras ? { preco_centavos: regras.preco_centavos, precos_mesa: regras.precos_mesa, consumacao_minima_centavos: regras.consumacao_minima_centavos } : null;
+}
+
 function canaisDoEstoque(estoque: Estoque): CanalDaMesa[] {
   return estoque.mesas.map((m) => ({
     mesa_id: m.id,

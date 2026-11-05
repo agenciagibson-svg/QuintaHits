@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { casasDaSessao, exigirSessaoCasa } from "@/lib/casaSessao";
 import { estoqueDaEdicao, mesasDoCanal } from "@/lib/disponibilidade";
 import { carregarPlanta } from "@/lib/plantaBanco";
+import { valoresDaEdicao } from "@/lib/regras";
 import { casaDaEdicaoId, edicaoIdValido } from "@/config/casas";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +22,9 @@ export async function GET(req: Request) {
   if (!(await casasDaSessao()).includes(casa)) return NextResponse.json({ erro: "Noite não encontrada." }, { status: 404 });
 
   try {
-    const [estoque, planta] = await Promise.all([estoqueDaEdicao(edicaoId), carregarPlanta(casa).catch(() => ({ elementos: [] }))]);
+    const [estoque, planta, valores] = await Promise.all([estoqueDaEdicao(edicaoId), carregarPlanta(casa).catch(() => ({ elementos: [] })), valoresDaEdicao(edicaoId).catch(() => null)]);
     const mesas = mesasDoCanal(estoque, "admin").map((m) => ({ id: m.id, numero: m.numero, lugares: m.lugares, area: m.area, x: m.x, y: m.y }));
-    return NextResponse.json({ casa, mesas, planta: planta.elementos }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ casa, mesas, planta: planta.elementos, valores }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     console.error("Erro ao carregar o mapa da casa:", (e as { code?: string })?.code ?? "erro");
     return NextResponse.json({ erro: "Não foi possível carregar o mapa." }, { status: 500 });
