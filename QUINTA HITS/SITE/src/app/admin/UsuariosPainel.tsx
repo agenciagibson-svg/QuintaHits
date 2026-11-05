@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cor, s, selo } from "./estilos";
 import { CASAS, CASA_IDS, type CasaId } from "@/config/casas";
+import { site } from "@/config/site";
 
 type Usuario = { email: string; nome: string; painel: boolean; casas: CasaId[]; vercel: boolean; criado_por: string | null; criado_em: string | null };
 type Dados = { responsaveis: string[]; usuarios: Usuario[]; tabela: boolean; podeGerenciar: boolean; voce: string };
@@ -114,7 +115,7 @@ export default function UsuariosPainel() {
     const ok = await chamar("POST", novo);
     setSalvando(false);
     if (!ok) return;
-    const onde = novo.painel ? `Painel: ${window.location.origin}/admin\nApp de reservas (celular): ${window.location.origin}/casa` : `App de reservas (abra no celular e instale): ${window.location.origin}/casa`;
+    const onde = novo.painel ? `Painel: ${site.dominioOficial}/admin\nApp de reservas (celular): ${site.dominioOficial}/casa` : `App de reservas (abra no celular e instale): ${site.dominioOficial}/casa`;
     setRecado(`Olá${novo.nome ? `, ${novo.nome.split(" ")[0]}` : ""}! Seu acesso à QUINTA HITS está pronto.\n${onde}\nE-mail: ${novo.email.trim().toLowerCase()}\nSenha: ${novo.senha}`);
     setMsg(`${novo.email.trim().toLowerCase()} incluído.`);
     setNovo({ nome: "", email: "", senha: "", painel: false, casas: [CASAS_APP[0]] });

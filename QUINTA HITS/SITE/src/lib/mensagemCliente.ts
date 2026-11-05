@@ -5,11 +5,10 @@ import { site } from "@/config/site";
 
 /**
  * Link curto da reserva com o QR de entrada (/r/<12 caracteres do id>). No WhatsApp ele vira o cartão com o QR grande
- * (prévia do link). No navegador, o endereço onde a equipe está.
+ * (prévia do link). Sempre o endereço oficial, mesmo com o painel aberto em outro endereço.
  */
 export function linkDoQr(id: string): string {
-  const origem = typeof window !== "undefined" && window.location?.origin ? window.location.origin : site.url;
-  return `${origem}/r/${id.replace(/-/g, "").slice(0, 12).toLowerCase()}`;
+  return `${site.dominioOficial}/r/${id.replace(/-/g, "").slice(0, 12).toLowerCase()}`;
 }
 
 /**
