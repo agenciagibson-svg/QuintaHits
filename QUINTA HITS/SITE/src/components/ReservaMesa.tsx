@@ -5,7 +5,7 @@ import { instagramUrl } from "@/config/site";
 import { formatData, type Edicao } from "@/lib/edicao";
 import { mascararWhatsapp, problemaNoWhatsapp, type MesaPublica } from "@/lib/reserva";
 import type { ElementoSalao } from "@/lib/planta";
-import { linhasDeValores, type RegrasPublicas } from "@/lib/regrasEdicao";
+import { formatarReais, linhasDeValores, type RegrasPublicas } from "@/lib/regrasEdicao";
 import MapaMesas, { LegendaMapa } from "./MapaMesas";
 import Turnstile, { TURNSTILE_SITE_KEY } from "./Turnstile";
 import ConfirmacaoWhatsapp, { type PedidoEnviado } from "./ConfirmacaoWhatsapp";
@@ -181,6 +181,10 @@ export default function ReservaMesa({
   }
 
   const ocupadas = new Set(mapa?.ocupadas ?? []);
+  // Mesas de 2 lugares ganham cor própria quando dividem o salão com mesas maiores (o ajuste é por noite).
+  const duplas = !!mapa && mapa.mesas.some((m) => m.lugares === 2) && mapa.mesas.some((m) => m.lugares !== 2);
+  const precos = regras?.[edicao.id]?.precos_mesa;
+  const rotuloDuplas = precos?.["2"] !== undefined && precos.pessoa === undefined ? `2 lugares · ${formatarReais(precos["2"])}` : "2 lugares";
 
   return (
     <>
@@ -230,13 +234,14 @@ export default function ReservaMesa({
                 mesas={mapa.mesas}
                 elementos={mapa.planta ?? []}
                 planta={planta}
+                marcarDuplas={duplas}
                 estado={(m) => (m.id === mesa?.id ? "selecionada" : ocupadas.has(m.id) ? "ocupada" : "livre")}
                 onEscolher={(m) => {
                   setMesa(m);
                   setErro("");
                 }}
               />
-              <LegendaMapa destaque={planta.destaque?.rotulo ?? null} />
+              <LegendaMapa destaque={planta.destaque?.rotulo ?? null} duplas={duplas ? rotuloDuplas : null} />
               {planta.larguraMinima && <p className="mapa__dica-rolar">Arraste o mapa para o lado para ver o salão inteiro.</p>}
             </>
           )}

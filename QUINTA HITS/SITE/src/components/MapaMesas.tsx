@@ -44,6 +44,7 @@ export default function MapaMesas({
   elementoSelecionado,
   onPointerDownElemento,
   planta = null,
+  marcarDuplas = false,
 }: {
   mesas: MesaPublica[];
   estado: (mesa: MesaPublica) => EstadoMesa;
@@ -55,6 +56,8 @@ export default function MapaMesas({
   elementoSelecionado?: string | null;
   onPointerDownElemento?: (e: PointerEvent<HTMLDivElement>, elemento: ElementoSalao) => void;
   planta?: MapaDaCasa | null;
+  /** Dá cor própria às mesas de 2 lugares (site do cliente). */
+  marcarDuplas?: boolean;
 }) {
   const compacta = planta?.tamanhoMesa ?? null;
   const proporcao = planta?.proporcao ?? 4 / 3;
@@ -92,7 +95,7 @@ export default function MapaMesas({
           <button
             key={m.id}
             type="button"
-            className={`mapa__mesa mapa__mesa--${est}${compacta ? " mapa__mesa--compacta" : ""}${planta?.destaque && m.area === planta.destaque.area ? " mapa__mesa--destaque" : ""}`}
+            className={`mapa__mesa mapa__mesa--${est}${compacta ? " mapa__mesa--compacta" : ""}${planta?.destaque && m.area === planta.destaque.area ? " mapa__mesa--destaque" : ""}${marcarDuplas && m.lugares === 2 ? " mapa__mesa--dupla" : ""}`}
             style={{ left: `${m.x}%`, top: `${m.y}%`, ["--t" as string]: compacta ?? tamanho(m.lugares) }}
             disabled={desativarOcupadas && (est === "ocupada" || est === "inativa")}
             aria-pressed={est === "selecionada"}
@@ -121,7 +124,7 @@ export default function MapaMesas({
 }
 
 /** Legenda com as mesmas mesinhas do mapa. */
-export function LegendaMapa({ painel = false, destaque = null }: { painel?: boolean; destaque?: string | null }) {
+export function LegendaMapa({ painel = false, destaque = null, duplas = null }: { painel?: boolean; destaque?: string | null; duplas?: string | null }) {
   const itens: { est: EstadoMesa; texto: string }[] = painel
     ? [
         { est: "livre", texto: "Livre" },
@@ -146,6 +149,12 @@ export function LegendaMapa({ painel = false, destaque = null }: { painel?: bool
         <span>
           <b className="mapa__legenda-mesa mapa__legenda-mesa--destaque" />
           {destaque}
+        </span>
+      )}
+      {duplas && (
+        <span>
+          <b className="mapa__legenda-mesa mapa__legenda-mesa--dupla" />
+          {duplas}
         </span>
       )}
       {!painel && <span className="mapa__legenda-dica">Toque numa mesa livre para escolher</span>}
