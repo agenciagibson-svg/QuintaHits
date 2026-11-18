@@ -20,6 +20,7 @@ const EMAILS_DA_CASA: Record<CasaId, () => string | undefined> = {
   "quinta-hits": () => process.env.CASA_EMAILS,
   "harley-grill": () => process.env.CASA_EMAILS_HARLEY_GRILL,
   solarium: () => process.env.CASA_EMAILS_SOLARIUM,
+  "fogo-e-brasa": () => process.env.CASA_EMAILS_FOGO_E_BRASA,
 };
 
 /**

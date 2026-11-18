@@ -52,6 +52,8 @@ export type ReservaNaPorta = {
   status: StatusReserva;
   codigo: string | null;
   chegou_em: string | null;
+  /** Ingresso individual (sem mesa): `mesa` vem vazia e `pessoas` é a quantidade de ingressos. */
+  ingresso?: boolean;
 };
 
 export type ResultadoCheckin =
@@ -79,11 +81,74 @@ async function paraPorta(l: Linha): Promise<ReservaNaPorta> {
   };
 }
 
+
+// ---------- Ingresso individual (sem mesa): mesmo QR, mesma porta ----------
+
+type LinhaIngresso = { id: string; edicao_id: string; nome: string; quantidade: number; status: "confirmado" | "cancelado"; codigo: string; chegou_em: string | null };
+const CAMPOS_INGRESSO = "id, edicao_id, nome, quantidade, status, codigo, chegou_em";
+
+/** Ingressos que batem com o QR (id) ou com o código digitado (só noites em andamento). Banco sem a tabela: nenhum. */
+async function ingressosDaReferencia(lida: { id: string } | { codigo: string; prefixo: string | null }, agora: Date): Promise<LinhaIngresso[]> {
+  const db = supabaseAdmin();
+  if ("id" in lida) {
+    const { data, error } = await db.from("ingressos").select(CAMPOS_INGRESSO).eq("id", lida.id).maybeSingle();
+    return error || !data ? [] : [data as unknown as LinhaIngresso];
+  }
+  const prefixos = lida.prefixo ? [lida.prefixo] : CASA_IDS.map((c) => CASAS[c].prefixoCodigo);
+  const noites = noitesEmAndamento(agora);
+  const { data, error } = await db
+    .from("ingressos")
+    .select(CAMPOS_INGRESSO)
+    .in("codigo", prefixos.map((p) => `${p}-${lida.codigo}`))
+    .gte("edicao_id", noites[0])
+    .lt("edicao_id", somarDias(noites[noites.length - 1], 1));
+  return error ? [] : ((data ?? []) as unknown as LinhaIngresso[]).filter((i) => i.status !== "cancelado");
+}
+
+function ingressoNaPorta(i: LinhaIngresso): ReservaNaPorta {
+  const casa = casaDaEdicaoId(i.edicao_id);
+  return {
+    id: i.id,
+    edicao_id: i.edicao_id,
+    casa,
+    casaNome: CASAS[casa].nome,
+    data: dataDaEdicaoId(i.edicao_id),
+    mesa: "",
+    nome: i.nome,
+    pessoas: i.quantidade,
+    status: i.status === "confirmado" ? "confirmada" : "cancelada",
+    codigo: i.codigo,
+    chegou_em: i.chegou_em,
+    ingresso: true,
+  };
+}
+
+/** Check-in de ingresso: entrada única ("QR já usado" na segunda leitura), desfazer, e nada de "não veio" (não há mesa). */
+async function chegadaDeIngresso(i: LinhaIngresso, ator: string, acao: "chegou" | "desfazer" | "nao_veio", qualquerNoite: boolean, agora: Date): Promise<ResultadoCheckin> {
+  const porta = ingressoNaPorta(i);
+  const data = dataDaEdicaoId(i.edicao_id);
+  if (!qualquerNoite && !noitesEmAndamento(agora).includes(data)) {
+    return { ok: false, status: 409, erro: data > hojeISO(agora) ? `Esse ingresso é para o dia ${data.slice(8, 10)}/${data.slice(5, 7)}, não para hoje.` : "Essa noite já passou.", reserva: porta };
+  }
+  if (i.status === "cancelado") return { ok: false, status: 409, erro: "Esse ingresso foi cancelado.", reserva: porta };
+  if (acao === "nao_veio") return { ok: false, status: 409, erro: "Ingresso não tem mesa para soltar.", reserva: porta };
+  if (acao === "chegou" && i.chegou_em) {
+    await registrarAuditoria({ ator, acao: "checkin_repetido", entidade: "ingresso", entidadeId: i.id, detalhe: { edicao: i.edicao_id } });
+    return { ok: true, reserva: porta, jaTinhaChegado: true };
+  }
+  const quando = agora.toISOString();
+  const campos = acao === "chegou" ? { chegou_em: quando, checkin_por: ator } : { chegou_em: null, checkin_por: null };
+  const { data: nova, error } = await supabaseAdmin().from("ingressos").update({ ...campos, updated_at: quando }).eq("id", i.id).select(CAMPOS_INGRESSO).maybeSingle();
+  if (error) throw error;
+  await registrarAuditoria({ ator, acao: acao === "chegou" ? "checkin" : "checkin_desfeito", entidade: "ingresso", entidadeId: i.id, detalhe: { edicao: i.edicao_id, quantidade: i.quantidade } });
+  return { ok: true, reserva: ingressoNaPorta(nova as unknown as LinhaIngresso), jaTinhaChegado: false };
+}
+
 /**
  * Acha a reserva do QR/código entre as casas permitidas. Pelo código, só nas noites em andamento (o código de 6 dígitos
  * pode repetir entre noites); pelo id (QR), qualquer noite — quem decide se ainda dá é `registrarChegada`.
  */
-async function encontrar(ref: unknown, casas: readonly CasaId[], agora: Date): Promise<{ linha: Linha } | { status: number; erro: string }> {
+async function encontrar(ref: unknown, casas: readonly CasaId[], agora: Date): Promise<{ linha: Linha } | { ingresso: LinhaIngresso } | { status: number; erro: string }> {
   const lida = lerReferencia(ref);
   if (!lida) return { status: 400, erro: "Não entendi o código. Leia o QR da reserva ou digite o código (ex.: HG-482193)." };
   const db = supabaseAdmin();
@@ -103,8 +168,10 @@ async function encontrar(ref: unknown, casas: readonly CasaId[], agora: Date): P
     }
   }
   linhas = linhas.filter((l) => casas.includes(casaDaEdicaoId(l.edicao_id)));
+  const ingressos = (await ingressosDaReferencia(lida, agora)).filter((i) => casas.includes(casaDaEdicaoId(i.edicao_id)));
+  if (linhas.length === 0 && ingressos.length === 1) return { ingresso: ingressos[0] };
+  if (linhas.length + ingressos.length > 1) return { status: 409, erro: "Esse código bate com mais de um ingresso ou reserva. Leia o QR." };
   if (linhas.length === 0) return { status: 404, erro: "Reserva não encontrada para esta noite." };
-  if (linhas.length > 1) return { status: 409, erro: "Esse código bate com mais de uma reserva. Leia o QR da reserva." };
   return { linha: linhas[0] };
 }
 
@@ -120,6 +187,7 @@ export async function registrarChegada(
   const agora = opcoes.agora ?? new Date();
   const acao = opcoes.acao ?? "chegou";
   const achada = await encontrar(ref, opcoes.casas, agora);
+  if ("ingresso" in achada) return chegadaDeIngresso(achada.ingresso, ator, acao, !!opcoes.qualquerNoite, agora);
   if (!("linha" in achada)) return { ok: false, status: achada.status, erro: achada.erro };
   const l = achada.linha;
   const reserva = await paraPorta(l);
@@ -166,6 +234,13 @@ export async function registrarChegada(
  */
 export async function consultarNaPorta(ref: unknown, casas: readonly CasaId[], agora = new Date()): Promise<ResultadoCheckin> {
   const achada = await encontrar(ref, casas, agora);
+  if ("ingresso" in achada) {
+    const i = achada.ingresso;
+    const porta = ingressoNaPorta(i);
+    if (!noitesEmAndamento(agora).includes(dataDaEdicaoId(i.edicao_id))) return { ok: false, status: 409, erro: "Esse ingresso não é para hoje.", reserva: porta };
+    if (i.status === "cancelado") return { ok: false, status: 409, erro: "Esse ingresso foi cancelado.", reserva: porta };
+    return { ok: true, reserva: porta, jaTinhaChegado: !!i.chegou_em };
+  }
   if (!("linha" in achada)) return { ok: false, status: achada.status, erro: achada.erro };
   const l = achada.linha;
   const reserva = await paraPorta(l);

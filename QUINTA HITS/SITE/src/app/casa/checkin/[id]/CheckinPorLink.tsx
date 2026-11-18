@@ -57,12 +57,12 @@ export default function CheckinPorLink({ id }: { id: string }) {
         ) : (
           <div className="cs-cartao">
             <div className="cs-mesa" aria-hidden="true">
-              <small>MESA</small>
-              {res?.mesa}
+              <small>{res?.ingresso ? "INGRESSO" : "MESA"}</small>
+              {res?.ingresso ? res.pessoas : res?.mesa}
             </div>
             <div className="cs-nome">{res?.nome}</div>
             <div className="cs-detalhes">
-              {res?.pessoas} pessoa{(res?.pessoas ?? 0) > 1 ? "s" : ""} · {res?.casaNome}
+              {res?.pessoas} {res?.ingresso ? "ingresso" : "pessoa"}{(res?.pessoas ?? 0) > 1 ? "s" : ""}{res?.ingresso ? " (sem mesa)" : ""} · {res?.casaNome}
               {res?.codigo ? ` · ${res.codigo}` : ""}
             </div>
             {res?.status === "aguardando" && <p className="cs-erro" style={{ marginTop: 10 }}>Pedido ainda não aprovado pela equipe. Confirmar a entrada aprova a reserva.</p>}

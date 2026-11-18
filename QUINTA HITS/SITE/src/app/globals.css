@@ -516,3 +516,30 @@ button { font: inherit; cursor: pointer; }
 @media (max-width: 860px) { .noite__baixo { grid-template-columns: 1fr; } }
 .noite__como ol { margin: 12px 0 0; padding-left: 1.2em; font-size: 18px; line-height: 1.6; }
 .card__ver { align-self: flex-start; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Ingresso individual (sem mesa), separado do mapa de mesas na página da casa. */
+.ingresso { margin-bottom: 40px; }
+.ingresso__nota { margin: 6px 0 0; }
+.ingresso__form { margin-top: 18px; }
+.ingresso__qtd { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.ingresso__contador { display: inline-flex; align-items: center; gap: 12px; }
+.ingresso__contador output { min-width: 2ch; text-align: center; font-size: 22px; font-weight: 700; }
+.ingresso__contador .btn { min-width: 44px; min-height: 44px; justify-content: center; }
+.ingresso__total { font-size: 18px; }
+.ingresso__total small { font-weight: 500; opacity: 0.7; }
+.pagina-casa__mesas-titulo { margin: 0 0 18px; }
+
+/* ---------- página do artista (/artistas/<slug>) ---------- */
+.artista__grade { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(28px, 4vw, 64px); align-items: center; }
+@media (max-width: 860px) { .artista__grade { grid-template-columns: 1fr; } }
+.artista__foto { border-radius: var(--raio); overflow: hidden; border: 3px solid var(--creme); aspect-ratio: 4 / 5; background: var(--verde-escuro); }
+.artista__foto img { width: 100%; height: 100%; object-fit: cover; }
+.artista__info { display: flex; flex-direction: column; gap: 16px; }
+.artista__ig { font-size: 16px; text-decoration: underline; text-underline-offset: 3px; opacity: 0.9; }
+.artista__agenda { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.artista__show { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: clamp(14px, 2.5vw, 28px); padding: 16px clamp(16px, 2.5vw, 24px); border: 1px solid var(--linha); border-radius: var(--raio-p); color: var(--preto); }
+.artista__show-data { display: flex; flex-direction: column; align-items: center; min-width: 56px; font-family: var(--display); line-height: 0.9; color: var(--terracota); }
+.artista__show-dia { font-size: 44px; }
+.artista__show-mes { font-size: 17px; letter-spacing: 0.1em; text-transform: uppercase; }
+.artista__show-titulo { font-family: var(--display); font-size: clamp(24px, 2.6vw, 32px); text-transform: uppercase; line-height: 1; margin-bottom: 4px; }
+@media (max-width: 640px) { .artista__show { grid-template-columns: auto minmax(0, 1fr); } .artista__show .btn { grid-column: 1 / -1; justify-self: start; } }

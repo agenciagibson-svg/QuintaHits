@@ -2,6 +2,7 @@ import { formatData, type Edicao } from "@/lib/edicao";
 import { instagramUrl } from "@/config/site";
 import Aba from "./Aba";
 import { CASAS, CASA_PADRAO, ehCasa } from "@/config/casas";
+import { artistaPorNome } from "@/config/artistas";
 
 const STATUS: Record<Edicao["status"], string> = {
   realizada: "já rolou",
@@ -28,6 +29,10 @@ export default function EdicaoCard({ edicao, passada = false, reservaAberta = fa
         {ehCasa(edicao.casa) && edicao.casa !== CASA_PADRAO && <span className="card__casa"> · {CASAS[edicao.casa].nome}</span>}
       </div>
       <div className="card__nome">{edicao.artista || "A confirmar"}</div>
+      {(() => {
+        const artista = artistaPorNome(edicao.artista);
+        return artista ? <a className="card__ig" href={`/artistas/${artista.slug}`}>{artista.estilo} · ver o artista</a> : null;
+      })()}
       {edicao.tema && <div className="card__tema">{edicao.tema}</div>}
       {edicao.destaque && !edicao.tema && <div className="card__tema">{edicao.destaque}</div>}
       {edicao.instagram && (

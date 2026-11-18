@@ -13,6 +13,7 @@ import MesasEditor from "./MesasEditor";
 import ProgramacaoPainel from "./ProgramacaoPainel";
 import RegrasEdicaoPainel from "./RegrasEdicaoPainel";
 import ReservasPainel from "./ReservasPainel";
+import IngressosPainel from "./IngressosPainel";
 import VisaoGeral from "./VisaoGeral";
 import {
   IconeCalendario, IconeCasa, IconeConversa, IconeExterno, IconeInicio, IconeMesas, IconeRegras, IconeReserva, IconeSair, IconeSistema, IconeUsuarios,
@@ -212,7 +213,7 @@ export default function AdminDashboard() {
                 {/* Sempre montado: mantém o contador de atendimento do menu atualizado. */}
                 <div hidden={aba !== "atendimento"}><AtendimentoPainel onContagem={setAguardando} /></div>
                 {/* key = casa: trocar de casa remonta o painel do zero (nada da outra casa fica na tela). */}
-                {painel("reservas", <ReservasPainel key={casa} casa={casa} edicoes={edicoes} pendentes={pendentesDaCasa} onMudou={carregarPendentes} />)}
+                {painel("reservas", <><ReservasPainel key={casa} casa={casa} edicoes={edicoes} pendentes={pendentesDaCasa} onMudou={carregarPendentes} /><IngressosPainel key={`ingressos-${casa}`} edicoes={edicoes} /></>)}
                 {painel("programacao", <ProgramacaoPainel key={casa} casa={casa} edicoes={edicoes} recarregar={carregarEdicoes} />)}
                 {painel("regras", <RegrasEdicaoPainel key={casa} casa={casa} edicoes={edicoes} />)}
                 {painel("mesas", <MesasEditor key={casa} casa={casa} />)}

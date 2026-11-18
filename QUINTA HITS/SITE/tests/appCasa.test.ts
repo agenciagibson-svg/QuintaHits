@@ -61,7 +61,7 @@ describe("quem entra no app da casa", () => {
 
   it("casas de cada um: equipe vê todas com reserva; dono do Florindos só a Quinta Hits; pessoal do Harley só o Harley", () => {
     vi.stubEnv("CASA_EMAILS_HARLEY_GRILL", "gerente@harley.com");
-    expect(casasDoEmail("equipe@gibson.com")).toEqual(["quinta-hits", "harley-grill"]); // Solarium ainda sem reserva
+    expect(casasDoEmail("equipe@gibson.com")).toEqual(["quinta-hits", "harley-grill", "fogo-e-brasa"]); // Solarium ainda sem reserva
     expect(casasDoEmail(DONO)).toEqual(["quinta-hits"]);
     expect(casasDoEmail("Gerente@Harley.com")).toEqual(["harley-grill"]);
     expect(emailDaCasa("gerente@harley.com")).toBe(true);

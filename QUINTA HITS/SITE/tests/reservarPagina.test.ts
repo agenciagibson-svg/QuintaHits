@@ -59,7 +59,7 @@ describe("/reservar: formulário escondido enquanto a reserva do site não estiv
     vi.stubEnv("RESERVAS_SITE_ENABLED", "true");
     const html = await renderizar();
     expect(html).not.toContain("FORMULARIO_DE_RESERVA");
-    expect(vi.mocked(situacaoDoSite).mock.calls.map((c) => c[2])).toEqual(["harley-grill"]);
+    expect(vi.mocked(situacaoDoSite).mock.calls.map((c) => c[2])).toEqual(["harley-grill", "fogo-e-brasa"]);
     expect(html).toContain("Ainda não abrimos reservas");
   });
 

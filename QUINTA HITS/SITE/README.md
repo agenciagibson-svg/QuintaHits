@@ -198,3 +198,20 @@ Reversão: `supabase/reverter-2026-10-20-multi-casa.sql` (apaga os dados do Harl
 - Paleta: `#17352B` `#F1E7D2` `#B84A32` `#D5A62A` `#171717`.
 - Placa com canto reto embaixo à direita; aba de edição pendurada nesse canto.
 - Comunicação institucional não depende do artista da semana.
+
+## Fogo e Brasa (Caldas Novas/GO) — 17/11/2026
+
+Terceira casa com reserva pelo site, no mesmo esquema do Harley Grill: página `/fogo-e-brasa`, pedidos com código **FB**
+no mesmo painel, mesas e mapa só dela (redesenhado do "Mapa do Salão" da casa: Deck 1–27, Salão 33–52, redondas de
+6 lugares 53–58 = mesas patrocinadoras, em destaque). Primeira noite: **Torresmo e Modão com Cauã Alves, 26/12/2026, 20h**
+(mesa para 4 R$ 100, patrocinadora R$ 180, ingresso R$ 25 por pessoa). Login do pessoal da casa no app:
+`CASA_EMAILS_FOGO_E_BRASA` na Vercel (opcional).
+
+### Ativar (nesta ordem)
+
+1. Publicar o site novo na Vercel (`vercel --prod`).
+2. Supabase → SQL Editor: rodar `supabase/migracao-2026-11-17-fogo-e-brasa.sql` (casa, 52 mesas, mapa, noite de 26/12 e valores).
+3. Painel → Fogo e Brasa → Regras da noite: preencher prazo, tolerância e cancelamento e liberar as reservas no site.
+   Painel → Casa: endereço do Fogo e Brasa (até lá o site mostra "Em breve").
+
+Reversão: `supabase/reverter-2026-11-17-fogo-e-brasa.sql`.

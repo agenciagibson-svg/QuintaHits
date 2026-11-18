@@ -53,7 +53,7 @@ describe("usuários cadastrados pelo painel", () => {
     expect(contas.criadas).toEqual(["ana@porta.com"]);
     expect(await acessoDoEmail("ana@porta.com")).toMatchObject({ painel: false, casas: ["harley-grill"], fixo: false, gerenciaUsuarios: false });
     expect((await incluir(json("POST", { email: "gerente@gibson.com", senha: "gerente2026", painel: true }))).status).toBe(201);
-    expect(await acessoDoEmail("gerente@gibson.com")).toMatchObject({ painel: true, casas: ["quinta-hits", "harley-grill"], gerenciaUsuarios: false });
+    expect(await acessoDoEmail("gerente@gibson.com")).toMatchObject({ painel: true, casas: ["quinta-hits", "harley-grill", "fogo-e-brasa"], gerenciaUsuarios: false });
     const lista = await (await listar()).json();
     expect(lista.podeGerenciar).toBe(true);
     expect(lista.responsaveis).toEqual([DONO]);

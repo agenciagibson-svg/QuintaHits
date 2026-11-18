@@ -11,6 +11,7 @@ import Compartilhar from "@/components/Compartilhar";
 import EdicaoCard from "@/components/EdicaoCard";
 import { noitesComReservaAberta } from "@/lib/reservasAbertas";
 import { jsonLdSeguro } from "@/lib/jsonLd";
+import { artistaPorNome } from "@/config/artistas";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,7 @@ export default async function Noite({ params }: { params: Promise<{ id: string }
   const cancelada = e.status === "cancelada";
   const outras = (await proximasEdicoes(new Date(), 4)).filter((x) => x.id !== e.id).slice(0, 3);
   const abertas = await noitesComReservaAberta();
+  const artista = artistaPorNome(e.artista);
   const textoShare = `${e.artista ? `${e.artista} · ` : ""}${diaDaSemana(e.data)}, ${formatData(e.data, "numerica")}${e.horario ? `, ${e.horario}` : ""} no ${n.lugar}. ${site.assinatura}`;
 
   const eventoLd = {
@@ -95,6 +97,9 @@ export default async function Noite({ params }: { params: Promise<{ id: string }
                 {e.tema ? ` · ${e.tema}` : ""}
               </div>
               <h1 className="display h-1 noite__titulo">{e.artista || "Line-up em breve"}</h1>
+              {artista && (
+                <Link className="card__ver" href={`/artistas/${artista.slug}`}>{artista.estilo} · ver agenda e fotos de {artista.nome} →</Link>
+              )}
               {e.destaque && <p className="lead mt-0 mb-0">{e.destaque}</p>}
               {cancelada && <p className="noite__aviso">Esta noite foi cancelada.</p>}
               <div className="proxima__linha">

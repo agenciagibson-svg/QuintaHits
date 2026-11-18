@@ -14,6 +14,8 @@ export type ReservaNaPorta = {
   status: string;
   codigo: string | null;
   chegou_em: string | null;
+  /** Ingresso individual (sem mesa): `pessoas` = quantidade de ingressos. */
+  ingresso?: boolean;
 };
 export type RespostaCheckin = { ok: boolean; erro?: string; reserva?: ReservaNaPorta | null; jaTinhaChegado?: boolean };
 
@@ -42,9 +44,9 @@ export function ResultadoPorta({ r, onDesfazer }: { r: RespostaCheckin; onDesfaz
       <div className="cs-porta-titulo">{!r.ok ? "Não liberado" : r.jaTinhaChegado ? "QR já usado" : "Pode entrar"}</div>
       {res && (
         <>
-          <div className="cs-porta-mesa">Mesa {res.mesa}</div>
+          <div className="cs-porta-mesa">{res.ingresso ? "Ingresso" : `Mesa ${res.mesa}`}</div>
           <div className="cs-porta-nome">
-            {res.nome} · {res.pessoas} pessoa{res.pessoas > 1 ? "s" : ""}
+            {res.nome} · {res.pessoas} {res.ingresso ? `ingresso${res.pessoas > 1 ? "s" : ""}` : `pessoa${res.pessoas > 1 ? "s" : ""}`}
           </div>
           <div className="cs-porta-det">
             {res.casaNome} · {formatData(res.data, "numerica")}

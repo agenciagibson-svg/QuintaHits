@@ -27,12 +27,13 @@ const MIGRACAO_CHECKIN = ler("migracao-2026-10-21-checkin.sql");
 const MIGRACAO_SEGURANCA = ler("migracao-2026-10-21-seguranca.sql");
 const MIGRACAO_USUARIOS = ler("migracao-2026-10-22-usuarios.sql");
 const MIGRACAO_PRECOS = ler("migracao-2026-11-04-valor-por-tamanho-de-mesa.sql");
+const MIGRACAO_INGRESSOS = ler("migracao-2026-11-17-ingressos.sql");
 
 export type ErroBanco = { code: string; message: string; details: string | null; hint: string | null };
 type Resposta<T> = { data: T; error: ErroBanco | null; count: number | null };
 
 const TABELAS_DE_DADOS = [
-  "casa_push", "wa_notas_internas", "reservas_historico", "reservas", "edicoes_mesas", "edicoes_regras", "wa_fila_tentativas", "wa_fila_saida",
+  "ingressos", "casa_push", "wa_notas_internas", "reservas_historico", "reservas", "edicoes_mesas", "edicoes_regras", "wa_fila_tentativas", "wa_fila_saida",
   "wa_mensagens", "wa_transferencias", "wa_conversas", "wa_contatos", "wa_webhook_eventos", "auditoria",
   "wa_config", "mesas", "site_config", "edicoes", "login_tentativas", "sessoes_encerradas", "usuarios_acesso",
 ];
@@ -208,7 +209,7 @@ export type BancoTeste = {
 
 /** `migracao: false` = banco antigo (sem nada do agente); `parte2: false` = só a parte 1 aplicada (estado do banco antes da parte 2). */
 /** `abertura: false` = banco sem as colunas da abertura semanal. Com elas, `limpar()` deixa a linha da casa SEM dia fixo. */
-export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean; casa?: boolean; multiCasa?: boolean; dadosCasas?: boolean; checkin?: boolean; seguranca?: boolean; usuarios?: boolean; precos?: boolean } = {}): Promise<BancoTeste> {
+export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boolean; planta?: boolean; abertura?: boolean; casa?: boolean; multiCasa?: boolean; dadosCasas?: boolean; checkin?: boolean; seguranca?: boolean; usuarios?: boolean; precos?: boolean; ingressos?: boolean } = {}): Promise<BancoTeste> {
   const pg = new PGlite();
   await pg.exec("create role anon; create role authenticated; create role service_role;");
   await pg.exec(BASE);
@@ -225,9 +226,21 @@ export async function criarBancoTeste(opcoes: { migracao?: boolean; parte2?: boo
   if (opcoes.checkin !== false) await pg.exec(MIGRACAO_CHECKIN);
   if (opcoes.seguranca !== false) await pg.exec(MIGRACAO_SEGURANCA);
   if (opcoes.usuarios !== false) await pg.exec(MIGRACAO_USUARIOS);
+  if (opcoes.migracao !== false && opcoes.ingressos !== false) await pg.exec(MIGRACAO_INGRESSOS);
   const temMigracao = opcoes.migracao !== false;
 
-  const supabase = { from: (tabela: string) => new Consulta(pg, tabela) } as unknown as SupabaseClient;
+  // rpc: chama a função do banco com os parâmetros nomeados (como o PostgREST faz).
+  const rpc = async (nome: string, params: Record<string, unknown> = {}) => {
+    const chaves = Object.keys(params);
+    try {
+      const r = await pg.query<{ r: unknown }>(`select ${aspas(nome)}(${chaves.map((k, i) => `${aspas(k)} => $${i + 1}`).join(", ")}) as r`, chaves.map((k) => params[k]));
+      return { data: r.rows[0]?.r ?? null, error: null };
+    } catch (e) {
+      const err = e as { code?: string; message?: string; detail?: string; hint?: string };
+      return { data: null, error: { code: err.code ?? "XX000", message: err.message ?? String(e), details: err.detail ?? null, hint: err.hint ?? null } };
+    }
+  };
+  const supabase = { from: (tabela: string) => new Consulta(pg, tabela), rpc } as unknown as SupabaseClient;
   const sql = async <T = Record<string, unknown>>(texto: string, params: unknown[] = []) =>
     (await pg.query<Record<string, unknown>>(texto, params, { parsers: PARSERS })).rows as T[];
 

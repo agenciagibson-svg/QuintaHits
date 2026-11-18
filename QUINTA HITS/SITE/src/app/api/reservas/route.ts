@@ -15,6 +15,7 @@ import { PEDIDOS_ABERTOS_POR_ENDERECO, enderecoNoLimite, impressaoDoIp } from "@
 import { formatData } from "@/lib/edicao";
 import { reservasSiteLigadoPorEnv } from "@/lib/agente/ambiente";
 import { CASAS, CASA_PADRAO, casaDaEdicaoId, dataDaEdicaoId } from "@/config/casas";
+import { vendaDeIngressos } from "@/lib/ingressos";
 import {
   MAX_RESERVAS_POR_WHATSAPP,
   PRAZO_CONFIRMACAO_MIN,
@@ -93,6 +94,12 @@ export async function POST(req: Request) {
     const mesa = verificacao.mesa!;
     if (!verificacao.ok && verificacao.motivo === "lugares_insuficientes") {
       return erro(`A mesa ${mesa.numero} é para até ${mesa.lugares} pessoas. Escolha uma mesa maior.`, 400);
+    }
+
+    // Noite que também vende ingresso individual: mesa e ingresso dividem a mesma lotação (capacidade máxima).
+    const venda = await vendaDeIngressos(edicaoId).catch(() => null);
+    if (venda && venda.restantes !== null && pessoas > venda.restantes) {
+      return erro(venda.restantes > 0 ? `Restam só ${venda.restantes} lugares para esta noite.` : "A lotação desta noite está completa.", 409);
     }
 
     const { count, error: erroContagem } = await db

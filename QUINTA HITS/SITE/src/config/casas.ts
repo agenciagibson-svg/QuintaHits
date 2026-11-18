@@ -6,7 +6,7 @@
  * (mapa, regras, prazos, painel), cada uma com as próprias mesas, edições e planta, e uma página própria.
  */
 
-export type CasaId = "quinta-hits" | "harley-grill" | "solarium";
+export type CasaId = "quinta-hits" | "harley-grill" | "solarium" | "fogo-e-brasa";
 
 export const CASA_PADRAO: CasaId = "quinta-hits";
 
@@ -97,6 +97,28 @@ export const CASAS: Record<CasaId, Casa> = {
     // reservas: true e criar src/app/solarium/page.tsx (igual ao do Harley).
     reservas: false,
     mapa: { proporcao: 4 / 3, fundo: null, tamanhoMesa: null, larguraMinima: null, destaque: null },
+  },
+  "fogo-e-brasa": {
+    id: "fogo-e-brasa",
+    nome: "Fogo e Brasa",
+    rotulo: "Fogo e Brasa · Caldas Novas",
+    local: "Fogo e Brasa",
+    pagina: "/fogo-e-brasa",
+    prefixoCodigo: "FB",
+    noite: "noite",
+    naCasa: "no Fogo e Brasa",
+    soQuinta: false,
+    reservas: true,
+    // Mapa redesenhado a partir do "Mapa do Salão" da casa (Caldas Novas/GO): Deck à esquerda, Salão à direita, com
+    // palco, bar, parrilha, cozinha, banheiros, caixa e Área Kids. Mesas de 4 lugares; as redondas de 6 lugares
+    // (53 a 58) são as mesas patrocinadoras (área "Patrocinadora"). Tudo ajustável no painel (Mesas).
+    mapa: {
+      proporcao: 900 / 630,
+      fundo: null,
+      tamanhoMesa: 4,
+      larguraMinima: 860,
+      destaque: { area: "Patrocinadora", rotulo: "Mesa patrocinadora" },
+    },
   },
 };
 

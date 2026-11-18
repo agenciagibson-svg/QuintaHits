@@ -7,6 +7,8 @@ import { formatData } from "@/lib/edicao";
 import { estadoDasReservasDoSite } from "@/lib/reservasSite";
 import ReservaVariasCasas from "@/components/ReservaVariasCasas";
 import { dadosDaCasa, mapsUrlDe } from "@/lib/casasDados";
+import IngressoIndividual from "@/components/IngressoIndividual";
+import { MAX_INGRESSOS_POR_PEDIDO, vendaDeIngressos } from "@/lib/ingressos";
 
 /**
  * Página de reserva de uma casa que não é a Quinta Hits (ex.: Harley Grill em /harley-grill e no domínio próprio).
@@ -34,6 +36,10 @@ export default async function PaginaReservaCasa({ casa, edicaoInicial }: { casa:
   const dados = await dadosDaCasa(casa);
   const mapa = mapsUrlDe(dados, c.nome);
   const endereco = [dados.endereco, dados.bairro, dados.cidade].filter(Boolean).join(" — ");
+  // Noite aberta nesta tela (a mesma regra de ReservaVariasCasas): o ingresso individual, quando a noite vende, fica
+  // num bloco próprio, separado do mapa de mesas.
+  const noiteNaTela = edicoes.find((e) => e.id === edicaoInicial) ?? (edicoes.length === 1 ? edicoes[0] : null);
+  const ingresso = noiteNaTela ? await vendaDeIngressos(noiteNaTela.id).catch(() => null) : null;
 
   return (
     <div className="pagina-casa">
@@ -51,7 +57,7 @@ export default async function PaginaReservaCasa({ casa, edicaoInicial }: { casa:
           <div className="cabeca">
             <div>
               <div className="eyebrow">{c.nome}</div>
-              <h1 className="display h-1" style={{ margin: "6px 0 0" }}>Escolha sua mesa.</h1>
+              <h1 className="display h-1" style={{ margin: "6px 0 0" }}>{ingresso ? "Ingressos e mesas." : "Escolha sua mesa."}</h1>
               {(endereco || dados.quando) && (
                 <p className="pagina-casa__endereco">
                   {[endereco, dados.quando].filter(Boolean).join(" · ")}
@@ -76,11 +82,19 @@ export default async function PaginaReservaCasa({ casa, edicaoInicial }: { casa:
               </p>
             </div>
           ) : (
+            <>
+            {ingresso && noiteNaTela && (
+              <>
+                <IngressoIndividual edicaoId={noiteNaTela.id} valorCentavos={ingresso.valorCentavos} restantes={ingresso.restantes} maximo={MAX_INGRESSOS_POR_PEDIDO} />
+                <h2 className="display h-2 pagina-casa__mesas-titulo">Ou reserve uma mesa.</h2>
+              </>
+            )}
             <ReservaVariasCasas
               noites={prontas.map((p) => ({ casa, edicao: p.edicao, regras: regrasPublicas(p.regras), manual: true }))}
               instagram=""
               edicaoInicial={edicaoInicial}
             />
+            </>
           )}
         </div>
       </section>
